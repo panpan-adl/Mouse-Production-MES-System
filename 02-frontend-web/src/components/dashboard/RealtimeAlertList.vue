@@ -34,7 +34,7 @@ defineProps<{
 .panel {
   border: 1px solid rgba(132, 146, 168, 0.14);
   border-radius: 8px;
-  background: #0d1424;
+  background: #ffffff;
   padding: 12px;
   min-height: 0;
 }
@@ -51,7 +51,7 @@ defineProps<{
 }
 
 h2 {
-  color: #f4f7fc;
+  color: #273d56;
   font-size: 14px;
   font-weight: 700;
 }
@@ -74,7 +74,7 @@ h2 {
   min-height: 0;
   border-radius: 8px;
   padding: 9px;
-  background: rgba(7, 11, 20, 0.54);
+  background: #f5f8fc;
   border-left: 3px solid var(--tone);
 }
 
@@ -102,7 +102,7 @@ h2 {
 }
 
 .alert-head strong {
-  color: #f4f7fc;
+  color: #273d56;
   font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -127,11 +127,11 @@ p {
 }
 
 .warning {
-  --tone: #ffb547;
+  --tone: #dba344;
 }
 
 .error {
-  --tone: #ff5d73;
+  --tone: #e26677;
 }
 
 @media (max-width: 1280px) {

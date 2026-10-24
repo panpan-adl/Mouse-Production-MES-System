@@ -41,11 +41,12 @@ public class BusinessQueryService {
         if((from==null)!=(to==null))throw new IllegalArgumentException("请同时填写起止日期");
         if(from!=null&&(!from.isBefore(to)||to.isAfter(LocalDate.now().plusDays(1).atStartOfDay())))throw new IllegalArgumentException("日期范围无效或包含未来日期");
         if(kind.equals("SHORTAGE")&&(from!=null))throw new IllegalArgumentException("缺料查询使用当前库存，请清除历史日期");
+        if(kind.equals("SHORTAGE")&&warehouse!=null&&scalar("SELECT COUNT(*) FROM t_warehouse WHERE id=? AND warehouse_code='WH-A100-LINE'",warehouse).signum()>0)throw new IllegalArgumentException("线边库存已经分配给工单，不作为其他工单的可用库存，请选择外部仓库");
         List<Map<String,Object>> rows=new ArrayList<>();
         for(var m:materials){long mid=((Number)m.get("id")).longValue();
             if(kind.equals("SHORTAGE")){
-                BigDecimal current=warehouse==null?scalar("SELECT COALESCE(SUM(quantity),0) FROM t_inventory WHERE material_id=? AND is_deleted=0",mid):scalar("SELECT COALESCE(SUM(quantity),0) FROM t_inventory WHERE material_id=? AND warehouse_id=? AND is_deleted=0",mid,warehouse);
-                BigDecimal required=scalar("SELECT COALESCE(SUM(r.required_quantity),0) FROM mm_work_material r WHERE r.material_id=? AND NOT EXISTS(SELECT 1 FROM mm_stock_posting s WHERE s.kind='ISSUE' AND s.source_id=r.work_order_id)",mid);
+                BigDecimal current=warehouse==null?scalar("SELECT COALESCE(SUM(quantity),0) FROM t_inventory WHERE material_id=? AND is_deleted=0 AND warehouse_id NOT IN(SELECT id FROM t_warehouse WHERE warehouse_code='WH-A100-LINE')",mid):scalar("SELECT COALESCE(SUM(quantity),0) FROM t_inventory WHERE material_id=? AND warehouse_id=? AND is_deleted=0",mid,warehouse);
+                BigDecimal required=scalar("SELECT COALESCE(SUM(GREATEST(0,r.required_quantity-COALESCE((SELECT SUM(x.quantity) FROM mm_line_movement x WHERE x.work_order_id=r.work_order_id AND x.material_id=r.material_id AND x.kind IN('ISSUE','LINE_ISSUE','LINE_RETURN')),0))),0) FROM mm_work_material r WHERE r.material_id=? AND (NOT EXISTS(SELECT 1 FROM mm_stock_posting s WHERE s.kind='ISSUE' AND s.source_id=r.work_order_id) OR EXISTS(SELECT 1 FROM mm_line_movement lm WHERE lm.work_order_id=r.work_order_id))",mid);
                 BigDecimal target=required.max(num(m.get("safety_stock"))),shortage=target.subtract(current).max(BigDecimal.ZERO);
                 if(shortage.signum()>0){var r=new LinkedHashMap<String,Object>(m);r.put("current_quantity",current);r.put("required_quantity",required);r.put("shortage_quantity",shortage);r.put("warehouse",warehouse==null?"全部仓库":"指定仓库可用量；需求为全部未领料工单");rows.add(r);}continue;
             }

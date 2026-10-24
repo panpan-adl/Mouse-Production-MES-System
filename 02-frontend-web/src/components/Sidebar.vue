@@ -21,6 +21,7 @@ import {
   Wrench,
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { sidebarCollapsed } from '@/stores/layout'
 
 interface ChildMenuItem {
   path: string
@@ -40,9 +41,10 @@ interface MenuItem {
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
-const collapsed = ref(false)
+const collapsed = sidebarCollapsed
 
 const allMenuItems = ref<MenuItem[]>([
+  {path:'/mes',name:'MES运营中心',icon:Package},
   {path:'/intelligence',name:'智能业务查询',icon:BarChart3},
   {path:'/automation',name:'规则与自动化',icon:ClipboardCheck},
   { path: '/', name: '首页', icon: LayoutDashboard },
@@ -63,6 +65,7 @@ const allMenuItems = ref<MenuItem[]>([
     children: [
       { path: '/purchase/requests', name: '采购需求', icon: ClipboardCheck },
       { path: '/purchase/order', name: '采购订单', icon: FileText },
+      { path: '/purchase/returns', name: '供应商退货', icon: FileText, roles: [1,2,5,6,10] },
       { path: '/purchase/supplier', name: '供应商管理', icon: Users },
     ],
   },
@@ -70,6 +73,7 @@ const allMenuItems = ref<MenuItem[]>([
     name: '生产管理',
     icon: MousePointer2,
     children: [
+      { path: '/production/work-orders', name: '生产工单', icon: ClipboardCheck, roles: [1,2,3,4,5] },
       { path: '/production/plan', name: '生产计划', icon: FileText },
       { path: '/production/task', name: '生产任务', icon: CheckCircle },
       { path: '/production/equipment-status', name: '设备状态管理', icon: Wrench, roles: [3] },
@@ -93,6 +97,10 @@ const allMenuItems = ref<MenuItem[]>([
       { path: '/inventory/material', name: '物料管理', icon: Package },
       { path: '/inventory/in', name: '入库管理', icon: ShoppingCart },
       { path: '/inventory/out', name: '出库管理', icon: ShoppingCart },
+      { path: '/inventory/production-issue', name: '生产领料', icon: Package, roles:[1,2,5] },
+      { path: '/inventory/production-return', name: '生产退料', icon: Package, roles:[1,2,5] },
+      { path: '/inventory/product-receipts', name: '产成品入库', icon: Package, roles:[1,2,5] },
+      { path: '/inventory/packages', name: '装箱管理', icon: Package, roles:[1,2,5,7] },
       { path: '/inventory/material-requests', name: '物料请求', icon: ClipboardCheck },
     ],
   },
@@ -116,6 +124,7 @@ const allMenuItems = ref<MenuItem[]>([
       { path: '/system/user', name: '员工管理', icon: Users },
       { path: '/system/role', name: '角色管理', icon: Settings },
       { path: '/system/department', name: '部门管理', icon: Users },
+      { path: '/system/logs', name: '日志管理', icon: FileText },
     ],
   },
 ])
@@ -136,26 +145,33 @@ const roleMenus: Record<number, string[]> = {
 
 const roleChildMenus: Record<number, Record<string, string[]>> = {
   3: {
-    生产管理: ['生产任务', '设备状态管理'],
+    生产管理: ['生产工单', '生产任务', '设备状态管理'],
   },
   5: {
-    仓库管理: ['仓库库存', '物料管理', '入库管理', '出库管理', '物料请求'],
-    采购管理: ['采购订单'],
+    仓库管理: ['仓库库存', '物料管理', '入库管理', '出库管理', '物料请求','生产领料','生产退料','产成品入库','装箱管理'],
+    采购管理: ['采购订单','供应商退货'],
   },
   6: {
-    采购管理: ['采购需求', '采购订单', '供应商管理'],
+    采购管理: ['采购需求', '采购订单', '供应商管理','供应商退货'],
   },
   8: {
     设备管理: ['设备维修任务', '定期维护保养', '维护账单'],
   },
 }
 
-const menuItems = computed(() => {
+const roleMenuItems = computed(() => {
   const roleId = authStore.currentUser?.roleId
   if (!roleId || !roleMenus[roleId]) return []
-  return allMenuItems.value.filter((item) => roleId === 9 || (item.name === '智能业务查询' && [1,2,4,5,6,7,10].includes(roleId)) || (item.name === '规则与自动化' && [1,2,4,6].includes(roleId)) || (item.name === '生产与仓储闭环' && [1,2,3,4,5,6,7,8,10].includes(roleId)) || roleMenus[roleId].includes(item.name) || (item.name === '基础配置中心' && [1,2,4,5,6,7,8].includes(roleId)) || (item.name === '制造与质量放行' && [1,2,3,4].includes(roleId)))
+  return allMenuItems.value.filter((item) => roleId === 9 || item.name==='MES运营中心' || (item.name === '智能业务查询' && [1,2,4,5,6,7,10].includes(roleId)) || (item.name === '规则与自动化' && [1,2,4,6].includes(roleId)) || (item.name === '生产与仓储闭环' && [1,2,3,4,5,6,7,8,10].includes(roleId)) || roleMenus[roleId].includes(item.name) || (item.name === '基础配置中心' && [1,2,4,5,6,7,8,11].includes(roleId)) || (item.name === '制造与质量放行' && [1,2,3,4].includes(roleId)))
 })
 
+const menuItems=computed(()=>roleMenuItems.value.map(item=>{
+  if(item.path?.startsWith('/foundation')&&!authStore.hasMenu(item.path)){
+    const granted=authStore.menuPaths?.find(p=>p.startsWith('/foundation/'))
+    if(granted)return {...item,path:granted}
+  }
+  return item
+}).filter(item=>item.path?authStore.hasMenu(item.path):visibleChildren(item).length>0))
 const currentUser = computed(() => authStore.currentUser)
 
 function visibleChildren(item: MenuItem) {
@@ -163,8 +179,8 @@ function visibleChildren(item: MenuItem) {
   const allowedChildren = roleId ? roleChildMenus[roleId]?.[item.name] : undefined
   if (!item.children) return []
   const roleVisibleChildren = item.children.filter((child) => roleId === 9 || !child.roles || (roleId && child.roles.includes(roleId)))
-  if (!allowedChildren) return roleVisibleChildren
-  return roleVisibleChildren.filter((child) => allowedChildren.includes(child.name))
+  if (!allowedChildren) return roleVisibleChildren.filter(child=>authStore.hasMenu(child.path))
+  return roleVisibleChildren.filter((child) => allowedChildren.includes(child.name)&&authStore.hasMenu(child.path))
 }
 
 function isChildActive(item: MenuItem) {
@@ -185,26 +201,26 @@ function handleLogout() {
 <template>
   <aside
     :class="[
-      'fixed left-0 top-0 h-screen bg-white border-r border-gray-200 z-50 transition-all duration-300 flex flex-col',
-      collapsed ? 'w-16' : 'w-64'
+      'mes-sidebar fixed left-0 top-0 h-screen z-50 flex flex-col',
+      collapsed ? 'sidebar-small' : 'sidebar-large'
     ]"
   >
-    <div class="h-16 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between px-4 shrink-0">
+    <div class="sidebar-brand flex items-center justify-between px-4 shrink-0">
       <div v-if="!collapsed" class="flex items-center space-x-3">
         <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
           <MousePointer2 class="w-5 h-5 text-white" />
         </div>
-        <span class="text-white font-bold text-sm">Mouse MES</span>
+        <span class="text-white font-bold text-sm">{{authStore.settings.APP_NAME||'Mouse MES'}}<small class="brand-caption">制造执行管理平台</small></span>
       </div>
       <div v-else class="flex justify-center w-full">
         <MousePointer2 class="w-5 h-5 text-white" />
       </div>
-      <button v-if="!collapsed" class="p-1 text-white/70 hover:text-white" @click="collapsed = true">
+      <button v-if="!collapsed" aria-label="收起导航" class="p-1 text-white/70 hover:text-white" @click="collapsed = true">
         <ChevronLeft class="w-5 h-5" />
       </button>
     </div>
 
-    <div class="p-3 border-b border-gray-100">
+    <div class="sidebar-identity p-3">
       <div class="flex items-center space-x-3">
         <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
           <User class="w-5 h-5 text-blue-600" />
@@ -225,7 +241,8 @@ function handleLogout() {
                 'w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
                 isChildActive(item) ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'
               ]"
-              @click="item.expanded = !item.expanded"
+              @click="collapsed ? (collapsed=false,item.expanded=true) : item.expanded=!item.expanded"
+              :title="item.name" :aria-expanded="Boolean(item.expanded||isChildActive(item))"
             >
               <component :is="item.icon" class="w-5 h-5 mr-3 shrink-0" />
               <span v-if="!collapsed" class="flex-1 text-left">{{ item.name }}</span>
@@ -252,7 +269,7 @@ function handleLogout() {
                 'w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
                 route.path === item.path ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'
               ]"
-            @click="navigate(item.path)"
+            @click="navigate(item.path)" :title="item.name"
           >
             <component :is="item.icon" class="w-5 h-5 mr-3 shrink-0" />
             <span v-if="!collapsed">{{ item.name }}</span>
@@ -261,7 +278,7 @@ function handleLogout() {
       </ul>
     </nav>
 
-    <div class="p-2 border-t border-gray-100">
+    <div class="sidebar-bottom p-2">
       <button
         :class="[
           'w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all',

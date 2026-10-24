@@ -1,0 +1,16 @@
+[
+  {
+    "backend_port": 8080,
+    "frontend_port": 5173,
+    "read_endpoints": 17,
+    "permissions_verified": true,
+    "database": "mouse_mes"
+  },
+  {
+    "backend_port": 8082,
+    "frontend_port": 5174,
+    "read_endpoints": 17,
+    "permissions_verified": true,
+    "database": "mouse_mes_completion_test_20261024_102633"
+  }
+]

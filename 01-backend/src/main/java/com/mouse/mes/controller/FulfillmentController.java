@@ -23,12 +23,12 @@ public class FulfillmentController {
     @GetMapping("/postings") public Object postings(){return JsonResult.success(service.postings());}
     @GetMapping("/purchases") public Object purchases(){return JsonResult.success(service.purchases());}
     @GetMapping("/purchases/{id}/items") public Object items(@PathVariable long id){return JsonResult.success(service.purchaseItems(id));}
-    @GetMapping("/inspection-sources") public Object sources(@RequestParam String kind){return JsonResult.success(service.inspectionSources(kind));}
+    @GetMapping("/inspection-sources") public Object sources(@RequestParam String kind,@RequestParam(defaultValue="FINAL") String phase){return JsonResult.success(service.inspectionSources(kind,phase));}
     private Long location(Map<String,Object> v){return v.get("location_id")==null?null:FulfillmentService.n(v.get("location_id"));}
     @PostMapping("/work-orders/{id}/issue") public Object issue(@PathVariable long id,@RequestBody Map<String,Object> v,HttpServletRequest r){long actor=actor(r);return JsonResult.success(service.issue(id,FulfillmentService.n(v.get("warehouse_id")),actor));}
     @PostMapping("/work-orders/{id}/receive") public Object receive(@PathVariable long id,@RequestBody Map<String,Object> v,HttpServletRequest r){long actor=actor(r);return JsonResult.success(service.receiveProduction(id,FulfillmentService.n(v.get("warehouse_id")),location(v),actor));}
     @PostMapping("/purchases/{id}/receive") public Object purchase(@PathVariable long id,@RequestBody Map<String,Object> v,HttpServletRequest r){long actor=actor(r);return JsonResult.success(service.receivePurchase(id,FulfillmentService.n(v.get("warehouse_id")),location(v),actor));}
     @PostMapping("/orders/{id}/ship") public Object ship(@PathVariable long id,@RequestBody Map<String,Object> v,HttpServletRequest r){long actor=actor(r);return JsonResult.success(service.ship(id,FulfillmentService.n(v.get("warehouse_id")),actor));}
     @ExceptionHandler(SecurityException.class) @ResponseStatus(org.springframework.http.HttpStatus.FORBIDDEN) public Object denied(Exception e){return JsonResult.error(403,e.getMessage());}
-    @ExceptionHandler({IllegalArgumentException.class,DataAccessException.class}) @ResponseStatus(org.springframework.http.HttpStatus.BAD_REQUEST) public Object invalid(Exception e){return JsonResult.error(400,e instanceof DataAccessException?"库存或单据关联校验失败，操作未过账":e.getMessage());}
+    @ExceptionHandler({IllegalArgumentException.class,ArithmeticException.class,java.time.DateTimeException.class,DataAccessException.class}) @ResponseStatus(org.springframework.http.HttpStatus.BAD_REQUEST) public Object invalid(Exception e){return JsonResult.error(400,e instanceof DataAccessException?"库存或单据关联校验失败，操作未过账":e.getMessage());}
 }

@@ -105,6 +105,9 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             throw new IllegalArgumentException("维修单不存在");
         }
         mergeMissingFields(maintenance, existing);
+        if(!java.util.Objects.equals(maintenance.getStatus(),existing.getStatus())||!java.util.Objects.equals(maintenance.getEquipmentId(),existing.getEquipmentId())||!java.util.Objects.equals(maintenance.getMaintenanceUserId(),existing.getMaintenanceUserId()))
+            throw new IllegalArgumentException("不能直接修改维修状态、设备或负责人，请使用指派、开始和完成操作");
+        if(MaintenanceStatus.FINISHED.equals(existing.getStatus())||MaintenanceStatus.CANCELLED.equals(existing.getStatus()))throw new IllegalArgumentException("已关闭维修单保留历史，不可修改");
         if (!MaintenanceStatus.isValid(maintenance.getStatus())) {
             throw new IllegalArgumentException("维修单状态不合法");
         }
@@ -156,6 +159,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         if (maintenanceContent == null || maintenanceContent.isBlank()) {
             throw new IllegalArgumentException("维修内容不能为空");
         }
+        if(cost!=null&&cost.signum()<0)throw new IllegalArgumentException("维修费用不能为负数");
         maintenance.setMaintenanceContent(maintenanceContent);
         maintenance.setResult(result == null || result.isBlank() ? "REPAIRED" : result);
         maintenance.setCost(cost == null ? BigDecimal.ZERO : cost);

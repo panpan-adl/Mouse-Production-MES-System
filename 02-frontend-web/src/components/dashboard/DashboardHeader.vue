@@ -90,7 +90,7 @@ function updateField(filters: DashboardFilters, key: keyof DashboardFilters, val
 }
 
 h1 {
-  color: #f4f7fc;
+  color: #273d56;
   font-size: clamp(22px, 2vw, 32px);
   font-weight: 800;
   line-height: 1.1;
@@ -110,8 +110,8 @@ h1 {
   height: 34px;
   border: 1px solid rgba(132, 146, 168, 0.18);
   border-radius: 8px;
-  background: rgba(13, 20, 36, 0.94);
-  color: #f4f7fc;
+  background: #ffffff;
+  color: #273d56;
 }
 
 .control-input {
@@ -141,11 +141,11 @@ h1 {
 
 .time-box strong {
   font-size: 13px;
-  color: #f4f7fc;
+  color: #273d56;
 }
 
 .time-box.muted strong {
-  color: #31d0aa;
+  color: #18a78e;
 }
 
 .icon-button {
@@ -159,7 +159,7 @@ h1 {
 
 .icon-button:hover {
   border-color: rgba(79, 124, 255, 0.8);
-  color: #f4f7fc;
+  color: #273d56;
   background: rgba(79, 124, 255, 0.12);
 }
 

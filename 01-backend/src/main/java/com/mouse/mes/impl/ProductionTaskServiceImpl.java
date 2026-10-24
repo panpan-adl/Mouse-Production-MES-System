@@ -17,6 +17,7 @@ import java.util.List;
 
 @Service
 public class ProductionTaskServiceImpl implements ProductionTaskService {
+    @Autowired private com.mouse.mes.service.LineStockService lineStock;
 
     @Autowired
     private com.mouse.mes.service.FoundationService foundationService;
@@ -204,7 +205,9 @@ public class ProductionTaskServiceImpl implements ProductionTaskService {
      * 操作工开始已派发给自己的任务。
      */
     @Override
+    @Transactional
     public ProductionTask start(Long taskId, Long userId) {
+        foundationService.lockTask(taskId);
         foundationService.checkTaskPredecessors(taskId);
         if (userId == null) {
             throw new RuntimeException("操作人不能为空");
@@ -263,6 +266,7 @@ public class ProductionTaskServiceImpl implements ProductionTaskService {
         report.setReportTime(new Date());
         report.setRemark(remark);
         productionReportMapper.insert(report);
+        lineStock.reported(taskId,report.getId(),reportQuantity);
 
         if (taskStatus == ProductionTask.STATUS_CLAIMED) {
             task.setTaskStatus(ProductionTask.STATUS_IN_PROGRESS);

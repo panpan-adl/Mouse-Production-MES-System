@@ -3,6 +3,15 @@ import { useAuthStore } from '@/stores/auth'
 import { canVisit } from '@/utils/permissions'
 
 const routes: RouteRecordRaw[] = [
+  ...[
+    {path:'/purchase/returns',title:'供应商退货',mesTab:'documents',documentKind:'PURCHASE_RETURN',description:'按原采购单与收货批次退货，确认后从指定仓库扣减库存。'},
+    {path:'/inventory/production-issue',title:'生产领料',mesTab:'documents',documentKind:'LINE_ISSUE',description:'选择生产工单与库存批次，将物料从原仓库转入工单线边库。'},
+    {path:'/inventory/production-return',title:'生产退料',mesTab:'documents',documentKind:'LINE_RETURN',description:'将指定工单线边库中的剩余物料退回仓库，保留批次与库存流水。'},
+    {path:'/inventory/product-receipts',title:'产成品入库',mesTab:'documents',documentKind:'PRODUCTION_RECEIPT',description:'将已完成检验放行的工单产出转入成品仓库，之后可装箱与发货。'},
+    {path:'/inventory/packages',title:'装箱管理',mesTab:'packages',description:'新建包装箱、装入成品或关联子箱，确认装箱并生成追溯二维码。'},
+    {path:'/production/work-orders',title:'生产工单',mesTab:'work-orders',description:'创建订单或备货工单，选择产品、BOM、工艺路线及负责人后下达。'},
+  ].map(module=>({path:module.path,component:()=>import('@/views/foundation/MesOperations.vue'),meta:{requiresAuth:true,...module}})),
+  {path:'/mes',component:()=>import('@/views/foundation/MesOperations.vue'),meta:{requiresAuth:true}},
   {path:'/intelligence',component:()=>import('@/views/foundation/Intelligence.vue'),meta:{requiresAuth:true}},
   {path:'/automation',component:()=>import('@/views/foundation/Automation.vue'),meta:{requiresAuth:true}},
   { path: '/fulfillment', component: () => import('@/views/foundation/Fulfillment.vue'), meta: { requiresAuth: true } },
@@ -189,6 +198,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/system/logs',
+    name: 'SystemLogs',
+    component: () => import('@/views/system/Logs.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/attendance',
     name: 'Attendance',
     component: () => import('@/views/Attendance.vue'),
@@ -261,8 +276,9 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
+  if(authStore.isLoggedIn&&authStore.menuPaths===null){try{await authStore.refreshMenuAccess()}catch{authStore.logout();next('/login');return}}
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
     next('/login')
   } else if (to.path === '/login' && authStore.isLoggedIn) {
@@ -270,6 +286,8 @@ router.beforeEach((to, _from, next) => {
   } else if (to.path === '/' && authStore.isLoggedIn && authStore.redirectPath !== '/') {
     next(authStore.redirectPath)
   } else if (to.meta.requiresAuth && !canVisit(Number(authStore.currentUser?.roleId), to.path)) {
+    next('/dashboard')
+  } else if(to.meta.requiresAuth&&!authStore.hasMenu(to.path)) {
     next('/dashboard')
   } else {
     next()

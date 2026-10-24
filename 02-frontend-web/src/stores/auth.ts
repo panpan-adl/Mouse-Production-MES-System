@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { login as apiLogin } from '@/api/auth'
+import request from '@/utils/request'
 
 export interface User {
   id: number
@@ -29,40 +30,6 @@ export interface Notification {
 
 const STORAGE_KEY = 'ptl_auth'
 
-const mockNotifications: Notification[] = [
-  {
-    id: 1,
-    title: '生产计划更新',
-    content: '订单 ORD-2024-0001 的生产计划已更新，请及时查看',
-    type: 'info',
-    createdAt: '2024-07-13 09:30',
-    isRead: false,
-  },
-  {
-    id: 2,
-    title: 'CEO公告',
-    content: '公司将于下周一举行年度总结会议，请各部门负责人准时参加',
-    type: 'warning',
-    createdAt: '2024-07-13 08:00',
-    isRead: false,
-  },
-  {
-    id: 3,
-    title: '质检通知',
-    content: '批次 LOT-2024-001 产品质检完成，合格率98.5%',
-    type: 'success',
-    createdAt: '2024-07-12 16:45',
-    isRead: true,
-  },
-  {
-    id: 4,
-    title: '设备维护提醒',
-    content: '设备 EQ-005 维护周期已到，请安排维护人员进行保养',
-    type: 'warning',
-    createdAt: '2024-07-12 10:00',
-    isRead: false,
-  },
-]
 
 function loadPersistedState(): { currentUser: User | null } {
   try {
@@ -88,7 +55,15 @@ function savePersistedState(currentUser: User | null) {
 export const useAuthStore = defineStore('auth', () => {
   const { currentUser: savedUser } = loadPersistedState()
   const currentUser = ref<User | null>(savedUser)
-  const notifications = ref<Notification[]>([...mockNotifications])
+  const notifications = ref<Notification[]>([])
+  const menuPaths=ref<string[]|null>(null)
+  const settings=ref<Record<string,string>>({APP_NAME:'Mouse MES',DEFAULT_DURATION_MINUTES:'60'})
+  async function refreshSettings(){const rows=await request.get<{code:string;value:string}[]>('/mes/settings');settings.value=Object.fromEntries(rows.map(r=>[r.code,r.value]));if(settings.value.APP_NAME)document.title=settings.value.APP_NAME}
+  async function refreshMenuAccess(){const rows=await request.get<{path:string}[]>('/mes/menu-access');menuPaths.value=rows.map(r=>r.path)}
+  function hasMenu(path:string):boolean {
+    if(currentUser.value?.roleId===9||!menuPaths.value?.length||['/','/dashboard','/login','/notifications','/user/profile'].includes(path))return true
+    return menuPaths.value.some(p=>path===p||path.startsWith(p+'/'))
+  }
   const isLoggedIn = computed(() => currentUser.value !== null)
   const unreadCount = computed(() =>
     notifications.value.filter((n) => !n.isRead).length
@@ -146,26 +121,34 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout() {
+    notifications.value = []
     currentUser.value = null
+    menuPaths.value=null
     localStorage.removeItem(STORAGE_KEY)
   }
 
-  function markNotificationAsRead(id: number) {
-    const notification = notifications.value.find((n) => n.id === id)
-    if (notification) {
-      notification.isRead = true
-    }
+  async function loadNotifications() {
+    if (!currentUser.value) { notifications.value = []; return }
+    const rows = await request.get<Notification[]>('/mes/notices')
+    notifications.value = rows.map(n => ({...n,isRead: Boolean(n.isRead)}))
   }
-
-  function markAllAsRead() {
-    notifications.value.forEach((n) => {
-      n.isRead = true
-    })
+  async function markNotificationAsRead(id: number) {
+    await request.post(`/mes/notices/${id}/read`)
+    await loadNotifications()
   }
-
+  async function markAllAsRead() {
+    for (const notice of notifications.value.filter(n => !n.isRead)) await request.post(`/mes/notices/${notice.id}/read`)
+    await loadNotifications()
+  }
   return {
     currentUser,
     notifications,
+    menuPaths,
+    settings,
+    refreshSettings,
+    refreshMenuAccess,
+    hasMenu,
+    loadNotifications,
     isLoggedIn,
     unreadCount,
     roleCode,

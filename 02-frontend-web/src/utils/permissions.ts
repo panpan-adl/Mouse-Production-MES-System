@@ -3,6 +3,12 @@ export function canVisit(role: number, path: string): boolean {
   if (role === 9) return true
   if (!role || role < 1 || role > 11) return false
   if (['/', '/dashboard', '/notifications', '/user/profile', '/attendance'].includes(path)) return true
+  if(path==='/mes')return true
+  if(path==='/purchase/returns')return [1,2,4,5,6,7,10].includes(role)
+  if(['/inventory/production-issue','/inventory/production-return','/inventory/product-receipts'].includes(path))return [1,2,4,5,6,7,10].includes(role)
+  if(path==='/inventory/packages')return [1,2,5,7].includes(role)
+  if(path==='/production/work-orders')return [1,2,3,4,5].includes(role)
+
   if(path === '/intelligence')return [1,2,4,5,6,7,10].includes(role)
   if(path === '/automation')return [1,2,4,6].includes(role)
   if (path.startsWith('/foundation')) return true

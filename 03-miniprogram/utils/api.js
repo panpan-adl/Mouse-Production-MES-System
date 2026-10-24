@@ -1,13 +1,14 @@
 const isDev = true
-const DEV_BASE_URL = 'http://172.24.79.157:8080'
+const DEV_BASE_URL = 'http://127.0.0.1:8080'
 const PROD_BASE_URL = 'http://your-domain.com:8080'
 const BASE_URL = isDev ? DEV_BASE_URL : PROD_BASE_URL
+const getBaseUrl = () => String(wx.getStorageSync('mesBaseUrl') || BASE_URL).replace(/\/$/,'')
 
 const request = (options) => {
   return new Promise((resolve, reject) => {
     const token = wx.getStorageSync('token')
     wx.request({
-      url: BASE_URL + options.url,
+      url: getBaseUrl() + options.url,
       method: options.method || 'GET',
       data: options.data || {},
       header: {
@@ -17,7 +18,9 @@ const request = (options) => {
       success: (res) => {
         if (res.statusCode === 200) {
           const data = res.data
-          if (data.code === 200) {
+          if (typeof data.code === 'undefined') {
+            resolve(data)
+          } else if (data.code === 200) {
             resolve(data.data)
           } else {
             wx.showToast({
@@ -35,7 +38,7 @@ const request = (options) => {
           wx.redirectTo({
             url: '/pages/login/login'
           })
-          reject(res)
+          reject(res.data || res)
         } else {
           wx.showToast({
             title: '网络请求失败',
@@ -66,14 +69,14 @@ const login = (userCode, password) => {
 
 const logout = () => {
   return request({
-    url: '/api/users/logout',
+    url: '/api/auth/logout',
     method: 'POST'
   })
 }
 
 const getUserInfo = () => {
   return request({
-    url: '/api/users/info',
+    url: '/api/users/' + (wx.getStorageSync('userInfo') || {}).id,
     method: 'GET'
   })
 }
@@ -85,7 +88,7 @@ const orderApi = {
     return new Promise((resolve) => {
       const token = wx.getStorageSync('token')
       wx.request({
-        url: BASE_URL + '/api/orders/no/' + orderNo,
+        url: getBaseUrl() + '/api/orders/no/' + orderNo,
         method: 'GET',
         header: {
           'Content-Type': 'application/json',
@@ -155,6 +158,22 @@ const dashboardApi = {
   getRecentPlans: () => request({ url: '/api/dashboard/recent-plans', method: 'GET' }),
   getRecentWorkOrders: () => request({ url: '/api/dashboard/recent-work-orders', method: 'GET' })
 }
+const productionTaskApi = {
+  list: () => request({url:'/api/production-tasks'}),
+  get: id => request({url:'/api/production-tasks/'+id})
+}
+const readResource=(path,listSuffix='')=>({list:()=>request({url:'/api/'+path+listSuffix}),get:id=>request({url:'/api/'+path+'/'+id})})
+const inventoryApi=readResource('inventory')
+const warehouseApi=readResource('warehouses')
+const materialApi=readResource('materials')
+const supplierApi=readResource('suppliers')
+const customerApi=readResource('customers')
+const equipmentApi=readResource('equipments')
+const maintenanceApi=readResource('maintenances')
+const stockInApi=readResource('stock-in','/list')
+const stockOutApi=readResource('stock-out','/list')
+const qcInspectionApi=readResource('qc-inspection','/list')
+const productionOrderApi=readResource('production-order','/list')
 
 module.exports = {
   request,
@@ -162,6 +181,9 @@ module.exports = {
   logout,
   getUserInfo,
   BASE_URL,
+  getBaseUrl,
+  productionTaskApi,
+  inventoryApi,warehouseApi,materialApi,supplierApi,customerApi,equipmentApi,maintenanceApi,stockInApi,stockOutApi,qcInspectionApi,productionOrderApi,
   orderApi,
   productionPlanApi,
   workOrderApi,

@@ -5,8 +5,16 @@ import java.util.*;
 /** Shared server-side action boundary. Role 9 is the business administrator. */
 public final class RolePermissions {
     private RolePermissions() {}
+    public static boolean canRead(int role, String path) {
+        if (role == 9) return true;
+        if (path.startsWith("/api/finance")) return Set.of(1,10).contains(role);
+        if (path.startsWith("/api/users")) return role == 11;
+        if (path.startsWith("/api/operation-logs") || path.startsWith("/api/login-logs")) return role == 11;
+        return role >= 1 && role <= 11;
+    }
     public static boolean canWrite(int role,String path,String method){
         if(role==9)return true;
+        if(path.startsWith("/api/mes/"))return role>=1&&role<=11; // Each operation checks its own roles.
         if(path.startsWith("/api/ai/")||path.startsWith("/api/analytics/"))return Set.of(1,2,4,5,6,7,9,10).contains(role);
         if(path.startsWith("/api/automation"))return Set.of(1,2,4,6).contains(role);
         if(path.startsWith("/api/auth/"))return true;

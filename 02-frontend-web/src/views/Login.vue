@@ -1,771 +1,97 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import {
-  ArrowRight,
-  Eye,
-  EyeOff,
-  Factory,
-  Lock,
-  MousePointer2,
-  Network,
-  ShieldCheck,
-  User,
-} from 'lucide-vue-next'
-
-const router = useRouter()
-const authStore = useAuthStore()
-
-const userCode = ref('')
-const password = ref('')
-const showPassword = ref(false)
-const errorMsg = ref('')
-const isLoading = ref(false)
-const isShaking = ref(false)
-const mouseX = ref(50)
-const mouseY = ref(50)
-const canvasRef = ref<HTMLCanvasElement | null>(null)
-
-// ── 星星参数 ──
-const STAR_COLORS = [
-  [255, 255, 255],
-  [210, 228, 255],
-  [255, 243, 220],
-  [190, 218, 255],
-  [255, 228, 200],
-]
-const LAYERS = 3
-const BASE_STAR_COUNT = 500
-
-interface Star {
-  x: number; y: number
-  z: number
-  baseRadius: number
-  layer: number
-  color: [number, number, number]
-  phase: number
-  twinkleSpeed: number
-  dx: number; dy: number
+import { ArrowRight, Eye, EyeOff, LockKeyhole, UserRound, Factory, ShieldCheck, Layers3, Workflow, ScanLine } from 'lucide-vue-next'
+const auth=useAuthStore(),router=useRouter()
+const userCode=ref(''),password=ref(''),showPassword=ref(false),loading=ref(false),error=ref('')
+const demo=import.meta.env.VITE_DEMO_MODE==='1'
+async function login(){
+  if(loading.value)return
+  error.value=''
+  if(!/^\d{6}$/.test(userCode.value.trim())){error.value='请输入6位数字工号';return}
+  if(!password.value){error.value='请输入登录密码';return}
+  loading.value=true
+  try{if(await auth.login(userCode.value.trim(),password.value))await router.push(auth.redirectPath);else error.value='工号或密码错误，请重新输入'}catch{error.value='暂时无法登录，请稍后重试'}finally{loading.value=false}
 }
-
-let stars: Star[] = []
-let W = 0, H = 0
-let rafId = 0
-let mx = 0, my = 0
-let smx = 0, smy = 0
-let t = 0
-
-function spawn(w: number, h: number) {
-  const scale = Math.sqrt((w * h) / (1920 * 1080))
-  const total = Math.floor(BASE_STAR_COUNT * Math.min(scale, 1.8))
-  stars = []
-
-  for (let i = 0; i < total; i++) {
-    const layer = Math.floor(Math.random() * LAYERS)
-    const r = Math.random()
-    const z = layer === 0 ? 0.55 + r * 0.45
-            : layer === 1 ? 0.20 + r * 0.40
-            : 0.02 + r * 0.28
-
-    const baseRadius = layer === 0 ? 0.3 + Math.random() * 2.0
-                     : layer === 1 ? 0.2 + Math.random() * 0.9
-                     : 0.12 + Math.random() * 0.4
-
-    stars.push({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      z,
-      baseRadius,
-      layer,
-      color: STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)] as [number, number, number],
-      phase: Math.random() * Math.PI * 2,
-      twinkleSpeed: 0.4 + Math.random() * 2.8,
-      dx: (Math.random() - 0.5) * 0.02,
-      dy: (Math.random() - 0.5) * 0.02,
-    })
-  }
-}
-
-function resize() {
-  const c = canvasRef.value
-  if (!c) return
-  const rect = c.getBoundingClientRect()
-  const dpr = Math.min(window.devicePixelRatio || 1, 2)
-  W = rect.width
-  H = rect.height
-  c.width = Math.floor(W * dpr)
-  c.height = Math.floor(H * dpr)
-  const ctx = c.getContext('2d')
-  if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-  spawn(W, H)
-}
-
-// ── 核心渲染 ──
-// 关键原则：
-// - 星星 = 清晰的圆点，不是模糊光斑
-// - 光晕仅保留给最大的几颗星，且极其克制
-// - 小星星直接画点，不产生任何渐变（保证清晰）
-function render() {
-  t += 0.016
-  smx += (mx - smx) * 0.05
-  smy += (my - smy) * 0.05
-
-  const c = canvasRef.value
-  const ctx = c?.getContext('2d')
-  if (!c || !ctx || W === 0 || H === 0) {
-    rafId = requestAnimationFrame(render)
-    return
-  }
-
-  ctx.clearRect(0, 0, W, H)
-
-  const px = ((smx - W / 2) / W) * 2
-  const py = ((smy - H / 2) / H) * 2
-
-  // 从远到近绘制
-  for (let layer = LAYERS - 1; layer >= 0; layer--) {
-    for (const star of stars) {
-      if (star.layer !== layer) continue
-
-      const sx = star.x + px * (star.z * 28)
-          + Math.sin(t * 0.08 + star.phase) * star.dx * 40 * (1 + star.z)
-      const sy = star.y + py * (star.z * 28)
-          + Math.cos(t * 0.06 + star.phase * 1.3) * star.dy * 40 * (1 + star.z)
-
-      const twinkle = 0.50 + 0.50 * Math.sin(t * star.twinkleSpeed + star.phase)
-      const alpha = Math.min(0.95, 0.08 + star.z * 0.50 + twinkle * 0.28)
-      if (alpha < 0.02) continue
-
-      let r = star.baseRadius * (0.55 + star.z * 0.60 + twinkle * 0.20)
-      if (layer === 0) r *= 1.10
-
-      const [cr, cg, cb] = star.color
-
-      // 只有 >2px 的星才加极淡光晕（避免模糊感）
-      if (r > 2.0) {
-        const gr = r * 1.8
-        const g = ctx.createRadialGradient(sx, sy, r * 0.3, sx, sy, gr)
-        g.addColorStop(0, `rgba(${cr},${cg},${cb},${alpha * 0.08})`)
-        g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`)
-        ctx.fillStyle = g
-        ctx.beginPath()
-        ctx.arc(sx, sy, gr, 0, Math.PI * 2)
-        ctx.fill()
-      }
-
-      // 星核：清亮点
-      // 小星星（r <= 1）直接画死点，没有模糊
-      const coreR = Math.max(0.35, r * 0.50)
-      const br = Math.min(255, cr + 60)
-      const bg = Math.min(255, cg + 60)
-      const bb = Math.min(255, cb + 60)
-      ctx.fillStyle = `rgba(${br},${bg},${bb},${Math.min(1, alpha + 0.12)})`
-      ctx.beginPath()
-      ctx.arc(sx, sy, coreR, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  }
-
-  rafId = requestAnimationFrame(render)
-}
-
-function onPointerMove(e: PointerEvent) {
-  mx = e.clientX
-  my = e.clientY
-}
-
-const pageStyle = computed(() => ({
-  '--mx': `${mouseX.value}%`,
-  '--my': `${mouseY.value}%`,
-  '--tilt-x': `${(50 - mouseY.value) / 48}deg`,
-  '--tilt-y': `${(mouseX.value - 50) / 52}deg`,
-}))
-
-function handlePointerMove(event: PointerEvent) {
-  const target = event.currentTarget as HTMLElement
-  const rect = target.getBoundingClientRect()
-  mouseX.value = Number((((event.clientX - rect.left) / rect.width) * 100).toFixed(2))
-  mouseY.value = Number((((event.clientY - rect.top) / rect.height) * 100).toFixed(2))
-}
-
-function resetPointer() {
-  mouseX.value = 50
-  mouseY.value = 50
-}
-
-async function handleLogin() {
-  if (!userCode.value.trim() || !password.value.trim()) {
-    errorMsg.value = '请输入工号和密码'
-    triggerShake()
-    return
-  }
-
-  if (!/^\d{6}$/.test(userCode.value.trim())) {
-    errorMsg.value = '工号应为 6 位数字'
-    triggerShake()
-    return
-  }
-
-  isLoading.value = true
-  errorMsg.value = ''
-
-  try {
-    const success = await authStore.login(userCode.value.trim(), password.value)
-    if (success) {
-      router.push(authStore.redirectPath)
-    } else {
-      errorMsg.value = '工号或密码错误'
-      triggerShake()
-    }
-  } catch {
-    errorMsg.value = '登录失败，请稍后重试'
-    triggerShake()
-  } finally {
-    isLoading.value = false
-  }
-}
-
-function triggerShake() {
-  isShaking.value = true
-  setTimeout(() => { isShaking.value = false }, 420)
-}
-
-onMounted(() => {
-  resize()
-  window.addEventListener('resize', resize)
-  window.addEventListener('pointermove', onPointerMove)
-  rafId = requestAnimationFrame(render)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', resize)
-  window.removeEventListener('pointermove', onPointerMove)
-  cancelAnimationFrame(rafId)
-})
 </script>
-
 <template>
-  <main
-    class="login-page"
-    :style="pageStyle"
-    @pointermove="handlePointerMove"
-    @pointerleave="resetPointer"
-  >
-    <!-- 深空底色 -->
-    <div class="bg-base" aria-hidden="true">
-      <div class="bg-gradient"></div>
-    </div>
-
-    <!-- 星光层 -->
-    <canvas ref="canvasRef" class="star-canvas"></canvas>
-
-    <!-- 鼠标光晕 -->
-    <div class="mouse-glow" aria-hidden="true"></div>
-
-    <!-- 左侧面板 -->
-    <section class="intro-panel">
-      <div class="brand-row">
-        <div class="brand-mark">
-          <MousePointer2 class="h-7 w-7" />
-        </div>
-        <div>
-          <p class="eyebrow">Mouse MES</p>
-          <h1>鼠标生产制造执行系统</h1>
-        </div>
+  <div class="login-page">
+    <section class="login-story">
+      <a href="/login" class="login-brand"><span class="login-brand-icon"><Factory :size="23" /></span><span>MOUSE MES<small>制造执行管理平台</small></span></a>
+      <div class="story-copy"><div class="story-eyebrow"><span></span> CONNECT YOUR FACTORY</div><h1>让生产的每一步，<br/>都清晰可见<span>。</span></h1><p>从一份生产计划，到每一道工序的执行。<br/>连接人、设备与物料，构建有序、高效的生产现场。</p></div>
+      <div class="factory-visual" aria-hidden="true">
+        <div class="visual-topline"><span>MANUFACTURING WORKFLOW</span><span>01 — 03</span></div>
+        <svg class="factory-lines" viewBox="0 0 600 150" fill="none"><path d="M80 75H520" stroke="#3d6288" stroke-dasharray="5 7"/><path d="M80 75V30H520V75M80 75V120H520V75" stroke="#294563"/><circle cx="300" cy="30" r="4" fill="#4496df"/><circle cx="460" cy="120" r="4" fill="#4aafab"/></svg>
+        <div class="workflow-stages"><div class="workflow-stage"><span class="stage-number">01</span><Layers3/><strong>计划排产</strong><small>PLAN & SCHEDULE</small></div><div class="workflow-stage stage-focus"><span class="stage-number">02</span><Workflow/><strong>生产执行</strong><small>EXECUTE & CONTROL</small></div><div class="workflow-stage"><span class="stage-number">03</span><ScanLine/><strong>质量追溯</strong><small>QUALITY & TRACE</small></div></div>
+        <div class="visual-bottomline"><span class="visual-dot"></span><span>全流程协同 · 全要素连接 · 全生命周期追溯</span></div>
       </div>
-
-      <p class="subtitle">
-        连接订单、生产、仓储、质检、设备与财务，用清晰的状态流转管理每一条制造记录。
-      </p>
-
-      <div class="feature-board">
-        <article class="feature-line">
-          <Factory class="h-5 w-5" />
-          <div>
-            <strong>制造流程追踪</strong>
-            <span>从生产任务到质检、入库、出库，关键节点一目了然。</span>
-          </div>
-        </article>
-        <article class="feature-line">
-          <Network class="h-5 w-5" />
-          <div>
-            <strong>业务模块联动</strong>
-            <span>缺料请求、采购到货、库存变化形成闭环。</span>
-          </div>
-        </article>
-        <article class="feature-line">
-          <ShieldCheck class="h-5 w-5" />
-          <div>
-            <strong>角色权限清晰</strong>
-            <span>不同岗位进入不同工作台，减少误操作。</span>
-          </div>
-        </article>
-      </div>
+      <div class="story-footer"><span>为每一次制造，建立可靠连接。</span><span>MOUSE / MES</span></div>
     </section>
-
-    <!-- 右侧登录 -->
-    <section class="login-shell" :class="{ 'animate-shake': isShaking }">
-      <div class="login-card">
-        <div class="login-card-head">
-          <p>欢迎回来</p>
-          <h2>登录工作台</h2>
-          <span>Manufacturing control center</span>
-        </div>
-
-        <form class="login-form" @submit.prevent="handleLogin">
-          <div class="field-group">
-            <label class="field-title" for="login-user-code">工号</label>
-            <div class="input-wrap">
-              <User class="input-icon h-5 w-5" />
-              <input
-                id="login-user-code"
-                v-model="userCode"
-                type="text"
-                inputmode="numeric"
-                maxlength="6"
-                autocomplete="username"
-                aria-label="请输入 6 位工号"
-              />
-            </div>
-          </div>
-
-          <div class="field-group">
-            <label class="field-title" for="login-password">密码</label>
-            <div class="input-wrap">
-              <Lock class="input-icon h-5 w-5" />
-              <input
-                id="login-password"
-                v-model="password"
-                :type="showPassword ? 'text' : 'password'"
-                autocomplete="current-password"
-                aria-label="请输入登录密码"
-              />
-              <button
-                type="button"
-                class="password-toggle"
-                aria-label="切换密码可见性"
-                @mousedown.stop
-                @click.stop="showPassword = !showPassword"
-              >
-                <Eye v-if="showPassword" class="h-5 w-5" />
-                <EyeOff v-else class="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-
-          <div v-if="errorMsg" class="error-box">
-            {{ errorMsg }}
-          </div>
-
-          <button
-            type="submit"
-            class="login-button"
-            :disabled="isLoading || !userCode.trim() || !password.trim()"
-          >
-            <span>{{ isLoading ? '正在登录...' : '进入系统' }}</span>
-            <ArrowRight class="h-5 w-5" />
-          </button>
+    <section class="login-access">
+      <div class="login-top-note"><ShieldCheck :size="15"/><span>企业工作空间</span><span v-if="demo" class="login-demo">演示环境</span></div>
+      <div class="login-card"><div class="login-greeting">WELCOME BACK</div><h2>欢迎回来</h2><p class="login-description">登录您的账号，开始今天的生产协作。</p>
+        <form @submit.prevent="login" class="login-fields">
+          <label for="login-user-code">员工工号</label><div class="login-input"><UserRound :size="18"/><input id="login-user-code" v-model="userCode" autocomplete="username" inputmode="numeric" maxlength="6" placeholder="请输入6位员工工号" required /></div>
+          <div class="password-label"><label for="login-password">登录密码</label><span>使用您的企业账号密码</span></div><div class="login-input"><LockKeyhole :size="18"/><input id="login-password" v-model="password" :type="showPassword?'text':'password'" autocomplete="current-password" placeholder="请输入登录密码" required /><button type="button" :aria-label="showPassword?'隐藏密码':'显示密码'" @click="showPassword=!showPassword"><EyeOff v-if="showPassword" :size="17"/><Eye v-else :size="17"/></button></div>
+          <p v-if="error" class="login-error" role="alert">{{error}}</p>
+          <button class="login-submit" :disabled="loading" type="submit"><span>{{loading?'正在登录…':'登录工作台'}}</span><ArrowRight v-if="!loading" :size="18"/><span v-else class="login-spinner"></span></button>
         </form>
+        <p class="login-help"><ShieldCheck :size="14"/>账号由管理员统一分配，如需帮助请联系管理员。</p>
       </div>
+      <footer class="login-access-footer"><span>Mouse MES · 制造执行管理系统</span><span>连接生产，协同未来</span></footer>
     </section>
-  </main>
+  </div>
 </template>
-
 <style scoped>
-.login-page {
-  --mx: 50%;
-  --my: 50%;
-  --tilt-x: 0deg;
-  --tilt-y: 0deg;
-  position: relative;
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(390px, 460px);
-  gap: clamp(36px, 6vw, 92px);
-  align-items: center;
-  overflow: hidden;
-  padding: clamp(34px, 5.5vw, 76px);
-  color: #e8edf5;
-  isolation: isolate;
-}
-
-/* ── 背景底色 ── */
-.bg-base {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.bg-gradient {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(900px 550px at 15% 20%, rgba(30, 58, 138, 0.50), transparent 65%),
-    radial-gradient(750px 500px at 82% 85%, rgba(15, 23, 42, 0.60), transparent 55%),
-    radial-gradient(650px 450px at 50% 50%, rgba(30, 64, 175, 0.18), transparent 50%),
-    linear-gradient(165deg, #070b18 0%, #0a1120 30%, #0d1528 55%, #0f1a30 80%, #080e1a 100%);
-}
-
-/* ── Canvas 星光层 ── */
-.star-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  z-index: -1;
-  pointer-events: none;
-}
-
-/* ── 鼠标光晕 ── */
-.mouse-glow {
-  position: absolute;
-  width: 500px;
-  height: 500px;
-  border-radius: 50%;
-  left: calc(var(--mx) - 250px);
-  top: calc(var(--my) - 250px);
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.07) 0%, transparent 60%);
-  filter: blur(25px);
-  z-index: 0;
-  pointer-events: none;
-  transition: left 0.12s linear, top 0.12s linear;
-}
-
-/* ── 左侧面板 ── */
-.intro-panel {
-  position: relative;
-  z-index: 3;
-  max-width: 780px;
-}
-
-.brand-row {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 20px;
-  align-items: start;
-}
-
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 68px;
-  height: 68px;
-  border: 1px solid rgba(37, 99, 235, 0.18);
-  border-radius: 22px;
-  color: #2563eb;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.12);
-}
-
-.eyebrow {
-  margin-bottom: 12px;
-  color: #93c5fd;
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-h1 {
-  max-width: 760px;
-  color: #f1f5f9;
-  font-size: clamp(42px, 5.5vw, 72px);
-  line-height: 1.02;
-  font-weight: 950;
-  letter-spacing: -0.075em;
-}
-
-.subtitle {
-  max-width: 620px;
-  margin-top: 26px;
-  color: #94a3b8;
-  font-size: 18px;
-  line-height: 1.9;
-}
-
-.feature-board {
-  display: grid;
-  gap: 14px;
-  max-width: 620px;
-  margin-top: 38px;
-}
-
-.feature-line {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 16px;
-  align-items: center;
-  padding: 18px 20px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.10);
-}
-
-.feature-line svg {
-  color: #2563eb;
-}
-
-.feature-line strong {
-  display: block;
-  color: #1e293b;
-  font-size: 16px;
-}
-
-.feature-line span {
-  display: block;
-  margin-top: 4px;
-  color: #64748b;
-  font-size: 13px;
-}
-
-/* ── 右侧登录 ── */
-.login-shell {
-  position: relative;
-  z-index: 3;
-  transform: perspective(1200px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
-  transform-style: preserve-3d;
-  transition: transform 150ms ease-out;
-}
-
-.login-card {
-  position: relative;
-  width: min(100%, 456px);
-  margin-inline: auto;
-  padding: 34px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(24px);
-  box-shadow:
-    0 24px 70px rgba(0, 0, 0, 0.20),
-    inset 0 1px 0 rgba(255, 255, 255, 0.90);
-}
-
-.login-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background:
-    radial-gradient(280px 220px at calc(var(--mx)) calc(var(--my)), rgba(37, 99, 235, 0.06), transparent 70%),
-    linear-gradient(135deg, rgba(37, 99, 235, 0.05), transparent 40%, rgba(20, 184, 166, 0.04) 100%);
-  pointer-events: none;
-}
-
-.login-card > * {
-  position: relative;
-  z-index: 1;
-}
-
-.login-card-head {
-  margin-bottom: 30px;
-}
-
-.login-card-head p {
-  color: #2563eb;
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-h2 {
-  margin-top: 8px;
-  color: #111827;
-  font-size: 32px;
-  font-weight: 950;
-  letter-spacing: -0.04em;
-}
-
-.login-card-head span {
-  display: block;
-  margin-top: 8px;
-  color: #64748b;
-  font-size: 13px;
-}
-
-.login-form {
-  display: grid;
-  gap: 18px;
-}
-
-.field-title {
-  display: block;
-  margin-bottom: 8px;
-  color: #374151;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-  height: 54px;
-  border: 1px solid rgba(148, 163, 184, 0.30);
-  border-radius: 16px;
-  background: rgba(248, 250, 252, 0.85);
-  cursor: text;
-  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
-}
-
-.input-wrap:focus-within {
-  border-color: rgba(37, 99, 235, 0.50);
-  background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
-}
-
-.input-icon {
-  position: absolute;
-  left: 16px;
-  color: #2563eb;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.input-wrap input {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  width: 100%;
-  height: 100%;
-  padding: 0 48px;
-  border: 0;
-  border-radius: inherit;
-  outline: none;
-  color: #0f172a;
-  caret-color: #2563eb;
-  background: transparent;
-  cursor: text;
-}
-
-.input-wrap input::placeholder {
-  color: #94a3b8;
-}
-
-.password-toggle {
-  position: absolute;
-  right: 13px;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
-  color: #94a3b8;
-  transition: color 160ms ease, background 160ms ease;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.password-toggle:hover {
-  color: #2563eb;
-  background: rgba(37, 99, 235, 0.08);
-}
-
-.error-box {
-  border: 1px solid rgba(248, 113, 113, 0.30);
-  border-radius: 14px;
-  padding: 11px 14px;
-  color: #b91c1c;
-  background: rgba(254, 242, 242, 0.85);
-  font-size: 14px;
-}
-
-.login-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  height: 56px;
-  margin-top: 4px;
-  border: none;
-  border-radius: 16px;
-  color: white;
-  font-weight: 900;
-  font-size: 16px;
-  cursor: pointer;
-  background: linear-gradient(135deg, #2563eb, #0ea5e9);
-  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.30);
-  transition: transform 180ms ease, box-shadow 180ms ease;
-}
-
-.login-button:not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 20px 44px rgba(37, 99, 235, 0.40);
-}
-
-.login-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-  box-shadow: none;
-}
-
-@keyframes shake {
-  0%, 100% {
-    transform: perspective(1200px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateX(0);
-  }
-  25% {
-    transform: perspective(1200px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateX(-7px);
-  }
-  50% {
-    transform: perspective(1200px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateX(7px);
-  }
-  75% {
-    transform: perspective(1200px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateX(-5px);
-  }
-}
-
-.animate-shake {
-  animation: shake 420ms ease-in-out;
-}
-
-@media (max-width: 1060px) {
-  .login-page {
-    grid-template-columns: 1fr;
-    align-content: center;
-  }
-
-  .intro-panel {
-    max-width: none;
-  }
-}
-
-@media (max-width: 640px) {
-  .login-page {
-    padding: 22px;
-  }
-
-  .brand-row {
-    grid-template-columns: 1fr;
-  }
-
-  .brand-mark {
-    width: 58px;
-    height: 58px;
-    border-radius: 18px;
-  }
-
-  .login-card {
-    padding: 24px;
-    border-radius: 24px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .login-shell,
-  .login-button,
-  .mouse-glow {
-    transition: none;
-    transform: none;
-  }
-}
+.login-page{min-height:100svh;display:grid;grid-template-columns:1.05fr 1fr;background:#fff;font-family:'Inter','Segoe UI','Microsoft YaHei',sans-serif}
+.login-story{background:#132439;position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:100svh;padding:44px 8%;color:white;background-image:radial-gradient(ellipse at 85% 70%,#21436a50,transparent 65%)}
+.login-story::before{content:'';position:absolute;inset:0;background-image:linear-gradient(#ffffff04 1px,transparent 1px);pointer-events:none}
+.login-brand{display:flex;align-items:center;gap:12px;font-size:17px;font-weight:650;letter-spacing:.09em;z-index:1;width:fit-content}
+.login-brand-icon{height:43px;width:43px;display:grid;place-items:center;border:1px solid #5473945c;border-radius:12px;background:#253c55}
+.login-brand small{display:block;font-size:10px;font-weight:400;color:#7890a8;letter-spacing:.18em;margin-top:5px}
+.story-copy{margin:auto 0 28px;padding-top:70px;position:relative;z-index:1}
+.story-eyebrow{font-size:9px;letter-spacing:.22em;color:#80a8ce;display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.story-eyebrow span{width:22px;height:1px;background:#4d9be4}
+.story-copy h1{font-size:clamp(30px,3.15vw,53px);line-height:1.55;letter-spacing:-.055em;font-weight:600;color:#edf3fb}
+.story-copy h1>span{color:#5caaed}
+.story-copy p{font-size:12px;line-height:2.15;color:#8ea3bb;margin-top:23px;letter-spacing:.025em}
+.factory-visual{position:relative;margin:24px 0 auto;padding:20px 0 0;z-index:1}
+.visual-topline{display:flex;justify-content:space-between;color:#587590;font-size:8px;letter-spacing:.18em;border-top:1px solid #2d4056;padding-top:20px;margin-bottom:30px}
+.factory-lines{position:absolute;width:100%;height:170px;top:45px;left:0}
+.workflow-stages{display:flex;justify-content:space-around;gap:20px;position:relative}
+.workflow-stage{width:122px;padding:15px;border:1px solid #354e68;border-radius:12px;background:#192d43;display:flex;flex-direction:column;align-items:flex-start;gap:9px;position:relative;box-shadow:0 8px 20px #07142220}
+.workflow-stage svg{color:#719abb;width:23px;height:23px;margin:6px 0}
+.workflow-stage strong{font-size:12px;font-weight:500;color:#b9cde0}
+.workflow-stage small{font-size:6px;color:#69829d;letter-spacing:.08em;white-space:nowrap}
+.stage-number{position:absolute;right:11px;top:10px;font-size:8px;color:#526d87}
+.stage-focus{border-color:#467aac;background:#203c59;transform:translateY(-9px)}
+.stage-focus svg{color:#6cbbff}.stage-focus strong{color:#e0eeff}
+.visual-bottomline{display:flex;align-items:center;gap:8px;margin:30px 0;font-size:8px;letter-spacing:.05em;color:#657d96}
+.visual-dot{width:4px;height:4px;border-radius:50%;background:#4b959c}
+.story-footer{display:flex;justify-content:space-between;font-size:9px;color:#567089;margin-top:40px;letter-spacing:.05em}
+.login-access{display:flex;flex-direction:column;padding:43px 9% 28px;background:#fbfcfe;position:relative}
+.login-top-note{display:flex;align-items:center;gap:7px;justify-content:flex-end;color:#9aa8b8;font-size:10px}
+.login-demo{font-size:9px;margin-left:10px;padding:4px 9px;border:1px solid #f0dfbd;background:#fff9eb;color:#af8950;border-radius:5px}
+.login-card{width:100%;max-width:370px;margin:auto;align-self:center;padding:65px 0}
+.login-greeting{font-size:9px;letter-spacing:.2em;font-weight:600;color:#7a9bbd;margin-bottom:15px}
+.login-card h2{font-size:32px;letter-spacing:-.045em;font-weight:650;color:#20344c;margin-bottom:12px}
+.login-description{font-size:12px;color:#8a99ac;line-height:1.8}
+.login-fields{margin-top:39px}
+.login-fields label{display:block;font-size:11px;font-weight:600;color:#435770;margin-bottom:10px}
+.login-input{display:flex;align-items:center;gap:12px;background:white;border:1px solid #dee5ef;border-radius:10px;height:49px;padding:0 15px;transition:border .15s,box-shadow .15s;color:#a1b1c3}
+.login-input:focus-within{border-color:#6da8e9;box-shadow:0 0 0 4px #2376df0b}
+.login-input input{border:0;outline:0;min-width:0;width:100%;height:100%;font-size:12px;background:transparent;color:#283d56}
+.login-input input::placeholder{color:#abb7c5}.login-input button{padding:5px;color:#95a6bb}.login-input button:hover{color:#347bd1}
+.password-label{display:flex;justify-content:space-between;align-items:center;margin-top:24px}.password-label span{font-size:9px;color:#a1adbc;margin-bottom:10px}
+.login-error{color:#bf4456;background:#fff0f2;border:1px solid #f5d8df;padding:10px;border-radius:8px;font-size:11px;margin-top:15px}
+.login-submit{margin-top:29px;display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 18px;height:49px;border-radius:9px;color:#fff;background:#2878da;font-size:12px;box-shadow:0 5px 12px #1f6bcb20}
+.login-submit:hover{background:#206bca;box-shadow:0 6px 16px #1f6bcb30}.login-submit:disabled{opacity:.6}
+.login-help{display:flex;gap:6px;align-items:center;color:#a3aebc;font-size:9px;margin-top:24px;line-height:1.8}
+.login-access-footer{display:flex;justify-content:space-between;color:#a8b2c0;font-size:9px;gap:15px}
+.login-spinner{width:15px;height:15px;border:2px solid #ffffff50;border-top-color:white;border-radius:50%;animation:rotate .7s linear infinite}
+@keyframes rotate{to{transform:rotate(360deg)}}
+@media(min-width:1700px){.login-story{padding:55px 10%}.story-copy{padding-top:90px}}
+@media(max-width:1000px){.login-story{padding:32px 7%}.login-access{padding:32px 8%}.workflow-stages{gap:12px}.workflow-stage{padding:12px;width:106px}.story-copy h1{font-size:32px}.workflow-stage small{font-size:5px}}
+@media(max-width:760px){.login-page{grid-template-columns:1fr}.login-story{min-height:auto;padding:24px;background:#14263c}.story-copy{padding:0;margin:30px 0 12px}.story-copy h1{font-size:28px;line-height:1.5}.story-copy p,.factory-visual,.story-footer,.story-eyebrow{display:none}.login-brand{font-size:14px}.login-access{min-height:62svh;padding:25px}.login-card{padding:34px 0;max-width:390px}.login-top-note{position:absolute;right:25px;top:25px}.login-card h2{font-size:26px}.login-greeting{margin-top:15px}.login-fields{margin-top:25px}.login-help{font-size:9px}.login-access-footer{margin-top:12px}}
 </style>

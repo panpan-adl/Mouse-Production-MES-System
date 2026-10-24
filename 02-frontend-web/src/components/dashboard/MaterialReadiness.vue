@@ -32,7 +32,7 @@ defineProps<{
 .panel {
   border: 1px solid rgba(132, 146, 168, 0.14);
   border-radius: 8px;
-  background: #0d1424;
+  background: #ffffff;
   padding: 12px;
   min-height: 0;
 }
@@ -44,13 +44,13 @@ defineProps<{
 }
 
 h2 {
-  color: #f4f7fc;
+  color: #273d56;
   font-size: 14px;
   font-weight: 700;
 }
 
 .panel-title strong {
-  color: #ffb547;
+  color: #dba344;
   font-size: 20px;
 }
 
@@ -66,7 +66,7 @@ h2 {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #4f7cff, #31d0aa);
+  background: linear-gradient(90deg, #4f7cff, #18a78e);
   transition: width 500ms ease;
 }
 
@@ -81,7 +81,7 @@ h2 {
   justify-content: space-between;
   gap: 12px;
   border-radius: 7px;
-  background: rgba(7, 11, 20, 0.54);
+  background: #f5f8fc;
   padding: 7px 9px;
 }
 
@@ -98,7 +98,7 @@ h2 {
 }
 
 .name span {
-  color: #e8edf5;
+  color: #435a72;
   font-size: 12px;
 }
 
@@ -109,7 +109,7 @@ h2 {
 }
 
 .shortage-row strong {
-  color: #ff5d73;
+  color: #e26677;
   font-size: 13px;
   white-space: nowrap;
 }

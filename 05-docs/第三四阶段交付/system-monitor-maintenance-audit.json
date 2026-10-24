@@ -1,0 +1,59 @@
+{
+  "checked_at": "2026-10-24T10:35:31.281363",
+  "database": "mouse_mes_completion_test_20261024_102633",
+  "endpoints": {
+    "/mes/monitor": {
+      "responds": true,
+      "count": 12
+    },
+    "/mes/cache": {
+      "responds": true,
+      "count": 9
+    },
+    "/mes/sessions": {
+      "responds": true,
+      "count": 117
+    },
+    "/mes/jobs": {
+      "responds": true,
+      "count": 2
+    },
+    "/foundation/menus": {
+      "responds": true,
+      "count": 1
+    },
+    "/foundation/parameters": {
+      "responds": true,
+      "count": 3
+    },
+    "/foundation/code-rules": {
+      "responds": true,
+      "count": 37
+    },
+    "/dicts": {
+      "responds": true,
+      "count": 0
+    },
+    "/login-logs": {
+      "responds": true,
+      "count": 107
+    },
+    "/operation-logs": {
+      "responds": true,
+      "count": 107
+    }
+  },
+  "scheduled_maintenance": {
+    "without_manual_trigger": true,
+    "generated_count": 3,
+    "overdue_count": 2,
+    "disabled_plan_count": 0,
+    "duplicate_after_next_cycle": false,
+    "first_seen_seconds": 9.41,
+    "test_plan_ids": [
+      3,
+      4
+    ],
+    "test_plans_disabled_after_check": true
+  }
+}

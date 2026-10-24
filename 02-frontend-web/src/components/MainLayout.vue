@@ -1,18 +1,19 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import Sidebar from './Sidebar.vue'
 import Header from './Header.vue'
+import { sidebarCollapsed } from '@/stores/layout'
 const demo = import.meta.env.VITE_DEMO_MODE === '1'
+onMounted(()=>{if(window.innerWidth<900)sidebarCollapsed.value=true})
 </script>
-
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="mes-workspace" :class="{'nav-collapsed':sidebarCollapsed}">
     <Sidebar />
-    <div class="ml-64 min-h-screen">
+    <div class="workspace-body">
       <Header />
-      <p v-if="demo" class="bg-amber-100 text-amber-900 px-6 py-2 text-sm">隔离验收演示环境 · 数据由完整业务流程生成，仅用于测试与答辩，正式业务库未写入这些测试单据。</p>
-      <main class="p-6">
-        <slot />
-      </main>
+      <div v-if="demo" class="environment-notice"><span class="environment-dot"></span><strong>演示环境</strong><span>当前使用隔离演示数据</span><span class="notice-note">用于测试与答辩展示</span></div>
+      <main class="workspace-content"><slot /></main>
+      <footer class="workspace-footer"><span>MOUSE MES <span class="footer-divider">/</span> 制造执行管理平台</span><span>让每一道工序清晰可见</span></footer>
     </div>
   </div>
 </template>

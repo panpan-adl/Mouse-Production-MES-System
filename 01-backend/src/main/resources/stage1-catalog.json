@@ -19,6 +19,22 @@
         "ref": null,
         "required": true,
         "options": null
+      },
+      {
+        "name": "main_unit_id",
+        "label": "主单位（留空表示主单位）",
+        "type": "ref",
+        "ref": "units",
+        "required": false,
+        "options": null
+      },
+      {
+        "name": "conversion_rate",
+        "label": "相对主单位换算率",
+        "type": "positive",
+        "ref": null,
+        "required": true,
+        "options": null
       }
     ],
     "roles": [
@@ -88,6 +104,35 @@
         "ref": null,
         "required": false,
         "options": null
+      },
+      {
+        "name": "category_id",
+        "label": "分类",
+        "type": "ref",
+        "ref": "categories",
+        "required": false,
+        "options": null
+      },
+      {
+        "name": "max_stock",
+        "label": "最大库存",
+        "type": "number",
+        "ref": null,
+        "required": false,
+        "options": null
+      },
+      {
+        "name": "sourcing_mode",
+        "label": "供应方式",
+        "type": "select",
+        "ref": null,
+        "required": false,
+        "options": {
+          "AUTO": "按物料类型与BOM确定",
+          "BUY": "外购",
+          "MAKE": "自制",
+          "BOTH": "可外购可自制"
+        }
       }
     ],
     "roles": [
@@ -160,6 +205,14 @@
         "label": "售价",
         "type": "number",
         "ref": null,
+        "required": false,
+        "options": null
+      },
+      {
+        "name": "category_id",
+        "label": "分类",
+        "type": "ref",
+        "ref": "categories",
         "required": false,
         "options": null
       }
@@ -457,6 +510,30 @@
         "ref": "areas",
         "required": true,
         "options": null
+      },
+      {
+        "name": "x_coordinate",
+        "label": "货架X",
+        "type": "number",
+        "ref": null,
+        "required": false,
+        "options": null
+      },
+      {
+        "name": "y_coordinate",
+        "label": "货架Y",
+        "type": "number",
+        "ref": null,
+        "required": false,
+        "options": null
+      },
+      {
+        "name": "z_coordinate",
+        "label": "货架Z",
+        "type": "number",
+        "ref": null,
+        "required": false,
+        "options": null
       }
     ],
     "roles": [
@@ -686,7 +763,7 @@
     "unique": "equipment_code",
     "where": "is_deleted=0",
     "extra": {
-      "status": 1,
+      "status": "NORMAL",
       "is_deleted": 0
     }
   },
@@ -742,6 +819,28 @@
         "ref": "users",
         "required": true,
         "options": null
+      },
+      {
+        "name": "enabled",
+        "label": "是否启用",
+        "type": "select",
+        "ref": null,
+        "required": true,
+        "options": {
+          "0": "停用",
+          "1": "启用"
+        }
+      },
+      {
+        "name": "plan_type",
+        "label": "计划类型",
+        "type": "select",
+        "ref": null,
+        "required": true,
+        "options": {
+          "CHECK": "点检",
+          "MAINTAIN": "保养"
+        }
       }
     ],
     "roles": [
@@ -835,6 +934,33 @@
         "ref": null,
         "required": true,
         "options": null
+      },
+      {
+        "name": "data_type",
+        "label": "结果类型",
+        "type": "select",
+        "ref": null,
+        "required": true,
+        "options": {
+          "TEXT": "人工判定",
+          "NUMBER": "数值范围"
+        }
+      },
+      {
+        "name": "lower_limit",
+        "label": "下限",
+        "type": "decimal",
+        "ref": null,
+        "required": false,
+        "options": null
+      },
+      {
+        "name": "upper_limit",
+        "label": "上限",
+        "type": "decimal",
+        "ref": null,
+        "required": false,
+        "options": null
       }
     ],
     "roles": [
@@ -892,6 +1018,27 @@
         "ref": null,
         "required": true,
         "options": null
+      },
+      {
+        "name": "operation_id",
+        "label": "适用工序",
+        "type": "ref",
+        "ref": "operations",
+        "required": false,
+        "options": null
+      },
+      {
+        "name": "phase",
+        "label": "检验阶段",
+        "type": "select",
+        "ref": null,
+        "required": true,
+        "options": {
+          "FIRST": "首检",
+          "LAST": "末检",
+          "PATROL": "巡检",
+          "FINAL": "成品/最终检验"
+        }
       }
     ],
     "roles": [
@@ -1047,6 +1194,25 @@
           "1": "需要",
           "0": "不需要"
         }
+      },
+      {
+        "name": "is_key",
+        "label": "关键工序",
+        "type": "select",
+        "ref": null,
+        "required": true,
+        "options": {
+          "0": "否",
+          "1": "是"
+        }
+      },
+      {
+        "name": "output_material_id",
+        "label": "产出半成品/成品",
+        "type": "ref",
+        "ref": "materials",
+        "required": false,
+        "options": null
       }
     ],
     "roles": [
@@ -1181,6 +1347,824 @@
       1
     ],
     "unique": null,
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "categories",
+    "label": "物料产品分类",
+    "table": "mm_category",
+    "fields": [
+      {
+        "name": "code",
+        "label": "编码",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "name",
+        "label": "名称",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "parent_id",
+        "label": "父分类",
+        "type": "ref",
+        "ref": "categories",
+        "required": false,
+        "options": null
+      },
+      {
+        "name": "kind",
+        "label": "类别",
+        "type": "select",
+        "ref": null,
+        "required": true,
+        "options": {
+          "MATERIAL": "物料",
+          "PRODUCT": "产品"
+        }
+      }
+    ],
+    "roles": [
+      1,
+      5
+    ],
+    "unique": "code",
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "station-resources",
+    "label": "工作站资源",
+    "table": "mm_station_resource",
+    "fields": [
+      {
+        "name": "station_id",
+        "label": "工作站",
+        "type": "ref",
+        "ref": "stations",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "resource_type",
+        "label": "资源类型",
+        "type": "select",
+        "ref": null,
+        "required": true,
+        "options": {
+          "EQUIPMENT": "设备",
+          "USER": "人员",
+          "TOOL": "工装"
+        }
+      },
+      {
+        "name": "equipment_id",
+        "label": "设备",
+        "type": "ref",
+        "ref": "equipment",
+        "required": false,
+        "options": null
+      },
+      {
+        "name": "user_id",
+        "label": "人员",
+        "type": "ref",
+        "ref": "users",
+        "required": false,
+        "options": null
+      },
+      {
+        "name": "name",
+        "label": "工装名称",
+        "type": "text",
+        "ref": null,
+        "required": false,
+        "options": null
+      }
+    ],
+    "roles": [
+      1,
+      2
+    ],
+    "unique": null,
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "sops",
+    "label": "工序作业指导书",
+    "table": "mm_sop",
+    "fields": [
+      {
+        "name": "code",
+        "label": "编码",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "name",
+        "label": "名称",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "product_id",
+        "label": "产品",
+        "type": "ref",
+        "ref": "products",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "operation_id",
+        "label": "工序",
+        "type": "ref",
+        "ref": "operations",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "version",
+        "label": "版本",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "image_path",
+        "label": "SOP图片",
+        "type": "image",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "enabled",
+        "label": "启用",
+        "type": "select",
+        "ref": null,
+        "required": true,
+        "options": {
+          "0": "停用",
+          "1": "启用"
+        }
+      }
+    ],
+    "roles": [
+      1,
+      2
+    ],
+    "unique": "code",
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "code-rules",
+    "label": "编码规则",
+    "table": "mm_code_rule",
+    "fields": [
+      {
+        "name": "code",
+        "label": "规则标识",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "name",
+        "label": "名称",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "prefix",
+        "label": "前缀",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "width",
+        "label": "流水位数",
+        "type": "positive",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "next_value",
+        "label": "下一流水号",
+        "type": "positive",
+        "ref": null,
+        "required": true,
+        "options": null
+      }
+    ],
+    "roles": [
+      11
+    ],
+    "unique": "code",
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "defects",
+    "label": "常见缺陷",
+    "table": "mm_defect",
+    "fields": [
+      {
+        "name": "code",
+        "label": "编码",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "name",
+        "label": "缺陷名称",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "severity",
+        "label": "严重度",
+        "type": "select",
+        "ref": null,
+        "required": true,
+        "options": {
+          "MINOR": "轻微",
+          "MAJOR": "严重",
+          "CRITICAL": "致命"
+        }
+      }
+    ],
+    "roles": [
+      4
+    ],
+    "unique": "code",
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "check-subjects",
+    "label": "点检保养项目",
+    "table": "mm_check_subject",
+    "fields": [
+      {
+        "name": "code",
+        "label": "编码",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "name",
+        "label": "名称",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "kind",
+        "label": "类型",
+        "type": "select",
+        "ref": null,
+        "required": true,
+        "options": {
+          "CHECK": "点检",
+          "MAINTAIN": "保养"
+        }
+      },
+      {
+        "name": "standard",
+        "label": "执行标准",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      }
+    ],
+    "roles": [
+      8
+    ],
+    "unique": "code",
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "check-plan-subjects",
+    "label": "计划关联项目",
+    "table": "mm_check_plan_subject",
+    "fields": [
+      {
+        "name": "plan_id",
+        "label": "计划",
+        "type": "ref",
+        "ref": "checks",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "subject_id",
+        "label": "项目",
+        "type": "ref",
+        "ref": "check-subjects",
+        "required": true,
+        "options": null
+      }
+    ],
+    "roles": [
+      8
+    ],
+    "unique": null,
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "holidays",
+    "label": "节假日与调休",
+    "table": "mm_holiday",
+    "fields": [
+      {
+        "name": "work_date",
+        "label": "日期",
+        "type": "date",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "is_working",
+        "label": "工作状态",
+        "type": "select",
+        "ref": null,
+        "required": true,
+        "options": {
+          "0": "休假",
+          "1": "上班"
+        }
+      },
+      {
+        "name": "name",
+        "label": "说明",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      }
+    ],
+    "roles": [
+      1,
+      2
+    ],
+    "unique": null,
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "rotations",
+    "label": "轮班计划",
+    "table": "mm_rotation",
+    "fields": [
+      {
+        "name": "code",
+        "label": "编码",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "name",
+        "label": "名称",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "start_date",
+        "label": "开始日期",
+        "type": "date",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "end_date",
+        "label": "结束日期",
+        "type": "date",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "station_id",
+        "label": "工作站",
+        "type": "ref",
+        "ref": "stations",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "cycle_days",
+        "label": "倒班周期（天）",
+        "type": "positive",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "mode",
+        "label": "轮班方式",
+        "type": "select",
+        "ref": null,
+        "required": true,
+        "options": {
+          "DAY": "长白班",
+          "TWO": "两班倒",
+          "THREE": "三班倒"
+        }
+      },
+      {
+        "name": "cycle_unit",
+        "label": "周期单位",
+        "type": "select",
+        "ref": null,
+        "required": true,
+        "options": {
+          "DAY": "天",
+          "WEEK": "周",
+          "MONTH": "月",
+          "QUARTER": "季度"
+        }
+      }
+    ],
+    "roles": [
+      1,
+      2
+    ],
+    "unique": "code",
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "rotation-teams",
+    "label": "轮班参与班组",
+    "table": "mm_rotation_team",
+    "fields": [
+      {
+        "name": "rotation_id",
+        "label": "轮班计划",
+        "type": "ref",
+        "ref": "rotations",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "team_id",
+        "label": "班组",
+        "type": "ref",
+        "ref": "teams",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "sequence_no",
+        "label": "轮班顺序",
+        "type": "positive",
+        "ref": null,
+        "required": true,
+        "options": null
+      }
+    ],
+    "roles": [
+      1,
+      2
+    ],
+    "unique": null,
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "consumption",
+    "label": "工序物料消耗",
+    "table": "mm_task_consumption",
+    "fields": [
+      {
+        "name": "operation_id",
+        "label": "工序",
+        "type": "ref",
+        "ref": "operations",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "material_id",
+        "label": "消耗物料",
+        "type": "ref",
+        "ref": "materials",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "quantity_per_unit",
+        "label": "单件消耗",
+        "type": "positive",
+        "ref": null,
+        "required": true,
+        "options": null
+      }
+    ],
+    "roles": [
+      1,
+      2
+    ],
+    "unique": null,
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "positions",
+    "label": "岗位",
+    "table": "mm_position",
+    "fields": [
+      {
+        "name": "code",
+        "label": "编码",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "name",
+        "label": "名称",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "department_id",
+        "label": "部门ID",
+        "type": "ref",
+        "ref": "departments",
+        "required": true,
+        "options": null
+      }
+    ],
+    "roles": [
+      11
+    ],
+    "unique": "code",
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "user-positions",
+    "label": "员工岗位",
+    "table": "mm_user_position",
+    "fields": [
+      {
+        "name": "user_id",
+        "label": "员工",
+        "type": "ref",
+        "ref": "users",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "position_id",
+        "label": "岗位",
+        "type": "ref",
+        "ref": "positions",
+        "required": true,
+        "options": null
+      }
+    ],
+    "roles": [
+      11
+    ],
+    "unique": null,
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "menus",
+    "label": "菜单配置",
+    "table": "mm_menu",
+    "fields": [
+      {
+        "name": "code",
+        "label": "编码",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "name",
+        "label": "名称",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "path",
+        "label": "页面路径",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "parent_id",
+        "label": "父菜单",
+        "type": "ref",
+        "ref": "menus",
+        "required": false,
+        "options": null
+      }
+    ],
+    "roles": [
+      11
+    ],
+    "unique": "code",
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "role-menus",
+    "label": "角色菜单授权",
+    "table": "mm_role_menu",
+    "fields": [
+      {
+        "name": "role_id",
+        "label": "角色ID",
+        "type": "ref",
+        "ref": "roles",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "menu_id",
+        "label": "菜单",
+        "type": "ref",
+        "ref": "menus",
+        "required": true,
+        "options": null
+      }
+    ],
+    "roles": [
+      11
+    ],
+    "unique": null,
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "parameters",
+    "label": "系统参数",
+    "table": "mm_parameter",
+    "fields": [
+      {
+        "name": "code",
+        "label": "参数标识",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "name",
+        "label": "参数名称",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "value",
+        "label": "参数值",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      }
+    ],
+    "roles": [
+      11
+    ],
+    "unique": "code",
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "rotation-shifts",
+    "label": "轮班关联班次",
+    "table": "mm_rotation_shift",
+    "fields": [
+      {
+        "name": "rotation_id",
+        "label": "轮班计划",
+        "type": "ref",
+        "ref": "rotations",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "shift_id",
+        "label": "班次",
+        "type": "ref",
+        "ref": "shifts",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "sequence_no",
+        "label": "班次顺序",
+        "type": "positive",
+        "ref": null,
+        "required": true,
+        "options": null
+      }
+    ],
+    "roles": [
+      1,
+      2
+    ],
+    "unique": null,
+    "where": "1=1",
+    "extra": {}
+  },
+  {
+    "key": "jobs",
+    "label": "后台任务调度",
+    "table": "mm_job_config",
+    "fields": [
+      {
+        "name": "code",
+        "label": "任务标识",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "name",
+        "label": "任务名称",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "enabled",
+        "label": "是否启用",
+        "type": "select",
+        "ref": null,
+        "required": true,
+        "options": {
+          "0": "停用",
+          "1": "启用"
+        }
+      },
+      {
+        "name": "interval_seconds",
+        "label": "执行间隔秒",
+        "type": "positive",
+        "ref": null,
+        "required": true,
+        "options": null
+      }
+    ],
+    "roles": [
+      11
+    ],
+    "unique": "code",
     "where": "1=1",
     "extra": {}
   }

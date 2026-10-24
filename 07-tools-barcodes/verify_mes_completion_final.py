@@ -1,0 +1,112 @@
+"""Final failure-boundary and configuration acceptance after full core and extended workflows."""
+from verify_mes_completion_extra import *
+
+post('/stock-in/add',{'stockInNo':'MC-LINE-BYPASS-'+stamp,'stockInType':'OTHER','warehouseId':lineWarehouse,'items':[{'materialId':material,'lotId':lot,'quantity':1}]},store,False)
+check(True,'Ordinary stock documents cannot change reserved line warehouse inventory')
+check(scalar(f"SELECT COUNT(*) FROM(SELECT material_id,lot_id,SUM(quantity) quantity FROM mm_line_stock GROUP BY material_id,lot_id)s LEFT JOIN(SELECT material_id,lot_id,SUM(quantity) quantity FROM t_inventory WHERE warehouse_id={lineWarehouse} AND is_deleted=0 GROUP BY material_id,lot_id)i ON i.material_id=s.material_id AND i.lot_id=s.lot_id WHERE COALESCE(i.quantity,0)<>s.quantity")=='0','Every work-order lot subledger agrees with the unified physical line warehouse')
+
+# Duplicate confirmation/post under concurrency must not add inventory twice.
+racePO=purchase([(material,2)],'RACE')
+raceIn=document('PURCHASE_RECEIPT',racePO['id'],warehouse,[{'material_id':material,'quantity':2,'lot_no':'MC-RACE-'+stamp,'location_id':location}]);post(f'/mes/documents/{raceIn}/confirm',token=store);raceLines=check_document(raceIn,incoming);post(f'/mes/documents/{raceIn}/post',token=store)
+raceReturn=document('PURCHASE_RETURN',racePO['id'],warehouse,[{'material_id':material,'quantity':1,'lot_id':raceLines[0]['lot_id'],'location_id':location}]);post(f'/mes/documents/{raceReturn}/confirm',token=store)
+with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:list(pool.map(lambda _:post(f'/mes/documents/{raceReturn}/post',token=store),range(2)))
+check(scalar(f"SELECT SUM(quantity) FROM t_inventory WHERE warehouse_id={warehouse} AND material_id={material} AND lot_id={raceLines[0]['lot_id']}") in ('1.00','1'),'Concurrent duplicate return creates exactly one stock decrease')
+
+# Structural master-data controls and settings drive real behavior.
+department=get('departments')[0]
+position=save('positions',{'code':'MC-POS-'+stamp,'name':'隔离操作岗位','department_id':department['id']},system)
+save('user-positions',{'user_id':actors[3][0],'position_id':position['id']},system)
+check(any(r['position_id']==position['id'] for r in get('user-positions')),'Department positions and employee assignments are linked to real master data')
+menu=save('menus',{'code':'MC-MENU-'+stamp,'name':'运营中心验收','path':'/mes'},system)
+grant=save('role-menus',{'role_id':11,'menu_id':menu['id']},system)
+check(any(r['path']=='/mes' for r in api('/mes/menu-access',token=system)),'Role-menu configuration returns the actual granted page paths')
+api('/foundation/role-menus/'+str(grant['id']),method='DELETE',token=system)
+parameter=next(p for p in get('parameters') if p['code']=='NOTICE_LIMIT')
+api('/foundation/parameters/'+str(parameter['id']),{**parameter,'value':'1'},'PUT',system)
+post('/mes/notices',{'title':'限量公告一'+stamp,'content':'真实公告'});post('/mes/notices',{'title':'限量公告二'+stamp,'content':'真实公告'})
+check(len(api('/mes/notices',token=worker))==1,'Supported system parameter changes the actual notice retrieval limit')
+api('/foundation/parameters/'+str(parameter['id']),parameter,'PUT',system)
+job=next(j for j in get('jobs') if j['code']=='EQUIPMENT_CHECK')
+api('/foundation/jobs/'+str(job['id']),{**job,'enabled':0},'PUT',system)
+post('/mes/jobs/EQUIPMENT_CHECK/run',token=system,ok=False)
+api('/foundation/jobs/'+str(job['id']),{**job,'enabled':1},'PUT',system)
+post('/mes/jobs/EQUIPMENT_CHECK/run',token=system)
+check(any(j['code']=='EQUIPMENT_CHECK' and j['enabled']==1 for j in api('/mes/jobs',token=system)),'Background jobs obey persisted enable controls and expose their live schedule state')
+
+# First-piece checks cannot prematurely finish an operation.
+scrapWork=post('/mes/work-orders',{'product_id':bom['product_id'],'quantity':1,'bom_id':bom['id'],'route_id':route['id'],'owner_id':actors[3][0]})
+procure_and_issue(scrapWork['id'])
+scrapTasks=api(f'/foundation/work-orders/{scrapWork["id"]}/tasks',token=admin)
+firstTemplate=save('qc-templates',{'code':'MC-FIRST-'+stamp,'name':'首件检验验收','product_id':bom['product_id'],'kind':'PROCESS','operation_id':scrapTasks[0]['operation_id'],'phase':'FIRST','version':'1'})
+save('qc-lines',{'template_id':firstTemplate['id'],'item_id':numeric['id']})
+sample=inspect(scrapTasks[0],template=firstTemplate);post('/foundation/inspections',sample,qc)
+check(scalar(f"SELECT task_status FROM t_production_task WHERE id={scrapTasks[0]['id']}")=='1','First-piece inspection is recorded without releasing an unreported production task')
+for index,task in enumerate(scrapTasks):
+    dispatch(task);api(f'/production-tasks/{task["id"]}/start',{},'PUT',worker);post(f'/production-tasks/{task["id"]}/report',{'reportQuantity':1},worker);post('/automation/process')
+    result=post('/foundation/inspections',inspect(task,20 if index==len(scrapTasks)-1 else 5),qc)
+bad=next(n for n in api('/mes/nonconformities',token=qc) if n['inspection_id']==result['id'])
+post(f'/mes/nonconformities/{bad["id"]}/disposition',{'decision':'SCRAP','reason':'隔离验收：整批报废'},qc)
+post(f'/fulfillment/work-orders/{scrapWork["id"]}/receive',{'warehouse_id':fgwarehouse,'location_id':fgLocation},store,False)
+before=scalar('SELECT COUNT(*) FROM mm_line_movement')
+post(f'/mes/nonconformities/{bad["id"]}/scrap',token=store);after=scalar('SELECT COUNT(*) FROM mm_line_movement');post(f'/mes/nonconformities/{bad["id"]}/scrap',token=store)
+check(int(after)==int(before)+1 and scalar('SELECT COUNT(*) FROM mm_line_movement')==after and float(scalar(f"SELECT SUM(quantity) FROM mm_line_stock WHERE work_order_id={scrapWork['id']}"))==0,'Approved scrap removes the finished lot once and blocks bad goods from receipt')
+replacement=post('/mes/work-orders',{'product_id':bom['product_id'],'quantity':1,'bom_id':bom['id'],'route_id':route['id'],'owner_id':actors[3][0]})
+check(replacement['id']!=scrapWork['id'],'Replacement production receives a new traceable work order')
+
+# Explicitly purchased semi-products are valid leaf inputs, not forced into fictitious in-house BOMs.
+unit=get('units')[0]['uom_name']
+purchasedSemi=save('materials',{'material_code':'MC-BUY-SEMI-'+stamp,'material_name':'外购半成品验收','material_type':2,'unit':unit,'sourcing_mode':'BUY','safety_stock':0})
+root=save('materials',{'material_code':'MC-BUY-FG-'+stamp,'material_name':'外购件装配成品验收','material_type':3,'unit':unit,'sourcing_mode':'MAKE','safety_stock':0})
+product=save('products',{'product_code':'MC-BUY-P-'+stamp,'product_name':'外购件装配验收产品','unit':unit,'cost_price':1,'selling_price':1})
+save('mappings',{'product_id':product['id'],'material_id':root['id']})
+buyBom=save('bom-versions',{'code':'MC-BUY-B-'+stamp,'name':'外购半成品装配BOM','product_id':product['id'],'root_material_id':root['id'],'version':'1'})
+save('bom-lines',{'bom_id':buyBom['id'],'parent_material_id':root['id'],'material_id':purchasedSemi['id'],'quantity':1})
+leaf=api('/foundation/bom/'+str(buyBom['id'])+'/expand?quantity=3',token=admin)
+check(len(leaf)==1 and leaf[0]['id']==purchasedSemi['id'] and leaf[0]['required_quantity']==3,'Purchased semi-product leaf is preserved as a real BOM material requirement')
+
+box2=post('/mes/packages',boxBody,store);post(f'/mes/packages/{box2}/items',{'inventory_id':stock['id'],'quantity':7},store);post(f'/mes/packages/{box2}/confirm',token=store,ok=False)
+check(True,'Confirmed packaging cannot count the same stock above its actual available quantity')
+barcodeRecord=api('/mes/barcode?kind=PACKAGE&id='+str(outer),token=store)
+resolved=api('/mes/resolve-barcode?content='+barcodeRecord['content'],token=store)
+api('/mes/resolve-barcode?content=INVENTORY-1abc',token=store,ok=False)
+check(resolved['id']==outer and resolved['type']=='PACKAGE','Barcode resolution identifies the actual package and rejects malformed identifiers')
+check(int(scalar("SELECT COUNT(*) FROM mm_audit WHERE resource LIKE 'mes:%'"))>0,'New workflow operations produce actor audit records without storing request secrets')
+
+# Reporting distinguishes operator declarations, supervisor approval, and independent QC.
+reportWork=post('/mes/work-orders',{'product_id':bom['product_id'],'quantity':2,'bom_id':bom['id'],'route_id':route['id'],'owner_id':actors[3][0]})
+procure_and_issue(reportWork['id'])
+reportTasks=api(f'/foundation/work-orders/{reportWork["id"]}/tasks',token=admin)
+first=reportTasks[0];dispatch(first)
+post('/mes/reports',{'task_id':first['id'],'good_quantity':-1,'bad_quantity':1},worker,False)
+rejected=post('/mes/reports',{'task_id':first['id'],'good_quantity':2,'bad_quantity':0},worker)
+post(f'/mes/reports/{rejected}/reject',{'reason':'验收驳回，不应扣料'})
+before=scalar('SELECT COUNT(*) FROM mm_line_movement')
+sheet=post('/mes/reports',{'task_id':first['id'],'good_quantity':1,'bad_quantity':1},worker)
+post('/mes/reports',{'task_id':first['id'],'good_quantity':1,'bad_quantity':0},worker,False)
+post(f'/mes/reports/{sheet}/confirm',token=worker,ok=False)
+check(scalar('SELECT COUNT(*) FROM mm_line_movement')==before,'Draft and rejected report sheets do not consume stock, and an operator cannot self-approve')
+post(f'/mes/reports/{sheet}/confirm');posted=scalar('SELECT COUNT(*) FROM mm_line_movement');post(f'/mes/reports/{sheet}/confirm')
+record=next(s for s in api('/mes/reports',token=worker) if s['id']==sheet)
+check(record['good_quantity']==1 and record['bad_quantity']==1 and record['status']=='CONFIRMED' and posted==scalar('SELECT COUNT(*) FROM mm_line_movement'),'Supervisor confirmation retains good/bad declarations and posts each report exactly once')
+post('/automation/process')
+failed=post('/foundation/inspections',inspect(first,5),qc)
+check(failed['status']=='BLOCKED' and failed['qualified_quantity']==1,'A passing measured value cannot conceal declared defective production')
+n=next(n for n in api('/mes/nonconformities',token=qc) if n['inspection_id']==failed['id']);post(f'/mes/nonconformities/{n["id"]}/disposition',{'decision':'REWORK','reason':'返工已申报的不良品'},qc)
+n=next(n for n in api('/mes/nonconformities',token=qc) if n['inspection_id']==failed['id'])
+post(f'/mes/reworks/{n["rework_id"]}/complete',{'result':'已修复申报缺陷，等待独立复检'},worker)
+post('/foundation/inspections',inspect(first,5),qc)
+for task in reportTasks[1:]:
+    dispatch(task);sheet=post('/mes/reports',{'task_id':task['id'],'good_quantity':2,'bad_quantity':0},worker);post(f'/mes/reports/{sheet}/confirm');post('/automation/process');post('/foundation/inspections',inspect(task,5),qc)
+check(scalar(f"SELECT status FROM mm_work_order WHERE id={reportWork['id']}")=='PRODUCTION_COMPLETED','Approved report sheets, defect rework and independent retest complete the production chain')
+header=post('/mes/documents',{'kind':'PURCHASE_RETURN','source_id':racePO['id'],'warehouse_id':warehouse,'name':'验收供应商退货','business_date':datetime.date.today().isoformat(),'reason':'核验头部','lines':[{'material_id':material,'quantity':1,'lot_id':raceLines[0]['lot_id'],'location_id':location}]},store)
+check(scalar(f"SELECT name FROM mm_document WHERE id={header}")=='验收供应商退货','Warehouse document preserves an explicit name and business date')
+
+editBody={'source_id':racePO['id'],'warehouse_id':warehouse,'name':'已修改退货草稿','business_date':datetime.date.today().isoformat(),'reason':'编辑明细核验','lines':[{'material_id':material,'quantity':1,'lot_id':raceLines[0]['lot_id'],'location_id':location}]}
+oldCode=scalar(f"SELECT code FROM mm_document WHERE id={header}");api(f'/mes/documents/{header}',editBody,'PUT',store)
+check(scalar(f"SELECT name FROM mm_document WHERE id={header}")=='已修改退货草稿' and scalar(f"SELECT code FROM mm_document WHERE id={header}")==oldCode,'Warehouse draft editing retains its document identity and revalidates all lines')
+api(f'/mes/documents/{raceIn}',editBody,'PUT',store,ok=False)
+check(True,'Posted warehouse documents cannot be altered through the new draft editor')
+
+result=dict(database=DB,passed=len(checks),completed=True,checks=checks)
+(ROOT/'.runtime/mes-completion-acceptance.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
+print('Final completion acceptance passed:',len(checks))

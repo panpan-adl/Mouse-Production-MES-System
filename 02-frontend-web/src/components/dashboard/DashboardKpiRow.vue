@@ -80,7 +80,7 @@ onBeforeUnmount(() => cancelAnimationFrame(frameId))
   border-radius: 8px;
   padding: 14px 16px;
   overflow: hidden;
-  background: #0d1424;
+  background: #ffffff;
 }
 
 .kpi-card::before {
@@ -104,7 +104,7 @@ onBeforeUnmount(() => cancelAnimationFrame(frameId))
 }
 
 .kpi-value strong {
-  color: #f4f7fc;
+  color: #273d56;
   font-size: clamp(24px, 2vw, 34px);
   font-weight: 800;
   line-height: 1;
@@ -120,15 +120,15 @@ onBeforeUnmount(() => cancelAnimationFrame(frameId))
 }
 
 .kpi-green {
-  --tone: #31d0aa;
+  --tone: #18a78e;
 }
 
 .kpi-yellow {
-  --tone: #ffb547;
+  --tone: #dba344;
 }
 
 .kpi-red {
-  --tone: #ff5d73;
+  --tone: #e26677;
 }
 
 @media (max-width: 1280px) {

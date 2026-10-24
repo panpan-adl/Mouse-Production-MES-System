@@ -55,7 +55,7 @@ defineEmits<{
 .panel {
   border: 1px solid rgba(132, 146, 168, 0.14);
   border-radius: 8px;
-  background: rgba(13, 20, 36, 0.85);
+  background: #ffffff;
   padding: 12px;
   min-height: 0;
 }
@@ -68,7 +68,7 @@ defineEmits<{
 }
 
 h2 {
-  color: #f4f7fc;
+  color: #273d56;
   font-size: 14px;
   font-weight: 700;
 }
@@ -92,7 +92,7 @@ table {
 th {
   text-align: left;
   padding: 6px 8px;
-  color: #ffffff;
+  color: #435a72;
   font-weight: 600;
   border-bottom: 1px solid rgba(255,255,255,0.15);
   white-space: nowrap;
@@ -100,18 +100,18 @@ th {
 
 td {
   padding: 6px 8px;
-  color: #ffffff;
+  color: #435a72;
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
 .order-id {
   font-family: monospace;
   font-weight: 600;
-  color: #ffffff;
+  color: #435a72;
 }
 
 .delivery-date {
-  color: rgba(255,255,255,0.7);
+  color: #8190a4;
   white-space: nowrap;
 }
 
@@ -142,7 +142,7 @@ td {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4f7cff, #31d0aa);
+  background: linear-gradient(90deg, #4f7cff, #18a78e);
   border-radius: 2px;
   transition: width 400ms ease;
 }
@@ -162,6 +162,6 @@ td {
 .empty {
   text-align: center;
   padding: 20px;
-  color: rgba(255,255,255,0.5);
+  color: #93a1b2;
 }
 </style>

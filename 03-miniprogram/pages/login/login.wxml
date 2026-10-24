@@ -5,6 +5,7 @@
   </view>
 
   <view class="login-form">
+    <view class="form-item"><text class="label">服务器地址</text><input class="input" value="{{serverUrl}}" bindinput="onServerInput" placeholder="开发工具用127.0.0.1，真机请使用已配置的HTTPS域名" /></view>
     <view class="form-item">
       <text class="label">用户编码</text>
       <input 

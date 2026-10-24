@@ -12,7 +12,29 @@
     "pages/workorder/list",
     "pages/workorder/detail",
     "pages/report/list",
-    "pages/profile/index"
+    "pages/profile/index",
+    "pages/customer/list",
+    "pages/equipment/detail",
+    "pages/equipment/list",
+    "pages/inventory/detail",
+    "pages/inventory/list",
+    "pages/maintenance/detail",
+    "pages/maintenance/list",
+    "pages/material/list",
+    "pages/mes/index",
+    "pages/more/more",
+    "pages/po/detail",
+    "pages/po/list",
+    "pages/qc/detail",
+    "pages/qc/list",
+    "pages/report/submit",
+    "pages/stockin/detail",
+    "pages/stockin/list",
+    "pages/stockout/detail",
+    "pages/stockout/list",
+    "pages/supplier/list",
+    "pages/task/detail",
+    "pages/task/list"
   ],
   "window": {
     "navigationBarTextStyle": "black",
@@ -23,34 +45,34 @@
     "color": "#999999",
     "selectedColor": "#1890ff",
     "borderStyle": "black",
-    "list":[
+    "list": [
       {
-        "pagePath":"pages/index/index",
-        "text":"首页",
+        "pagePath": "pages/index/index",
+        "text": "首页",
         "iconPath": "/images/tab_home.png",
         "selectedIconPath": "/images/tab_home_active.png"
       },
       {
-        "pagePath":"pages/order/list",
-        "text":"订单",
+        "pagePath": "pages/order/list",
+        "text": "订单",
         "iconPath": "/images/tab_order.png",
         "selectedIconPath": "/images/tab_order_active.png"
       },
       {
-        "pagePath":"pages/plan/list",
-        "text":"计划",
+        "pagePath": "pages/plan/list",
+        "text": "计划",
         "iconPath": "/images/tab_plan.png",
         "selectedIconPath": "/images/tab_plan_active.png"
       },
       {
-        "pagePath":"pages/workorder/list",
-        "text":"工单",
+        "pagePath": "pages/workorder/list",
+        "text": "工单",
         "iconPath": "/images/tab_workorder.png",
         "selectedIconPath": "/images/tab_workorder_active.png"
       },
       {
-        "pagePath":"pages/profile/index",
-        "text":"我的",
+        "pagePath": "pages/profile/index",
+        "text": "我的",
         "iconPath": "/images/tab_report.png",
         "selectedIconPath": "/images/tab_report_active.png"
       }

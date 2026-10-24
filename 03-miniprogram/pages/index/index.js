@@ -11,13 +11,14 @@ Page({
     taskSummary: {},
     currentDate: '',
     quickLinks: [
+      { name: 'MES现场作业', icon: '🏭', path: '/pages/mes/index', bgColor: '#e6f7ff' },
       { name: '创建订单', icon: '📝', path: '/pages/order/create', bgColor: '#e6f7ff' },
       { name: '生产计划', icon: '📋', path: '/pages/plan/list', bgColor: '#f6ffed' },
       { name: '工单管理', icon: '🔧', path: '/pages/workorder/list', bgColor: '#fff7e6' },
       { name: '报工查看', icon: '📊', path: '/pages/report/list', bgColor: '#f9f0ff' },
-      { name: '库存管理', icon: '🏭', path: '/pages/index/index', bgColor: '#fff1f0' },
-      { name: '设备管理', icon: '⚙️', path: '/pages/index/index', bgColor: '#e6fffb' },
-      { name: '质检管理', icon: '✅', path: '/pages/index/index', bgColor: '#fffbe6' },
+      { name: '库存管理', icon: '🏭', path: '/pages/inventory/list', bgColor: '#fff1f0' },
+      { name: '设备管理', icon: '⚙️', path: '/pages/equipment/list', bgColor: '#e6fffb' },
+      { name: '质检管理', icon: '✅', path: '/pages/mes/index', bgColor: '#fffbe6' },
       { name: '报表中心', icon: '📈', path: '/pages/report/list', bgColor: '#f0f5ff' }
     ],
     recentOrders: [],
@@ -27,10 +28,10 @@ Page({
     planCount: 0,
     taskCount: 0,
     workOrderCount: 0,
-    orderTrend: 12,
-    planTrend: 8,
-    taskTrend: -3,
-    woTrend: 15,
+    orderTrend: 0,
+    planTrend: 0,
+    taskTrend: 0,
+    woTrend: 0,
     todoList: []
   },
 
@@ -66,17 +67,18 @@ Page({
     this.setData({ loading: true })
     
     Promise.all([
-      dashboardApi.getSummary().catch(function() { return {} }),
-      dashboardApi.getRecentOrders().catch(function() { return [] })
+      dashboardApi.getSummary(),
+      dashboardApi.getRecentOrders()
     ]).then(function(results) {
       var summary = results[0]
       var orders = results[1]
       
-      const orderCount = this.getOrderCount()
-      const planCount = this.getPlanCount()
-      const taskCount = this.getTaskCount()
-      const workOrderCount = this.getWorkOrderCount()
-      const completionRate = this.getCompletionRate()
+      const sum=(v)=>Object.values(v||{}).reduce((n,x)=>n+(typeof x==='number'?x:0),0)
+      const orderCount = sum(summary.orders)
+      const planCount = ['pending','inProgress','completed'].reduce((n,k)=>n+Number((summary.plans||{})[k]||0),0)
+      const taskCount = Number(summary.totalTasks||0)
+      const workOrderCount = sum(summary.workOrders)
+      const completionRate = orderCount?Math.round(Number((summary.orders||{}).completed||0)/orderCount*100):0
       
       const processedOrders = orders.slice(0, 5).map(item => ({
         ...item,
@@ -96,7 +98,7 @@ Page({
         taskCount: taskCount,
         workOrderCount: workOrderCount,
         completionRate: completionRate,
-        todoList: this.generateTodoList()
+        todoList: []
       })
 
       setTimeout(() => {
@@ -139,14 +141,7 @@ Page({
     ctx.draw()
   },
 
-  generateTodoList() {
-    return [
-      { id: 1, title: '确认3个待审核订单', meta: '订单管理', priority: 'high', completed: false },
-      { id: 2, title: '查看生产计划进度', meta: '计划管理', priority: 'normal', completed: false },
-      { id: 3, title: '分配今日工单', meta: '工单管理', priority: 'high', completed: false },
-      { id: 4, title: '提交生产日报', meta: '报表中心', priority: 'normal', completed: true }
-    ]
-  },
+  generateTodoList() { return [] },
 
   toggleTodo(e) {
     const id = e.currentTarget.dataset.id

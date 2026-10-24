@@ -1,0 +1,27 @@
+{
+  "passed": 20,
+  "checks": [
+    "Unauthenticated and ordinary-worker access is rejected by the server",
+    "System administrator can read audit logs",
+    "login reads existing database records with bounded page size",
+    "login excludes raw request/response bodies and credential fields",
+    "login pagination returns distinct records",
+    "login keyword filter returns an actual empty result",
+    "login date range includes only matching records",
+    "login status filter is applied by the database",
+    "operation reads existing database records with bounded page size",
+    "operation excludes raw request/response bodies and credential fields",
+    "operation pagination returns distinct records",
+    "operation keyword filter returns an actual empty result",
+    "operation date range includes only matching records",
+    "operation status filter is applied by the database",
+    "audit reads existing database records with bounded page size",
+    "audit excludes raw request/response bodies and credential fields",
+    "audit pagination returns distinct records",
+    "audit keyword filter returns an actual empty result",
+    "audit date range includes only matching records",
+    "Invalid log types, dates, status and pagination are rejected"
+  ],
+  "backend": "http://127.0.0.1:8082/api",
+  "database": "mouse_mes_completion_test_20261024_102633"
+}

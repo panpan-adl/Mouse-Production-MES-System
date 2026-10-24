@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Bell, CheckCircle, AlertCircle, Info, XCircle, Clock, CheckSquare, Filter } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
+onMounted(() => authStore.loadNotifications())
 const selectedType = ref<'all' | 'info' | 'warning' | 'success' | 'danger'>('all')
 
 const filteredNotifications = computed(() => {

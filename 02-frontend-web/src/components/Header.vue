@@ -1,11 +1,19 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { Bell, User, Settings } from 'lucide-vue-next'
+import { computed, ref,onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { Bell, User, Settings, Menu, ChevronRight } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { sidebarCollapsed } from '@/stores/layout'
 
 const router = useRouter()
+const route = useRoute()
+const pageLabels:Record<string,string>={'/dashboard':'生产全景看板','/mes':'MES运营中心','/manufacturing':'制造与质量放行','/fulfillment':'生产与仓储闭环','/system/logs':'日志管理','/system/user':'员工管理','/system/role':'角色管理','/system/department':'部门管理','/automation':'规则与自动化','/intelligence':'智能业务查询','/notifications':'通知中心','/user/profile':'个人中心','/attendance':'考勤管理','/production/task':'生产任务','/inventory/stock':'库存管理'}
+const domains:Record<string,string>={foundation:'基础配置',production:'生产管理',quality:'质量管理',inventory:'仓储管理',purchase:'采购管理',equipment:'设备管理',system:'系统管理',order:'销售管理',cfo:'财务看板'}
+const pageTitle=computed(()=>String(route.meta.title||'')||pageLabels[route.path]||domains[route.path.split('/')[1]]||'业务工作台')
+const sectionTitle=computed(()=>domains[route.path.split('/')[1]]||'工作空间')
+const todayLabel=new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'})
 const authStore = useAuthStore()
+onMounted(()=>Promise.all([authStore.loadNotifications(),authStore.refreshMenuAccess(),authStore.refreshSettings()]).catch(()=>{}))
 const showNotifications = ref(false)
 
 function goToNotifications() {
@@ -19,12 +27,13 @@ function goToProfile() {
 </script>
 
 <template>
-  <header class="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-end sticky top-0 z-40">
+  <header class="workspace-header flex items-center justify-between sticky top-0 z-40">
 
-    <div class="flex items-center space-x-4">
+    <div class="header-location"><button class="header-menu-toggle" aria-label="展开或收起导航" @click="sidebarCollapsed=!sidebarCollapsed"><Menu class="w-5 h-5" /></button><div class="header-breadcrumb"><span>{{sectionTitle}}</span><ChevronRight class="w-3 h-3"/><strong>{{pageTitle}}</strong></div></div>
+    <div class="flex items-center space-x-4"><span class="header-date">{{todayLabel}}</span>
       <div class="relative">
         <button
-          @click="showNotifications = !showNotifications"
+          aria-label="查看通知" :aria-expanded="showNotifications" @click="showNotifications = !showNotifications"
           class="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <Bell class="w-5 h-5 text-gray-600" />
@@ -85,7 +94,7 @@ function goToProfile() {
         </div>
       </div>
 
-      <button class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+      <button aria-label="个人设置" @click="goToProfile" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
         <Settings class="w-5 h-5 text-gray-600" />
       </button>
 

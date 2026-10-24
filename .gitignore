@@ -17,3 +17,4 @@ Thumbs.db
 03-miniprogram/project.private.config.json
 *.pem
 *.key
+npm_cache/

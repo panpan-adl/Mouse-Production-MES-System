@@ -32,7 +32,7 @@ const items = [
 .panel {
   border: 1px solid rgba(132, 146, 168, 0.14);
   border-radius: 8px;
-  background: #0d1424;
+  background: #ffffff;
   padding: 12px;
   min-height: 0;
 }
@@ -45,7 +45,7 @@ const items = [
 }
 
 h2 {
-  color: #f4f7fc;
+  color: #273d56;
   font-size: 14px;
   font-weight: 700;
 }
@@ -65,7 +65,7 @@ h2 {
   border-radius: 8px;
   border: 1px solid rgba(132, 146, 168, 0.14);
   padding: 10px;
-  background: rgba(7, 11, 20, 0.54);
+  background: #f5f8fc;
 }
 
 .inventory-card span {

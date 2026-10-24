@@ -1,5 +1,5 @@
-. (Join-Path $PSScriptRoot 'Use-Environment.ps1')
-foreach ($name in @('stage34-demo-frontend', 'stage34-demo-backend', 'frontend', 'backend')) {
+﻿. (Join-Path $PSScriptRoot 'Use-Environment.ps1')
+foreach ($name in @('completion-test-frontend', 'completion-test-backend', 'stage34-demo-frontend', 'stage34-demo-backend', 'frontend', 'backend')) {
     $record = Join-Path $RuntimeRoot "$name.process.json"
     if (-not (Test-Path -LiteralPath $record)) { continue }
     $owned = Get-Content -LiteralPath $record -Raw | ConvertFrom-Json
@@ -14,6 +14,7 @@ foreach ($name in @('stage34-demo-frontend', 'stage34-demo-backend', 'frontend',
     }
     if ($process -and $process.Path -eq $owned.path -and $sameStart) {
         Stop-Process -Id $process.Id
+        Wait-Process -Id $process.Id -Timeout 15 -ErrorAction SilentlyContinue
         Write-Host "$name stopped."
     }
     Remove-Item -LiteralPath $record

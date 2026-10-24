@@ -42,7 +42,7 @@ const planPoints = computed(() => props.data.map((item, index) => `${xAt(index)}
 <template>
   <section class="panel chart-panel">
     <div class="panel-title">
-      <h2>小时末道放行量</h2>
+      <h2>小时关键工序放行量</h2>
       <div class="legend">
         <span><i class="actual"></i>实际</span>
         <span><i class="plan"></i>计划</span>
@@ -96,7 +96,7 @@ const planPoints = computed(() => props.data.map((item, index) => `${xAt(index)}
 .panel {
   border: 1px solid rgba(132, 146, 168, 0.14);
   border-radius: 8px;
-  background: #0d1424;
+  background: #ffffff;
   padding: 12px;
   min-height: 0;
 }
@@ -113,7 +113,7 @@ const planPoints = computed(() => props.data.map((item, index) => `${xAt(index)}
 }
 
 h2 {
-  color: #f4f7fc;
+  color: #273d56;
   font-size: 14px;
   font-weight: 700;
 }
@@ -138,11 +138,11 @@ h2 {
 }
 
 .legend .actual {
-  background: #31d0aa;
+  background: #18a78e;
 }
 
 .legend .plan {
-  background: #ffb547;
+  background: #dba344;
 }
 
 .chart-svg {
@@ -158,7 +158,7 @@ h2 {
 
 .actual-bar {
   fill: url(#none);
-  fill: #31d0aa;
+  fill: #18a78e;
   opacity: 0.88;
   transition: opacity 180ms ease;
 }
@@ -169,7 +169,7 @@ h2 {
 
 .plan-line {
   fill: none;
-  stroke: #ffb547;
+  stroke: #dba344;
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -177,7 +177,7 @@ h2 {
 
 .plan-dot {
   fill: #f9fafb;
-  stroke: #ffb547;
+  stroke: #dba344;
   stroke-width: 2;
 }
 

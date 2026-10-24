@@ -17,6 +17,7 @@ import java.util.List;
 
 @Service
 public class ProductionReportServiceImpl implements ProductionReportService {
+    @Autowired private com.mouse.mes.service.LineStockService lineStock;
 
     @Autowired
     private com.mouse.mes.service.FoundationService foundationService;
@@ -85,6 +86,7 @@ public class ProductionReportServiceImpl implements ProductionReportService {
         validateTotalQuantity(task, null, productionReport.getReportQuantity());
         fillDefaultReportFields(productionReport);
         productionReportMapper.insert(productionReport);
+        lineStock.reported(productionReport.getTaskId(),productionReport.getId(),productionReport.getReportQuantity());
         syncTaskPlanAndOrder(productionReport.getTaskId());
         return productionReport;
     }

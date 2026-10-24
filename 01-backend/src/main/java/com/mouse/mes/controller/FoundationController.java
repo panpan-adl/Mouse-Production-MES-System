@@ -27,13 +27,18 @@ public class FoundationController {
     @GetMapping("/bom/{id}/expand") public Object expand(@PathVariable long id,@RequestParam(defaultValue="1") BigDecimal quantity){return JsonResult.success(service.expand(id,quantity));}
     @GetMapping("/inspections") public Object inspections(){return JsonResult.success(service.inspections());}
     @PostMapping("/inspections") public Object inspect(@RequestBody Map<String,Object> body,HttpServletRequest req)throws Exception{allow(req,List.of(4));return JsonResult.success(service.inspect(body,actor(req)));}
-    @GetMapping("/{key}") public Object list(@PathVariable String key){return JsonResult.success(service.list(key));}
+    @GetMapping("/{key}") public Object list(@PathVariable String key,HttpServletRequest req){
+        var rows=service.list(key);
+        if(key.equals("products")&&!Set.of(1L,7L,9L,10L).contains(user(req).getRoleId()))
+            rows.forEach(row->{row.remove("cost_price");row.remove("selling_price");});
+        return JsonResult.success(rows);
+    }
     @PostMapping("/{key}") public Object save(@PathVariable String key,@RequestBody Map<String,Object> body,HttpServletRequest req){allow(req,service.definition(key).roles());return JsonResult.success(service.save(key,null,body,actor(req)));}
     @PutMapping("/{key}/{id}") public Object update(@PathVariable String key,@PathVariable long id,@RequestBody Map<String,Object> body,HttpServletRequest req){allow(req,service.definition(key).roles());return JsonResult.success(service.save(key,id,body,actor(req)));}
     @DeleteMapping("/{key}/{id}") public Object delete(@PathVariable String key,@PathVariable long id,HttpServletRequest req){allow(req,service.definition(key).roles());service.delete(key,id,actor(req));return JsonResult.success();}
     @ExceptionHandler(SecurityException.class) @ResponseStatus(org.springframework.http.HttpStatus.FORBIDDEN)
     public Object denied(SecurityException error){return JsonResult.error(403,error.getMessage());}
-    @ExceptionHandler({IllegalArgumentException.class,NoSuchElementException.class,DataAccessException.class})
+    @ExceptionHandler({IllegalArgumentException.class,ArithmeticException.class,java.time.DateTimeException.class,NoSuchElementException.class,DataAccessException.class})
     @ResponseStatus(org.springframework.http.HttpStatus.BAD_REQUEST)
     public Object invalid(Exception error){return JsonResult.error(400,error instanceof DataAccessException?"数据关联或唯一性校验失败，请检查引用和编码":error.getMessage());}
 }

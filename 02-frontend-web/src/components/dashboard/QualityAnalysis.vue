@@ -63,7 +63,7 @@ const failPoints = computed(() => props.trend.map((item, index) => `${xAt(index)
 .panel {
   border: 1px solid rgba(132, 146, 168, 0.14);
   border-radius: 8px;
-  background: #0d1424;
+  background: #ffffff;
   padding: 12px;
   min-height: 0;
 }
@@ -79,13 +79,13 @@ const failPoints = computed(() => props.trend.map((item, index) => `${xAt(index)
 }
 
 h2 {
-  color: #f4f7fc;
+  color: #273d56;
   font-size: 14px;
   font-weight: 700;
 }
 
 .panel-title strong {
-  color: #31d0aa;
+  color: #18a78e;
   font-size: 22px;
 }
 
@@ -106,22 +106,22 @@ h2 {
 }
 
 .pass-line {
-  stroke: #31d0aa;
+  stroke: #18a78e;
 }
 
 .fail-line {
-  stroke: #ff5d73;
+  stroke: #e26677;
 }
 
 .pass-dot {
   fill: #f9fafb;
-  stroke: #31d0aa;
+  stroke: #18a78e;
   stroke-width: 2;
 }
 
 .fail-dot {
   fill: #f9fafb;
-  stroke: #ff5d73;
+  stroke: #e26677;
   stroke-width: 2;
 }
 
@@ -144,7 +144,7 @@ text {
 
 .defect-row span {
   overflow: hidden;
-  color: #dbe4f2;
+  color: #546b83;
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -161,11 +161,11 @@ text {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #ff5d73;
+  background: #e26677;
 }
 
 .defect-row strong {
-  color: #f4f7fc;
+  color: #273d56;
   font-size: 12px;
   text-align: right;
 }

@@ -46,7 +46,7 @@ const toneClass: Record<WorkOrderStatus['tone'], string> = {
 .panel {
   border: 1px solid rgba(132, 146, 168, 0.14);
   border-radius: 8px;
-  background: #0d1424;
+  background: #ffffff;
   padding: 12px;
   min-height: 0;
 }
@@ -59,7 +59,7 @@ const toneClass: Record<WorkOrderStatus['tone'], string> = {
 }
 
 h2 {
-  color: #f4f7fc;
+  color: #273d56;
   font-size: 14px;
   font-weight: 700;
 }
@@ -93,7 +93,7 @@ h2 {
 .status-row {
   min-width: 0;
   border-radius: 7px;
-  background: rgba(7, 11, 20, 0.54);
+  background: #f5f8fc;
   padding: 8px;
 }
 
@@ -113,7 +113,7 @@ h2 {
 strong {
   display: block;
   margin-top: 3px;
-  color: #f4f7fc;
+  color: #273d56;
   font-size: 18px;
   line-height: 1;
 }
@@ -123,15 +123,15 @@ strong {
 }
 
 .tone-green {
-  background: #31d0aa;
+  background: #18a78e;
 }
 
 .tone-yellow {
-  background: #ffb547;
+  background: #dba344;
 }
 
 .tone-red {
-  background: #ff5d73;
+  background: #e26677;
 }
 
 .tone-gray {

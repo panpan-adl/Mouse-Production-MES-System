@@ -21,7 +21,7 @@ public class AutomationService {
     }
     @Scheduled(fixedDelay=2000,initialDelay=10000)
     public void tick(){
-        try { for(int n=0;n<20;n++)if(!process())break; }
+        try { if(db.queryForObject("SELECT COUNT(*) FROM mm_job_config WHERE code='REPORT_QC' AND enabled=1 AND (last_run IS NULL OR TIMESTAMPDIFF(SECOND,last_run,NOW())>=interval_seconds)",Integer.class)==0)return;for(int n=0;n<20;n++)if(!process())break;db.update("UPDATE mm_job_config SET last_run=NOW() WHERE code='REPORT_QC'"); }
         catch(org.springframework.dao.DataAccessException ignored){ /* Startup before additive migration: next tick retries. */ }
     }
     public boolean process(){
@@ -33,7 +33,7 @@ public class AutomationService {
                 var rows=db.queryForList("SELECT c.work_order_id,t.task_status,p.product_id FROM mm_task_context c JOIN t_production_task t ON t.id=c.task_id JOIN t_production_plan p ON p.id=t.plan_id WHERE t.id=? AND c.requires_qc=1",task);
                 if(rows.isEmpty()||((Number)rows.get(0).get("task_status")).intValue()!=3){db.update("UPDATE mm_auto_event SET status='SKIPPED',error='任务已放行或不再需要质检',finished_at=NOW(6) WHERE id=?",id);return true;}
                 var row=rows.get(0);
-                Integer count=db.queryForObject("SELECT COUNT(*) FROM mm_qc_template q WHERE q.kind='PROCESS' AND q.product_id=? AND EXISTS(SELECT 1 FROM mm_qc_line i WHERE i.template_id=q.id)",Integer.class,row.get("product_id"));
+                Integer count=db.queryForObject("SELECT COUNT(*) FROM mm_qc_template q JOIN mm_task_context c ON c.operation_id=q.operation_id WHERE c.task_id=? AND q.kind='PROCESS' AND q.phase IN ('FINAL','LAST') AND q.product_id=? AND EXISTS(SELECT 1 FROM mm_qc_line i WHERE i.template_id=q.id)",Integer.class,task,row.get("product_id"));
                 if(count==null||count==0)throw new IllegalArgumentException("产品未配置有效过程检验模板，请完善后重试");
                 db.update("INSERT IGNORE INTO mm_qc_todo(event_id,task_id,work_order_id) VALUES(?,?,?)",id,task,row.get("work_order_id"));
                 db.update("UPDATE mm_auto_event SET status='SUCCEEDED',attempts=attempts+1,error=NULL,finished_at=NOW(6) WHERE id=?",id);

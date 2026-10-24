@@ -52,7 +52,7 @@ const statusLabel: Record<ProductionFlowNode['status'], string> = {
 .panel {
   border: 1px solid rgba(132, 146, 168, 0.14);
   border-radius: 8px;
-  background: #0d1424;
+  background: #ffffff;
   padding: 12px;
   min-height: 0;
 }
@@ -77,7 +77,7 @@ const statusLabel: Record<ProductionFlowNode['status'], string> = {
   left: 22px;
   width: 80px;
   height: 2px;
-  background: linear-gradient(90deg, transparent, #31d0aa, transparent);
+  background: linear-gradient(90deg, transparent, #18a78e, transparent);
   animation: flowMove 3s linear infinite;
 }
 
@@ -91,7 +91,7 @@ const statusLabel: Record<ProductionFlowNode['status'], string> = {
 }
 
 h2 {
-  color: #f4f7fc;
+  color: #273d56;
   font-size: 15px;
   font-weight: 800;
 }
@@ -121,7 +121,7 @@ h2 {
   border-radius: 8px;
   padding: 10px;
   text-align: left;
-  background: rgba(7, 11, 20, 0.55);
+  background: #f5f8fc;
   transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
 }
 
@@ -145,7 +145,7 @@ h2 {
 .flow-node strong {
   display: block;
   margin-top: 10px;
-  color: #f4f7fc;
+  color: #273d56;
   font-size: 13px;
   font-weight: 800;
   white-space: nowrap;
@@ -179,15 +179,15 @@ h2 {
 }
 
 .status-normal {
-  --status-color: #31d0aa;
+  --status-color: #18a78e;
 }
 
 .status-warning {
-  --status-color: #ffb547;
+  --status-color: #dba344;
 }
 
 .status-error {
-  --status-color: #ff5d73;
+  --status-color: #e26677;
 }
 
 @keyframes flowMove {
