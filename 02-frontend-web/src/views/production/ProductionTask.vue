@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
+import { assignablePeople } from '@/api/assignment'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { Eye, Plus, RefreshCw, Search, Send, X } from 'lucide-vue-next'
@@ -16,7 +18,7 @@ import {
   type ProductionTask,
   type Warehouse,
 } from '@/api/mes'
-import { getUserList, getUsersByRoleId, type User } from '@/api/user'
+import { type User } from '@/api/user'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -141,30 +143,7 @@ function isPlanCompleted(plan: ProductionPlan) {
   return plan.planStatus === 2 || (planQuantity > 0 && completedQuantity >= planQuantity)
 }
 
-function isActiveUser(user: User) {
-  return user.deleted !== 1 && user.status !== 0
-}
-
-function isDemoCeo(user: User) {
-  return Number(user.roleId) === 9 || user.username?.toLowerCase() === 'ceo' || String(user.userCode || '').startsWith('109')
-}
-
-function isAssignableUser(user: User) {
-  return isActiveUser(user) && (Number(user.roleId) === 3 || isDemoCeo(user))
-}
-
-function uniqueUsers(userList: User[]) {
-  const map = new Map<number, User>()
-  userList.forEach((user) => {
-    if (user.id) map.set(user.id, user)
-  })
-  return Array.from(map.values())
-}
-
-function assigneeLabel(user: User) {
-  const name = `${user.userCode} - ${user.realName}`
-  return isDemoCeo(user) ? `${name}（演示需要）` : name
-}
+function assigneeLabel(user: User) { return `${user.userCode || ''} - ${user.realName}` }
 async function loadTasks() {
   loading.value = true
   feedback.value = ''
@@ -185,13 +164,10 @@ async function loadTasks() {
   }
 
   try {
-    const userData = await getUserList()
-    workers.value = uniqueUsers(userData.filter(isAssignableUser))
+    workers.value = await assignablePeople(3)
   } catch (error) {
-    const workerData = await getUsersByRoleId(3).catch(() => [] as User[])
-    const ceoData = await getUsersByRoleId(9).catch(() => [] as User[])
-    workers.value = uniqueUsers([...workerData, ...ceoData].filter(isAssignableUser))
-    if (workers.value.length === 0) loadErrors.push(`指派人员加载失败：${getErrorMessage(error)}`)
+    workers.value=[]
+    loadErrors.push(`指派人员加载失败：${getErrorMessage(error)}`)
   }
 
   try {
@@ -236,18 +212,22 @@ function handlePlanChange() {
 async function submitCreateTask() {
   if (!createTaskForm.planId) {
     feedback.value = '请选择来源生产计划'
+    showBusinessFormError(feedback.value)
     return
   }
   if (!createTaskForm.taskNo.trim()) {
     feedback.value = '任务编号不能为空'
+    showBusinessFormError(feedback.value)
     return
   }
   if (!createTaskForm.productName.trim()) {
     feedback.value = '产品名称不能为空'
+    showBusinessFormError(feedback.value)
     return
   }
   if (Number(createTaskForm.quantity) <= 0) {
     feedback.value = '任务数量必须大于 0'
+    showBusinessFormError(feedback.value)
     return
   }
 
@@ -303,6 +283,7 @@ async function submitMaterialRequest() {
   if (!selectedTask.value || !authStore.currentUser) return
   if (!materialRequestForm.materialId || Number(materialRequestForm.requiredQuantity || 0) <= 0) {
     feedback.value = '请选择物料，并填写大于 0 的需求数量。'
+    showBusinessFormError(feedback.value)
     return
   }
   try {
@@ -448,7 +429,7 @@ const completeDrafts=useFormDrafts({createTaskVisible:{open:createTaskVisible,fi
       </section>
     </div>
 
-    <div v-if="createTaskVisible" class="modal-mask" @click.self="createTaskVisible = false">
+    <div v-if="createTaskVisible" class="modal-mask" data-business-form @click.self="createTaskVisible = false">
       <form class="modal-card max-w-3xl" @submit.prevent="submitCreateTask"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-6 flex items-start justify-between">
           <div><p class="text-sm text-gray-500">生产计划下发</p><h2 class="mt-1 text-xl font-bold text-gray-800">新增生产任务</h2></div>
@@ -481,7 +462,7 @@ const completeDrafts=useFormDrafts({createTaskVisible:{open:createTaskVisible,fi
       </form>
     </div>
 
-    <div v-if="detailVisible && selectedTask" class="modal-mask" @click.self="detailVisible = false">
+    <div v-if="detailVisible && selectedTask" class="modal-mask" data-business-form @click.self="detailVisible = false">
       <section class="modal-card max-w-4xl">
         <div class="mb-6 flex items-start justify-between"><div><p class="text-sm text-gray-500">生产任务详情</p><h2 class="mt-1 text-xl font-bold text-gray-800">{{ selectedTask.taskNo }}</h2></div><button class="icon-btn" aria-label="关闭详情" @click="detailVisible = false"><X class="h-5 w-5" /></button></div>
         <div class="grid grid-cols-2 gap-x-8 gap-y-5 border-y border-gray-100 py-5 text-sm md:grid-cols-4">
@@ -500,7 +481,7 @@ const completeDrafts=useFormDrafts({createTaskVisible:{open:createTaskVisible,fi
       </section>
     </div>
 
-    <div v-if="materialRequestVisible && selectedTask" class="modal-mask" @click.self="materialRequestVisible = false">
+    <div v-if="materialRequestVisible && selectedTask" class="modal-mask" data-business-form @click.self="materialRequestVisible = false">
       <form class="modal-card max-w-xl" @submit.prevent="submitMaterialRequest"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-6 flex items-start justify-between"><div><p class="text-sm text-gray-500">发送给仓管员</p><h2 class="mt-1 text-xl font-bold text-gray-800">{{ selectedTask.taskNo }} 物料请求</h2></div><button type="button" class="icon-btn" aria-label="关闭物料请求" @click="materialRequestVisible = false"><X class="h-5 w-5" /></button></div>
         <div class="space-y-4"><label class="block"><span class="field-label">需求物料</span><select v-model.number="materialRequestForm.materialId" class="input mt-1" required><option v-for="material in materials" :key="material.id" :value="material.id">{{ material.materialCode }} / {{ material.materialName }}</option></select></label><label class="block"><span class="field-label">需求数量</span><input v-model.number="materialRequestForm.requiredQuantity" class="input mt-1" required min="1" type="number" /></label><label class="block"><span class="field-label">建议出料仓库</span><select v-model.number="materialRequestForm.warehouseId" class="input mt-1"><option :value="undefined">暂不指定</option><option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">{{ warehouse.warehouseCode }} / {{ warehouse.warehouseName }}</option></select></label><label class="block"><span class="field-label">说明</span><textarea v-model="materialRequestForm.remark" class="input mt-1 min-h-24" placeholder="例如：该生产任务下发前需确认物料齐套"></textarea></label><p class="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">提交后，仓管员会在“仓库管理 / 物料请求”中看到该需求；若库存不足，仓管员可继续发送采购请求给采购员。</p></div>

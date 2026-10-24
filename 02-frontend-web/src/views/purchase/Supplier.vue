@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
@@ -81,6 +82,7 @@ function openEdit(item: Supplier) {
 async function saveSupplier() {
   if (!form.supplierCode || !form.supplierName) {
     message.value = '供应商编码和名称不能为空'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -227,7 +229,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
         </div>
       </div>
 
-      <div v-if="showForm" class="modal-mask">
+      <div v-if="showForm" class="modal-mask" data-business-form>
         <div class="modal-card">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">{{ editingId ? '修改供应商' : '新增供应商' }}</h2>

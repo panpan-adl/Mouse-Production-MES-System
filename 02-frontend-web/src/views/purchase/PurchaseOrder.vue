@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
@@ -246,6 +247,7 @@ function resetForm() {
 function openCreate() {
   if (isWarehouseManager.value) {
     message.value = '仓管员只能查看采购订单并确认到货，采购单由采购员创建。'
+    showBusinessFormError(message.value)
     return
   }
   formMode.value = 'create'
@@ -266,10 +268,12 @@ function openItemDetail(item: PurchaseOrderItem) {
 function openEdit(order: PurchaseOrder) {
   if (isWarehouseManager.value) {
     message.value = '仓管员不能修改采购订单，只能查看订单状态并办理收货入库。'
+    showBusinessFormError(message.value)
     return
   }
   if (arrivalStatus(order) === 'RECEIVED') {
     message.value = '已到货采购单不建议再修改明细'
+    showBusinessFormError(message.value)
     return
   }
   formMode.value = 'edit'
@@ -323,15 +327,18 @@ function normalizeItems() {
 function validateForm() {
   if (!form.poNo || !form.supplierId) {
     message.value = '订单号和供应商不能为空'
+    showBusinessFormError(message.value)
     return false
   }
   if (!form.items?.length) {
     message.value = '采购订单必须至少有一条明细'
+    showBusinessFormError(message.value)
     return false
   }
   const invalidItem = form.items.find((item) => !item.materialId || Number(item.quantity || 0) <= 0)
   if (invalidItem) {
     message.value = '每条采购明细都必须选择物料，并填写大于 0 的数量'
+    showBusinessFormError(message.value)
     return false
   }
   return true
@@ -341,6 +348,7 @@ async function transition(order:PurchaseOrder,kind:'submit'|'approve') {if(!orde
 async function saveOrder() {
   if (isWarehouseManager.value) {
     message.value = '仓管员不能保存采购订单，采购订单请由采购员维护。'
+    showBusinessFormError(message.value)
     return
   }
   if (!validateForm()) return
@@ -406,6 +414,7 @@ function openReceive(order: PurchaseOrder) {
   })
   if (receiveForm.items.length === 0) {
     message.value = '这张采购单没有剩余未到货数量，可点击“同步状态”修正到货状态'
+    showBusinessFormError(message.value)
     return
   }
   showReceive.value = true
@@ -414,14 +423,17 @@ function openReceive(order: PurchaseOrder) {
 async function receiveOrder() {
   if (!receivingOrder.value?.id || receiveForm.items.length === 0) {
     message.value = '当前采购单没有可收货的明细'
+    showBusinessFormError(message.value)
     return
   }
   if (!receiveForm.warehouseId) {
     message.value = '请选择收货仓库'
+    showBusinessFormError(message.value)
     return
   }
   if (receiveForm.items.some((item) => !item.locationId)) {
     message.value = '每条收货明细都必须选择库位'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -483,6 +495,7 @@ async function syncReceivedStatus(order: PurchaseOrder) {
 async function removeOrder(order: PurchaseOrder) {
   if (isWarehouseManager.value) {
     message.value = '仓管员不能删除采购订单。'
+    showBusinessFormError(message.value)
     return
   }
   if (!order.id || !window.confirm(`确认删除采购订单“${order.poNo}”吗？`)) return
@@ -606,7 +619,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
         </div>
       </div>
 
-      <div v-if="showDetail && detailOrder" class="modal-mask">
+      <div v-if="showDetail && detailOrder" class="modal-mask" data-business-form>
         <div class="modal-card max-w-5xl">
           <div class="flex items-start justify-between gap-4 mb-5">
             <div>
@@ -682,7 +695,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
         </div>
       </div>
 
-      <div v-if="showItemDetail && detailItem" class="modal-mask">
+      <div v-if="showItemDetail && detailItem" class="modal-mask" data-business-form>
         <div class="modal-card max-w-2xl">
           <div class="flex items-start justify-between gap-4 mb-5">
             <div>
@@ -739,7 +752,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
         </div>
       </div>
 
-      <div v-if="showForm" class="modal-mask">
+      <div v-if="showForm" class="modal-mask" data-business-form>
         <div class="modal-card max-w-4xl">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">{{ formMode === 'edit' ? '编辑采购订单明细' : '新增采购订单' }}</h2>
@@ -786,7 +799,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
         </div>
       </div>
 
-      <div v-if="showReceive" class="modal-mask">
+      <div v-if="showReceive" class="modal-mask" data-business-form>
         <div class="modal-card max-w-3xl">
           <div class="flex items-center justify-between mb-4">
             <div>

@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
+import { assignablePeople } from '@/api/assignment'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Building, CheckCircle, Clock, RefreshCw, Settings, Users, Wrench, X } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { maintenanceApi, productionTaskApi, type Maintenance, type ProductionTask } from '@/api/mes'
-import { getUsersByRoleId, type User } from '@/api/user'
+import {  type User } from '@/api/user'
 
 const authStore = useAuthStore()
 const currentUser = computed(() => authStore.currentUser)
@@ -77,8 +79,8 @@ async function loadAll() {
     const [taskData, maintenanceData, maintainerData, workerData] = await Promise.all([
       productionTaskApi.list(),
       maintenanceApi.list(),
-      getUsersByRoleId(8),
-      getUsersByRoleId(3),
+      assignablePeople(8),
+      assignablePeople(3),
     ])
     tasks.value = taskData
     maintenances.value = maintenanceData
@@ -105,6 +107,7 @@ async function assignMaintenance() {
   const maintainer = maintainers.value.find((user) => user.id === assignForm.userId)
   if (!selectedMaintenance.value?.id || !maintainer) {
     message.value = '请选择维修人员'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -137,6 +140,7 @@ async function assignProductionTask() {
   const worker = workers.value.find((user) => user.id === taskAssignForm.userId)
   if (!selectedTask.value?.id || !worker) {
     message.value = '请选择操作工'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -264,7 +268,7 @@ const completeDrafts=useFormDrafts({showAssignForm:{open:showAssignForm,fields:{
       </section>
     </div>
 
-    <div v-if="showTaskAssignForm && selectedTask" class="modal-mask" @click.self="showTaskAssignForm = false">
+    <div v-if="showTaskAssignForm && selectedTask" class="modal-mask" data-business-form @click.self="showTaskAssignForm = false">
       <div class="modal-card max-w-3xl">
         <div class="mb-4 flex items-center justify-between">
           <div>
@@ -308,7 +312,7 @@ const completeDrafts=useFormDrafts({showAssignForm:{open:showAssignForm,fields:{
       </div>
     </div>
 
-    <div v-if="showAssignForm && selectedMaintenance" class="modal-mask" @click.self="showAssignForm = false">
+    <div v-if="showAssignForm && selectedMaintenance" class="modal-mask" data-business-form @click.self="showAssignForm = false">
       <div class="modal-card max-w-3xl">
         <div class="mb-4 flex items-center justify-between">
           <div>

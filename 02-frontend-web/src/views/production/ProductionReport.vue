@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
+import { assignablePeople } from '@/api/assignment'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { PackageCheck, Play, Plus, RefreshCw, Search, X } from 'lucide-vue-next'
 import MainLayout from '@/components/MainLayout.vue'
 import { productionReportApi, productionTaskApi, type ProductionReport, type ProductionTask } from '@/api/mes'
-import { getUserList, getUsersByRoleId, type User } from '@/api/user'
+import { type User } from '@/api/user'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -92,7 +94,7 @@ async function loadData() {
     ])
     reports.value = reportList
     tasks.value = taskList
-    await loadWorkerOptions(taskList)
+    await loadWorkerOptions()
   } catch (error) {
     feedback.value = getErrorMessage(error)
   } finally {
@@ -100,22 +102,14 @@ async function loadData() {
   }
 }
 
-async function loadWorkerOptions(taskList: ProductionTask[]) {
-  const assignedUserIds = new Set(taskList.map((task) => task.assignedUserId).filter(Boolean) as number[])
-  try {
-    const allUsers = await getUserList()
-    workers.value = allUsers
-      .filter((user) => user.deleted !== 1 && user.status !== 0)
-      .filter((user) => user.roleId === 3 || user.roleId === 9 || assignedUserIds.has(user.id))
-  } catch {
-    const workerList = await getUsersByRoleId(3)
-    workers.value = workerList.filter((worker) => worker.deleted !== 1 && worker.status !== 0)
-  }
+async function loadWorkerOptions() {
+  workers.value = await assignablePeople(3)
 }
 
 function openCreateReport() {
   if (reportableTasks.value.length === 0) {
     feedback.value = '当前没有可报工的任务：需要任务已经派发给操作工，并处于“已派发”或“生产中”。'
+    showBusinessFormError(feedback.value)
     return
   }
   formMode.value = 'create'
@@ -159,6 +153,7 @@ async function startTask(task: ProductionTask) {
 function openEditReport(report: ProductionReport) {
   if (isWorker.value && report.reportUserId !== authStore.currentUser?.id) {
     feedback.value = '操作工只能修改自己的报工记录。'
+    showBusinessFormError(feedback.value)
     return
   }
   formMode.value = 'edit'
@@ -182,14 +177,17 @@ async function submitReport() {
   const reporter = selectedReporter.value
   if (!task?.id) {
     feedback.value = '请选择可报工的生产任务。'
+    showBusinessFormError(feedback.value)
     return
   }
   if (!form.reportUserId) {
     feedback.value = '请选择报工人。'
+    showBusinessFormError(feedback.value)
     return
   }
   if (Number(form.reportQuantity) <= 0) {
     feedback.value = '完成数量必须大于 0。'
+    showBusinessFormError(feedback.value)
     return
   }
 
@@ -229,10 +227,12 @@ async function markReportCompleted(report: ProductionReport) {
   const task = taskMap.value.get(report.taskId)
   if (!task?.id || !report.id) {
     feedback.value = '找不到该报工对应的生产任务。'
+    showBusinessFormError(feedback.value)
     return
   }
   if (isWorker.value && report.reportUserId !== authStore.currentUser?.id) {
     feedback.value = '操作工只能完成自己的报工记录。'
+    showBusinessFormError(feedback.value)
     return
   }
   const total = taskReportedMap.value.get(report.taskId) || 0
@@ -473,7 +473,7 @@ const completeDrafts=useFormDrafts({reportVisible:{open:reportVisible,fields:{fo
       </section>
     </div>
 
-    <div v-if="reportVisible" class="modal-mask" @click.self="reportVisible = false">
+    <div v-if="reportVisible" class="modal-mask" data-business-form @click.self="reportVisible = false">
       <form class="modal-card max-w-2xl" @submit.prevent="submitReport"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-6 flex items-start justify-between">
           <div>

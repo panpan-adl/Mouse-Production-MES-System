@@ -17,6 +17,8 @@ import java.util.List;
 
 @Service
 public class ProductionTaskServiceImpl implements ProductionTaskService {
+    @Autowired private com.mouse.mes.service.AssignableStaffService assignableStaff;
+    private void validateAssignee(ProductionTask task){if(task.getAssignedUserId()!=null){var person=assignableStaff.require(task.getAssignedUserId(),3);task.setAssignedUserName(person.get("realName").toString());}}
     @Autowired private com.mouse.mes.service.LineStockService lineStock;
 
     @Autowired
@@ -76,6 +78,7 @@ public class ProductionTaskServiceImpl implements ProductionTaskService {
     @Override
     @Transactional
     public ProductionTask create(ProductionTask productionTask) {
+        validateAssignee(productionTask);
         if (productionTask.getPlanId() == null) {
             throw new RuntimeException("来源生产计划不能为空");
         }
@@ -128,6 +131,7 @@ public class ProductionTaskServiceImpl implements ProductionTaskService {
     @Override
     @Transactional
     public ProductionTask update(ProductionTask productionTask) {
+        validateAssignee(productionTask);
         foundationService.protectTask(productionTask.getId());
         ProductionTask existing = productionTaskMapper.findById(productionTask.getId());
         if (existing == null) {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import request from '@/utils/request'
@@ -188,6 +189,7 @@ function canSendPurchaseRequest(item: MaterialRequestRecord) {
 async function saveRequest() {
   if (!form.materialId || Number(form.requiredQuantity || 0) <= 0) {
     message.value = '请选择物料，并填写大于 0 的需求数量。'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -352,7 +354,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form,selecte
         </div>
       </div>
 
-      <div v-if="showForm" class="modal-mask">
+      <div v-if="showForm" class="modal-mask" data-business-form>
         <div class="modal-card max-w-3xl">
           <div class="flex items-start justify-between gap-4 mb-5">
             <div>

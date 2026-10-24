@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
@@ -221,30 +222,37 @@ function applySelectedCustomer() {
 async function saveOrder() {
   if (!form.orderNo.trim()) {
     message.value = '订单编号不能为空'
+    showBusinessFormError(message.value)
     return
   }
   if (!form.customerId || !form.customerName.trim()) {
     message.value = '请选择客户列表中的客户'
+    showBusinessFormError(message.value)
     return
   }
   if (!form.productName.trim()) {
     message.value = '产品名称不能为空'
+    showBusinessFormError(message.value)
     return
   }
   if (Number(form.quantity) <= 0) {
     message.value = '订单数量必须大于 0'
+    showBusinessFormError(message.value)
     return
   }
   if (Number(form.unitPrice) < 0) {
     message.value = '产品单价不能小于 0'
+    showBusinessFormError(message.value)
     return
   }
   if (!form.orderDate) {
     message.value = '下单日期不能为空'
+    showBusinessFormError(message.value)
     return
   }
   if (!form.deliveryDate) {
     message.value = '交付日期不能为空'
+    showBusinessFormError(message.value)
     return
   }
 
@@ -270,6 +278,7 @@ async function saveOrder() {
     if (formMode.value === 'edit') {
       if (!editingOrderId.value) {
         message.value = '缺少订单ID，无法修改'
+        showBusinessFormError(message.value)
         return
       }
       await orderApi.update(editingOrderId.value, payload)
@@ -484,7 +493,7 @@ const completeDrafts=useFormDrafts({formVisible:{open:formVisible,fields:{form},
         </div>
       </section>
 
-      <div v-if="formVisible" class="modal-mask" @click.self="formVisible = false">
+      <div v-if="formVisible" class="modal-mask" data-business-form @click.self="formVisible = false">
         <section class="modal-card max-w-3xl">
           <div class="mb-6 flex items-start justify-between">
             <div>
@@ -586,7 +595,7 @@ const completeDrafts=useFormDrafts({formVisible:{open:formVisible,fields:{form},
         </section>
       </div>
 
-      <div v-if="detailVisible && selectedOrder" class="modal-mask" @click.self="detailVisible = false">
+      <div v-if="detailVisible && selectedOrder" class="modal-mask" data-business-form @click.self="detailVisible = false">
         <section class="modal-card max-w-3xl">
           <div class="mb-6 flex items-start justify-between">
             <div>

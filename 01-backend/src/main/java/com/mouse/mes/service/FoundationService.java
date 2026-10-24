@@ -25,6 +25,7 @@ public class FoundationService {
     public record Field(String name, String label, String type, String ref, boolean required, Map<String,String> options) {}
     public record Resource(String key, String label, String table, List<Field> fields, List<Integer> roles,
                            String unique, String where, Map<String,Object> extra) {}
+    @org.springframework.beans.factory.annotation.Autowired private AssignableStaffService assignableStaff;
     private final JdbcTemplate db;
     private final ObjectMapper json;
     @org.springframework.beans.factory.annotation.Autowired
@@ -105,9 +106,10 @@ public class FoundationService {
             fail(number(values.get("frequency"))<1||number(values.get("frequency"))>1000,"保养间隔须为1至1000的整数");
             fail(new BigDecimal(values.get("frequency").toString()).stripTrailingZeros().scale()>0,"保养间隔必须是整数");
             fail(number(values.get("remind_days"))<1||number(values.get("remind_days"))>365||new BigDecimal(values.get("remind_days").toString()).stripTrailingZeros().scale()>0,"提前提醒应为1至365天的整数");
-            fail(count("SELECT COUNT(*) FROM t_user WHERE id=? AND role_id=8 AND status=1 AND deleted=0",values.get("owner_id"))!=1,"负责人须为在职设备维护员");
+            assignableStaff.require(number(values.get("owner_id")),8);
             if(id!=null) { var old=get(key,id); fail(count("SELECT COUNT(*) FROM mm_maintenance_occurrence WHERE plan_id=?",id)>0&&(!PeriodicMaintenanceService.dateTime(old.get("anchor_at")).equals(values.get("anchor_at"))||number(old.get("frequency"))!=number(values.get("frequency"))||!old.get("cycle_unit").equals(values.get("cycle_unit"))),"已有保养任务的周期不可改变，请停用原计划后新建"); }
         }
+        if(key.equals("checks"))assignableStaff.require(number(values.get("owner_id")),8);
         validateBusiness(key,id,values);
         mesRules.validate(key,id,values);
         if(id==null) { values.putAll(r.extra());if(key.equals("check-records"))values.put("actor_id",actor);id=insert(r.table(),values); }
@@ -249,7 +251,7 @@ public class FoundationService {
         List<Map<String,Object>> flat=expand(number(bom.get("id")),BigDecimal.ONE);
         List<Map<String,Object>> operations=db.queryForList("SELECT * FROM mm_operation WHERE route_id=? ORDER BY sequence_no",route.get("id"));fail(operations.isEmpty(),"路线没有工序");
         fail(number(plan.get("plan_quantity"))<=0 || number(plan.get("plan_status"))>=2,"计划数量或状态不允许下发");
-        long owner=number(v.get("owner_id"));get("users",owner);long scheduleId=number(v.get("schedule_id"));
+        long owner=number(v.get("owner_id"));assignableStaff.require(owner,3);get("users",owner);long scheduleId=number(v.get("schedule_id"));
         if(scheduleId>0){Map<String,Object> schedule=get("schedules",scheduleId);fail(count("SELECT COUNT(*) FROM mm_member WHERE team_id=? AND user_id=?",schedule.get("team_id"),owner)==0,"负责人不属于排班班组");}
         Map<String,Object> data=new LinkedHashMap<>();data.put("code",mesRules.nextCode("WORKORDER_CODE"));data.put("plan_id",planId);data.put("bom_id",bom.get("id"));data.put("route_id",route.get("id"));data.put("quantity",plan.get("plan_quantity"));data.put("bom_snapshot",json.writeValueAsString(db.queryForList("SELECT * FROM mm_bom_line WHERE bom_id=?",bom.get("id"))));data.put("route_snapshot",json.writeValueAsString(operations));data.put("created_by",actor);
         fail(operations.stream().filter(op->number(op.get("is_key"))==1).count()!=1,"路线必须配置且只能配置一个关键工序");

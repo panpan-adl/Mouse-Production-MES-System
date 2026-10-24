@@ -34,7 +34,7 @@ async function login(){
     <section class="login-story">
       <div class="login-particle-stage" aria-hidden="true"><LoginParticleCloud :active="motionEnabled"/></div>
       <a href="/login" class="login-brand"><span class="login-brand-icon"><Factory :size="23" /></span><span>MOUSE MES<small>制造执行管理平台</small></span></a>
-      <div class="story-copy"><div class="story-eyebrow"><span></span> YOUR EVERYDAY WORKSPACE</div><h1>让生产井然有序，<br/>让协作轻松发生<span>。</span></h1><p>从一份生产计划，到每一道工序的执行。<br/>连接人、设备与物料，构建有序、高效的生产现场。</p></div>
+      <div class="story-copy"><div class="story-eyebrow"><span></span> YOUR EVERYDAY WORKSPACE</div><h1 class="story-art-title"><span class="title-line">让生产<span class="title-emphasis">井然有序</span>，</span><span class="title-line">让协作<span class="title-emphasis">轻松发生</span><span class="title-period">。</span></span></h1><p>从一份生产计划，到每一道工序的执行。<br/>连接人、设备与物料，构建有序、高效的生产现场。</p></div>
       <div class="login-workflow"><span>01 · 生产计划</span><span>02 · 工序执行</span><span>03 · 质量追溯</span></div>
       <div class="story-footer"><span>为每一次制造，建立可靠连接。</span><span>MOUSE / MES</span></div>
     </section>
@@ -61,7 +61,7 @@ async function login(){
 .login-brand{display:flex;align-items:center;gap:12px;width:fit-content;font-size:16px;font-weight:600;letter-spacing:.04em}
 .login-brand-icon{display:grid;place-items:center;width:38px;height:38px;background:#b77945;color:#fff;border-radius:7px}
 .login-brand small{display:block;font-size:10px;font-weight:400;color:#91897d;margin-top:4px;letter-spacing:.08em}
-.story-copy{position:relative;margin:65px 0 0;max-width:480px}
+.story-copy{position:relative;margin:65px 0 0;max-width:100%}
 .story-eyebrow{display:flex;align-items:center;gap:10px;font-size:9px;color:#9c8c72;letter-spacing:.16em;margin-bottom:20px}
 .story-eyebrow span{width:20px;height:1px;background:#b59a72}
 .story-copy h1{font-size:clamp(28px,3vw,45px);line-height:1.6;font-weight:550;letter-spacing:-.04em;color:#454139}
@@ -99,7 +99,33 @@ async function login(){
 .login-spinner{width:15px;height:15px;border:2px solid #ffffff50;border-top-color:#fff;border-radius:50%;animation:rotate .7s linear infinite}
 .notion-login :focus-visible{outline:2px solid #a89a82;outline-offset:3px}
 @keyframes rotate{to{transform:rotate(360deg)}}
+/* A stronger focal point for the sign-in form. */
+.notion-login .login-card{max-width:450px;padding:38px 32px 30px;background:#fffefa;border:1px solid #e5dfd3;border-radius:14px;box-shadow:0 12px 44px #6351390a;position:relative}
+.notion-login .login-card::before{content:'';position:absolute;top:-1px;left:32px;width:48px;height:3px;background:#b77945;border-radius:0 0 3px 3px}
+.notion-login .login-greeting{font-size:10px;color:#9b805b;font-weight:600;letter-spacing:.12em;margin-bottom:20px}
+.notion-login .login-status-light{width:6px;height:6px;background:#b77945}
+.notion-login .login-card h2{font-size:42px;line-height:1.3;font-weight:650;color:#3e382f;margin-bottom:14px;letter-spacing:-.035em}
+.notion-login .login-description{font-size:13px;color:#857969}
+.notion-login .login-fields label{font-size:13px;color:#554b3e;font-weight:600}
+.notion-login .login-input{height:54px;border-color:#d8d0c2;border-radius:7px;color:#9b8669}
+.notion-login .login-input input{font-size:14px}
+.notion-login .login-input input:focus,.notion-login .login-input input:focus-visible{outline:none;outline-offset:0;border:0;box-shadow:none}
+.notion-login .login-input input::placeholder{color:#a69b8b}
+.notion-login .login-input:focus-within{border-color:#b77945;box-shadow:0 0 0 3px #b7794512}
+.notion-login .login-submit{height:54px;font-size:14px;font-weight:600;background:#494136;border-color:#494136;border-radius:7px;box-shadow:0 4px 10px #49413612}
+.notion-login .login-submit:hover{background:#332d25;border-color:#332d25}
+.notion-login .login-help{color:#9b8f7d;font-size:10px}
+@media(max-width:1000px){.notion-login .login-card{padding:32px 22px}.notion-login .login-card h2{font-size:36px}}
+@media(max-width:760px){.notion-login .login-card{max-width:440px;padding:30px 22px}.notion-login .login-card h2{font-size:34px}}
+/* Editorial lettering with local Chinese serif fallbacks; no font download needed. */
+.story-copy .story-art-title{font-size:clamp(36px,4vw,68px);font-family:'STZhongsong','华文中宋','Source Han Serif SC','Noto Serif CJK SC','Songti SC','SimSun',serif;font-weight:600;line-height:1.65;letter-spacing:.015em;color:#494235;text-shadow:0 1px 0 #fff9}
+.story-art-title .title-line{display:block;white-space:nowrap}
+.story-art-title .title-emphasis{position:relative;display:inline;color:#8c6944;background:linear-gradient(115deg,#66513b 5%,#a47c4d 55%,#755b40 95%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.story-art-title .title-emphasis::after{content:'';position:absolute;left:2%;right:1%;bottom:-.12em;height:3px;border-top:1px solid #b794635c;border-bottom:1px solid #b794632e;transform:rotate(-1.5deg);pointer-events:none}
+.story-art-title .title-period{color:#b77945;-webkit-text-fill-color:#b77945}
+@media(max-width:760px){.story-copy .story-art-title{font-size:clamp(25px,6.8vw,44px);letter-spacing:0;line-height:1.75}}
 @media(min-width:1700px){.login-story{padding:50px 11%}.story-copy{margin-top:85px}}
+@media(min-width:761px) and (max-width:1100px){.story-copy .story-art-title{font-size:clamp(28px,3.6vw,40px)}}
 @media(max-width:1000px){.login-story{padding:32px 7%}.login-access{padding:32px 8%}.story-copy h1{font-size:31px}.story-copy{margin-top:65px}.login-workflow{gap:6px}.login-workflow span{padding:8px;font-size:9px}}
 @media(max-width:760px){.login-page{grid-template-columns:1fr}.login-story{min-height:430px;padding:24px;border-right:0;border-bottom:1px solid #e7e3da}.story-copy{margin-top:26px}.story-copy h1{font-size:27px}.story-copy p{font-size:11px;margin-top:12px}.story-eyebrow{font-size:8px;margin-bottom:12px}.story-footer{display:none}.login-workflow{padding-top:110px;margin-bottom:0;gap:7px}.login-access{padding:24px;min-height:560px}.login-card{padding:30px 0}.login-card h2{font-size:27px}.login-fields{margin-top:26px}.login-access-footer{font-size:8px}.login-motion-control{margin-bottom:20px}}
 </style>

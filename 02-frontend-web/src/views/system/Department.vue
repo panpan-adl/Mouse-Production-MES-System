@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
@@ -142,12 +143,14 @@ function openEditForm(item: Department) {
 async function saveDepartment() {
   if (!form.deptCode.trim() || !form.deptName.trim()) {
     message.value = '部门编码和部门名称不能为空'
+    showBusinessFormError(message.value)
     return
   }
 
   const selectedLeader = leaderCandidates.value.find((user) => user.id === form.leaderId)
   if (form.leaderId && !selectedLeader) {
     message.value = '部门负责人必须选择本部门中符合负责人角色的员工'
+    showBusinessFormError(message.value)
     return
   }
 
@@ -328,7 +331,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
         </div>
       </div>
 
-      <div v-if="showForm" class="modal-mask">
+      <div v-if="showForm" class="modal-mask" data-business-form>
         <div class="modal-card max-w-2xl">
           <div class="mb-4 flex items-center justify-between">
             <div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import MaintenancePlans from '@/components/MaintenancePlans.vue'
@@ -94,6 +95,7 @@ async function savePeriodicMaintenance() {
   if (!currentUser.value) return
   if (!createForm.equipmentId || !createForm.maintenanceContent.trim()) {
     message.value = '请选择设备并填写保养内容'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -145,6 +147,7 @@ async function finishMaintenance() {
   if (!selectedMaintenance.value?.id) return
   if (!finishForm.maintenanceContent.trim()) {
     message.value = '请填写保养完成内容'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -289,7 +292,7 @@ const completeDrafts=useFormDrafts({showCreateForm:{open:showCreateForm,fields:{
       </section>
     </div>
 
-    <div v-if="showCreateForm" class="modal-mask" @click.self="showCreateForm = false">
+    <div v-if="showCreateForm" class="modal-mask" data-business-form @click.self="showCreateForm = false">
       <form class="modal-card max-w-2xl" @submit.prevent="savePeriodicMaintenance"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-5 flex items-center justify-between">
           <div>
@@ -310,15 +313,15 @@ const completeDrafts=useFormDrafts({showCreateForm:{open:showCreateForm,fields:{
           </label>
           <label class="field-label">
             计划开始时间
-            <input v-model="createForm.planStartTime" type="datetime-local" class="input mt-1" />
+            <input v-model="createForm.planStartTime" required type="datetime-local" class="input mt-1" data-date-role="start" data-date-pair="plantime">
           </label>
           <label class="field-label">
             计划结束时间
-            <input v-model="createForm.planEndTime" type="datetime-local" class="input mt-1" />
+            <input v-model="createForm.planEndTime" required type="datetime-local" class="input mt-1" data-date-role="end" data-date-pair="plantime">
           </label>
           <label class="field-label md:col-span-2">
             保养内容
-            <textarea v-model="createForm.maintenanceContent" class="input mt-1 h-24" placeholder="例如：清洁传送机构、检查电机皮带、润滑导轨"></textarea>
+            <textarea v-model="createForm.maintenanceContent" required class="input mt-1 h-24" placeholder="例如：清洁传送机构、检查电机皮带、润滑导轨"></textarea>
           </label>
           <label class="field-label md:col-span-2">
             备注
@@ -335,7 +338,7 @@ const completeDrafts=useFormDrafts({showCreateForm:{open:showCreateForm,fields:{
       </form>
     </div>
 
-    <div v-if="showFinishForm && selectedMaintenance" class="modal-mask" @click.self="showFinishForm = false">
+    <div v-if="showFinishForm && selectedMaintenance" class="modal-mask" data-business-form @click.self="showFinishForm = false">
       <form class="modal-card max-w-xl" @submit.prevent="finishMaintenance"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-5 flex items-center justify-between">
           <div>

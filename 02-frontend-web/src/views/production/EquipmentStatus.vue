@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
@@ -87,10 +88,12 @@ function openRepairForm(equipment: Equipment) {
   if (!equipment.id) return
   if (equipment.status === 'SCRAPPED') {
     message.value = '报废设备不能再提交维修申请'
+    showBusinessFormError(message.value)
     return
   }
   if (activeMaintenanceByEquipment.value.has(equipment.id)) {
     message.value = '该设备已经存在未完成维修单，不能重复上报'
+    showBusinessFormError(message.value)
     return
   }
   selectedEquipment.value = equipment
@@ -103,6 +106,7 @@ async function submitRepairRequest() {
   if (!selectedEquipment.value?.id || !currentUser.value) return
   if (!repairForm.faultDesc.trim()) {
     message.value = '请填写设备故障描述'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -262,7 +266,7 @@ const completeDrafts=useFormDrafts({showRepairForm:{open:showRepairForm,fields:{
       </section>
     </div>
 
-    <div v-if="showRepairForm && selectedEquipment" class="modal-mask" @click.self="showRepairForm = false">
+    <div v-if="showRepairForm && selectedEquipment" class="modal-mask" data-business-form @click.self="showRepairForm = false">
       <form class="modal-card max-w-xl" @submit.prevent="submitRepairRequest"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-5 flex items-center justify-between">
           <div>

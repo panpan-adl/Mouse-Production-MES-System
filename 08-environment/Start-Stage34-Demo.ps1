@@ -8,6 +8,12 @@ if ((Test-Path $completionPath) -and (Test-Path $completionAcceptancePath)) {
     $completionAcceptance = Get-Content $completionAcceptancePath -Raw | ConvertFrom-Json
     $useCompletion = $completionAcceptance.completed -eq $true -and $completionState.database -eq $completionAcceptance.database
 }
+$demoTopupPath = Join-Path $RuntimeRoot 'demo-topup-verification.json'
+if (-not $useCompletion -and (Test-Path $completionPath) -and (Test-Path $demoTopupPath)) {
+    $completionState = Get-Content $completionPath -Raw | ConvertFrom-Json
+    $demoTopup = Get-Content $demoTopupPath -Raw | ConvertFrom-Json
+    $useCompletion = $demoTopup.database -eq $completionState.database -and $demoTopup.exceptions.PSObject.Properties.Count -eq 0 -and $demoTopup.checks.noNegativeStock -eq $true -and $demoTopup.checks.lineLedgerMatches -eq $true
+}
 if ($useCompletion) { $stageState = $completionState }
 else {
     $stageState = Get-Content (Join-Path $RuntimeRoot 'stage34-test-database.json') -Raw | ConvertFrom-Json

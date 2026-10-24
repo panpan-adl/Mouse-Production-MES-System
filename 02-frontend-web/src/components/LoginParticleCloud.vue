@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 const props = withDefaults(defineProps<{ active?: boolean }>(), { active: true })
 const canvas = ref<HTMLCanvasElement | null>(null)
-type Particle = { x: number; y: number; z: number; size: number; phase: number; color: number; dust: boolean }
+type Particle = { x: number; y: number; z: number; size: number; phase: number; color: number }
 const colors = ['115,100,76', '135,121,94', '81,107,110', '164,120,70']
 let particles: Particle[] = []
 let context: CanvasRenderingContext2D | null = null
@@ -21,49 +21,27 @@ function resize() {
   element.width = Math.round(width * ratio); element.height = Math.round(height * ratio)
   context = element.getContext('2d')
   context?.setTransform(ratio, 0, 0, ratio, 0, 0)
-  // A surface cloud plus a thinner inner volume gives the sphere depth without links.
-  const count = width < 500 ? 3200 : 6200
-  particles = Array.from({ length: count }, (_, i) => {
-    const y = 1 - 2 * (i + .5) / count
-    const angle = i * Math.PI * (3 - Math.sqrt(5))
-    const ring = Math.sqrt(1 - y * y)
-    const radius = i % 5 === 0 ? .4 + Math.random() * .58 : .94 + Math.random() * .1
-    return { x: Math.cos(angle) * ring * radius, y: y * radius, z: Math.sin(angle) * ring * radius,
-      size: .65 + Math.random() * 1.15, phase: Math.random() * Math.PI * 2,
-      color: Math.random() < .1 ? 3 : i % 3, dust: i % 11 === 0 }
-  })
+  // Area-based density keeps the field equally full on tall and wide screens.
+  const count = Math.min(3800, Math.max(650, Math.round(width * height / 260)))
+  particles = Array.from({ length: count }, (_, i) => ({
+    x: Math.random(), y: Math.random(), z: Math.random(),
+    size: .65 + Math.random() * 1.05, phase: Math.random() * Math.PI * 2,
+    color: i % colors.length,
+  }))
   draw()
 }
 
 function draw() {
   if (!context || !width || !height) return
   context.clearRect(0, 0, width, height)
-  const mobile = width < 500
-  const centerX = width * .52
-  const centerY = height * (mobile ? .75 : .66)
-  const radius = mobile ? Math.min(width * .37, 160) : Math.min(width * .39, height * .27)
-  const rotation = elapsed * .12 + tiltX
-  const cy = Math.cos(rotation), sy = Math.sin(rotation)
-  const cx = Math.cos(-.16 + tiltY), sx = Math.sin(-.16 + tiltY)
-  const intro = reduced?.matches ? 1 : Math.min(1, elapsed / 2.2)
-  const gather = 1 - Math.pow(1 - intro, 3)
+  const wrap = (value: number, span: number) => ((value % span) + span) % span
   for (const p of particles) {
-    const ripple = 1 + .026 * Math.sin(p.y * 7 + elapsed * .7 + p.phase * .12)
-    const x = (p.x * cy + p.z * sy) * ripple
-    const z0 = -p.x * sy + p.z * cy
-    const y = (p.y * cx - z0 * sx) * ripple
-    const z = p.y * sx + z0 * cx
-    const perspective = 3.8 / (3.8 - z)
-    let px = centerX + x * radius * perspective
-    let py = centerY + y * radius * perspective
-    // Sparse ambient dust extends the main cloud across the page.
-    if (p.dust) {
-      px = (p.x + 1) * width * .5 + Math.sin(elapsed * .15 + p.phase) * 12
-      py = (p.y + 1) * height * .5 + Math.cos(elapsed * .12 + p.phase) * 10
-    } else {
-      px += x * radius * (1 - gather) * .9
-      py += y * radius * (1 - gather) * .9
-    }
+    const speed = .45 + p.z * .8
+    // Wrap around padded edges so the whole panel stays populated during motion.
+    let px = wrap(p.x * (width + 48) + Math.sin(elapsed * .18 + p.phase) * 22
+      + elapsed * 5 * speed + tiltX * 55, width + 48) - 24
+    let py = wrap(p.y * (height + 48) - elapsed * 9 * speed
+      + Math.cos(elapsed * .14 + p.phase) * 18 + tiltY * 55, height + 48) - 24
     const dx = px - pointer.x, dy = py - pointer.y
     const distance = Math.hypot(dx, dy)
     if (distance < 115 && distance > .01) {
@@ -71,9 +49,9 @@ function draw() {
       px += dx / distance * force; py += dy / distance * force
     }
     // Warm graphite points remain crisp against the paper background.
-    const depth = (z + 1.2) / 2.4
-    const alpha = p.dust ? .27 : .24 + depth * .56
-    const size = p.size * (p.dust ? .8 : perspective)
+    const shimmer = .88 + Math.sin(elapsed * .8 + p.phase) * .12
+    const alpha = (.22 + p.z * .4) * shimmer
+    const size = p.size * (.8 + p.z * .4)
     context.fillStyle = `rgba(${colors[p.color]},${alpha})`
     context.beginPath(); context.arc(px, py, size, 0, Math.PI * 2); context.fill()
   }

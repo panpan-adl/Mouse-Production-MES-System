@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
@@ -79,6 +80,7 @@ async function finishMaintenance() {
   if (!selectedMaintenance.value?.id) return
   if (!finishForm.maintenanceContent.trim()) {
     message.value = '请填写维修内容'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -207,7 +209,7 @@ const completeDrafts=useFormDrafts({showFinishForm:{open:showFinishForm,fields:{
       </section>
     </div>
 
-    <div v-if="showFinishForm && selectedMaintenance" class="modal-mask" @click.self="showFinishForm = false">
+    <div v-if="showFinishForm && selectedMaintenance" class="modal-mask" data-business-form @click.self="showFinishForm = false">
       <form class="modal-card max-w-xl" @submit.prevent="finishMaintenance"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-5 flex items-center justify-between">
           <div><p class="text-sm text-gray-500">维修完成填报</p><h2 class="text-xl font-bold text-gray-900">{{ selectedMaintenance.maintenanceNo }}</h2></div>

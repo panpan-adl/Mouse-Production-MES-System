@@ -40,6 +40,8 @@ const visibleRecords=computed(()=>{
   while(changed){changed=false;for(const c of lookups.categories||[])if(ids.has(Number(c.parent_id))&&!ids.has(Number(c.id))){ids.add(Number(c.id));changed=true}}
   return filtered.value.filter(r=>ids.has(Number(r.category_id)))
 })
+const maintenancePeople=ref<Row[]>([])
+function fieldChoices(f:Field){return f.ref==='users'&&['maintenance-plans','checks'].includes(key.value)?maintenancePeople.value:lookups[f.ref||'']||[]}
 const rowName = (r:Row) => String(r.name || r.material_name || r.product_name || r.customer_name || r.supplier_name || r.warehouse_name || r.equipment_name || r.uom_name || r.code || r.id)
 function display(f:Field, value:any) {
   if(value===null || value===undefined || value==='') return '—'
@@ -53,6 +55,7 @@ async function load() {
     if(!catalog.value.length) catalog.value=await request.get<Definition[]>('/foundation/catalog')
     if(!definition.value) throw new Error('配置类型不存在')
     records.value=await request.get<Row[]>(`/foundation/${key.value}`)
+    if(['maintenance-plans','checks'].includes(key.value))maintenancePeople.value=await request.get<Row[]>('/mes/assignable-people',{params:{role:8}})
     await Promise.all([...new Set(definition.value.fields.map(f=>f.ref).filter(Boolean))].map(async r=>{lookups[r!]=await request.get<Row[]>(`/foundation/${r}`)}))
   } catch(e:any) { error.value=e.message || '加载失败'; records.value=[] }
   finally {loading.value=false}
@@ -128,15 +131,16 @@ const completeDrafts=useFormDrafts({modal:{open:modal,fields:{form}, record:()=>
         <div v-if="expansion.length" class="mt-5 bg-white border rounded-xl p-5"><h2 class="font-semibold mb-3">用料展开结果 · {{bomQuantity}}只</h2><p class="text-sm text-gray-500 mb-4">共{{expansion.length}}种叶子物料；已合并跨半成品的同一物料，根据供应方式保留外购半成品；自制半成品继续向下展开。</p><table class="w-full text-sm"><thead><tr class="text-left border-b"><th class="p-2">物料编码</th><th>名称</th><th>需求量</th><th>单位</th></tr></thead><tbody><tr v-for="row in expansion" :key="row.id" class="border-b"><td class="p-2">{{row.material_code}}</td><td>{{row.material_name}}</td><td>{{row.required_quantity}}</td><td>{{row.unit}}</td></tr></tbody></table></div>
       </section>
     </div>
-    <div v-if="modal" class="fixed inset-0 bg-black/40 z-[80] flex items-center justify-center p-6" @click.self="modal=false">
+    <div v-if="modal" class="fixed inset-0 bg-black/40 z-[80] flex items-center justify-center p-6" data-business-form @click.self="modal=false">
       <form class="bg-white rounded-xl shadow-xl p-6 w-full max-w-xl max-h-[85vh] overflow-y-auto" @submit.prevent="save"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <h2 class="font-bold text-xl mb-5">{{editing?'编辑':'新增'}}{{definition?.label}}</h2>
         <p v-if="error" role="alert" class="bg-red-50 text-red-700 p-3 rounded mb-4">{{error}}</p>
         <div v-for="f in visibleFields" :key="f.name" class="mb-4"><label :for="`field-${f.name}`" class="block text-sm font-medium text-gray-700 mb-1">{{f.label}}<span v-if="f.required" class="text-red-500"> *</span></label>
-          <select v-if="f.ref" :id="`field-${f.name}`" v-model="form[f.name]" :required="f.required" class="w-full rounded-lg border px-3 py-2"><option value="">请选择</option><option v-for="r in lookups[f.ref] || []" :key="r.id" :value="r.id">{{rowName(r)}}</option></select>
+          <select v-if="f.ref" :id="`field-${f.name}`" v-model="form[f.name]" :required="f.required" class="w-full rounded-lg border px-3 py-2"><option value="">请选择</option><option v-for="r in fieldChoices(f)" :key="r.id" :value="r.id">{{rowName(r)}}</option></select>
           <select v-else-if="f.options" :id="`field-${f.name}`" v-model="form[f.name]" :required="f.required" class="w-full rounded-lg border px-3 py-2"><option value="">请选择</option><option v-for="(label,value) in f.options" :key="value" :value="value">{{label}}</option></select>
           <template v-else-if="f.type==='image'"><input type="file" accept="image/png,image/jpeg" @change="uploadSop" /><p class="text-xs text-gray-500 mt-1">{{form[f.name]||'上传图片后自动保存地址'}}</p></template><input v-else :id="`field-${f.name}`" v-model="form[f.name]" :required="f.required" :type="['number','positive','decimal'].includes(f.type)?'number':f.type" :min="key==='maintenance-plans'&&['frequency','remind_days'].includes(f.name)?1:f.type==='positive'?0.0001:f.type==='number'?0:undefined" :step="key==='maintenance-plans'&&['frequency','remind_days'].includes(f.name)?'1':['number','positive','decimal'].includes(f.type)?'0.0001':undefined" maxlength="500" class="w-full rounded-lg border px-3 py-2" />
         </div>
+        <p v-if="['maintenance-plans','checks'].includes(key)&&!maintenancePeople.length" class="text-amber-700 text-sm">暂无可负责此任务的在职设备维护员，请先配置员工岗位。</p>
         <p class="text-sm text-gray-500 mt-4">内部编号由系统自动生成，关联资料按名称选择。</p><div class="flex justify-end gap-3 mt-6"><button type="button" class="border rounded-lg px-4 py-2" @click="modal=false">取消</button><button :disabled="saving" class="bg-blue-600 text-white rounded-lg px-5 py-2">{{saving?'保存中…':'保存'}}</button></div>
       </form>
     </div>

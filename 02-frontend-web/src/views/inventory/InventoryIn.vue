@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
@@ -88,6 +89,7 @@ function openCreate() {
 async function saveStockIn() {
   if (!form.stockInNo || !form.warehouseId || !form.items?.[0]?.materialId) {
     message.value = '入库单号、仓库和物料不能为空'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -187,7 +189,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
         </div>
       </div>
 
-      <div v-if="showForm" class="modal-mask">
+      <div v-if="showForm" class="modal-mask" data-business-form>
         <div class="modal-card max-w-2xl">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">新增入库</h2>

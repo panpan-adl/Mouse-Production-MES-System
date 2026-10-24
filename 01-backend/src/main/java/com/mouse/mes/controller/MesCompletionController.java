@@ -25,6 +25,8 @@ public class MesCompletionController {
     public MesCompletionController(MesOperationsService ops,MesDocumentService documents,MesPackagingService packages,LineStockService line,MesRulesService rules,ObjectMapper json,JdbcTemplate db){this.ops=ops;this.documents=documents;this.packages=packages;this.line=line;this.rules=rules;this.json=json;this.db=db;}
     private LoginResponse user(HttpServletRequest r){return json.convertValue(r.getAttribute("userInfo"),LoginResponse.class);}
     private void allow(HttpServletRequest r,int...roles){int role=user(r).getRoleId().intValue();if(role!=9&&Arrays.stream(roles).noneMatch(x->x==role))throw new SecurityException("当前岗位没有此操作权限");}
+    @org.springframework.beans.factory.annotation.Autowired private AssignableStaffService assignableStaff;
+    @GetMapping("/assignable-people")public Object assignablePeople(@RequestParam int role){return JsonResult.success(assignableStaff.list(role));}
     @GetMapping("/people")public Object people(){return JsonResult.success(db.queryForList("SELECT id,real_name realName,real_name name,user_code userCode,role_id roleId FROM t_user WHERE deleted=0 AND status<>0"));}
     @org.springframework.beans.factory.annotation.Autowired private MesReportService reports;
     @GetMapping("/reports") public Object reports(HttpServletRequest r){allow(r,1,2,3,4,5);return JsonResult.success(reports.list(user(r).getId(),user(r).getRoleId().intValue()));}

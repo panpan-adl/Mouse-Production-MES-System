@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { showBusinessFormError } from './businessFormValidation'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
@@ -24,7 +25,9 @@ service.interceptors.request.use(
       useAuthStore().logout()
       router.push('/login')
     }
-    return Promise.reject(new Error(error.response?.data?.msg || error.message || '请求失败'))
+    const message=error.response?.data?.msg||error.message||'请求失败'
+    if(error.config?.method&&error.config.method!=='get')showBusinessFormError(message)
+    return Promise.reject(new Error(message))
   }
 )
 
@@ -40,6 +43,7 @@ service.interceptors.response.use(
         authStore.logout()
         router.push('/login')
       }
+      if(response.config.method!=='get')showBusinessFormError(res.msg||'保存失败，请检查填写内容')
       return Promise.reject(new Error(res.msg || '请求失败'))
     }
     return res.data
@@ -49,7 +53,9 @@ service.interceptors.response.use(
       useAuthStore().logout()
       router.push('/login')
     }
-    return Promise.reject(new Error(error.response?.data?.msg || error.message || '请求失败'))
+    const message=error.response?.data?.msg||error.message||'请求失败'
+    if(error.config?.method&&error.config.method!=='get')showBusinessFormError(message)
+    return Promise.reject(new Error(message))
   }
 )
 

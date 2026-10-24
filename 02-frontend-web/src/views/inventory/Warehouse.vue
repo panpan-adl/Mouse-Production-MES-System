@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
@@ -107,6 +108,7 @@ function openEditWarehouse(item: Warehouse) {
 async function saveWarehouse() {
   if (!warehouseForm.warehouseCode || !warehouseForm.warehouseName) {
     message.value = '仓库编码和名称不能为空'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -254,7 +256,7 @@ const completeDrafts=useFormDrafts({showWarehouseForm:{open:showWarehouseForm,fi
         </div>
       </div>
 
-      <div v-if="showWarehouseForm" class="modal-mask">
+      <div v-if="showWarehouseForm" class="modal-mask" data-business-form>
         <div class="modal-card max-w-2xl">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">{{ editingWarehouseId ? '修改仓库' : '新增仓库' }}</h2>

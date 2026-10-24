@@ -78,6 +78,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     @Transactional
     public Maintenance create(Maintenance maintenance) {
         validateCreate(maintenance);
+        if(maintenance.getMaintenanceUserId()!=null){User person=requireActiveMaintainer(maintenance.getMaintenanceUserId());maintenance.setMaintenanceUserName(person.getRealName());}
         Equipment equipment = equipmentMapper.findById(maintenance.getEquipmentId());
         validateEquipmentCanMaintain(equipment);
         if (!Integer.valueOf(1).equals(maintenance.getMaintenanceType()) && maintenanceMapper.findUnfinishedByEquipmentId(maintenance.getEquipmentId()) != null) {
@@ -205,6 +206,11 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         if (maintenance.getEquipmentId() == null) {
             throw new IllegalArgumentException("设备ID不能为空");
         }
+        if(maintenance.getFaultDesc()==null||maintenance.getFaultDesc().isBlank())throw new IllegalArgumentException("故障／保养描述不能为空");
+        if(maintenance.getFaultDesc().length()>500)throw new IllegalArgumentException("故障／保养描述不能超过500字");
+        if(maintenance.getStartTime()!=null&&maintenance.getEndTime()!=null&&!maintenance.getEndTime().after(maintenance.getStartTime()))throw new IllegalArgumentException("计划结束时间必须晚于计划开始时间");
+        if(maintenance.getCost()!=null&&maintenance.getCost().signum()<0)throw new IllegalArgumentException("维修费用不能为负数");
+        if(maintenance.getMaintenanceType()!=null&&!java.util.Set.of(1,2,3).contains(maintenance.getMaintenanceType()))throw new IllegalArgumentException("维修类型无效");
         if (maintenance.getMaintenanceType() == null) {
             maintenance.setMaintenanceType(2);
         }
@@ -231,7 +237,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             throw new IllegalArgumentException("请选择维修人员");
         }
         User user = userMapper.findById(userId);
-        if (user == null || user.getStatus() == null || user.getStatus() == 0) {
+        if (user == null || user.getStatus() == null || user.getStatus() != 1 || Integer.valueOf(1).equals(user.getDeleted())) {
             throw new IllegalArgumentException("维修人员不存在或已停用");
         }
         if (user.getRoleId() == null || roleAccess.effective(user.getRoleId()) != EQUIPMENT_MAINTAINER_ROLE_ID) {

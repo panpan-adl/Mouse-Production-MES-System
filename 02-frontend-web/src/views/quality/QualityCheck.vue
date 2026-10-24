@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
@@ -92,6 +93,7 @@ async function applyRouteTask() {
   const existing = taskNo ? inspections.value.find((item) => item.sourceOrderNo === taskNo) : undefined
   if (existing) {
     message.value = `已筛选来源任务/单据「${taskNo}」的质检记录。`
+    showBusinessFormError(message.value)
     return
   }
 
@@ -255,10 +257,12 @@ function buildInspectionPayload(includeItems: boolean): QcInspection {
 async function saveInspection() {
   if (!form.inspectionNo || !form.inspectionType) {
     message.value = '质检单号和质检类型不能为空'
+    showBusinessFormError(message.value)
     return
   }
   if (Number(form.qualifiedQuantity || 0) > Number(form.sampleQuantity || 0)) {
     message.value = '合格数量不能大于检验数量'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -409,7 +413,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
         </div>
       </div>
 
-      <div v-if="showForm" class="modal-mask">
+      <div v-if="showForm" class="modal-mask" data-business-form>
         <div class="modal-card max-w-2xl">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">{{ formTitle }}</h2>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
@@ -127,6 +128,7 @@ async function submitReport() {
   if (!selectedTask.value?.id || !currentUser.value) return
   if (Number(reportForm.reportQuantity) <= 0) {
     message.value = '报工数量必须大于0'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -158,6 +160,7 @@ async function submitRepairRequest() {
   if (!currentUser.value) return
   if (!repairForm.equipmentId || !repairForm.faultDesc.trim()) {
     message.value = '请选择故障设备，并填写故障描述'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -361,7 +364,7 @@ const completeDrafts=useFormDrafts({showReportForm:{open:showReportForm,fields:{
       </section>
     </div>
 
-    <div v-if="showReportForm && selectedTask" class="modal-mask" @click.self="showReportForm = false">
+    <div v-if="showReportForm && selectedTask" class="modal-mask" data-business-form @click.self="showReportForm = false">
       <form class="modal-card max-w-lg" @submit.prevent="submitReport"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-5 flex items-center justify-between">
           <div><p class="text-sm text-gray-500">生产报工</p><h2 class="text-xl font-bold text-gray-900">{{ selectedTask.taskNo }}</h2></div>
@@ -379,7 +382,7 @@ const completeDrafts=useFormDrafts({showReportForm:{open:showReportForm,fields:{
       </form>
     </div>
 
-    <div v-if="showRepairForm" class="modal-mask" @click.self="showRepairForm = false">
+    <div v-if="showRepairForm" class="modal-mask" data-business-form @click.self="showRepairForm = false">
       <form class="modal-card max-w-xl" @submit.prevent="submitRepairRequest"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-5 flex items-center justify-between">
           <div><p class="text-sm text-gray-500">设备维修申请</p><h2 class="text-xl font-bold text-gray-900">提交故障设备</h2></div>

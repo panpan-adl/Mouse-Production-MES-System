@@ -548,7 +548,7 @@ const completeDrafts=useFormDrafts({showAddModal:{open:showAddModal,fields:{newU
       </div>
     </div>
 
-    <div v-if="showAddModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div v-if="showAddModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-business-form>
       <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-bold text-gray-800">新建用户（员工入职）</h2>
@@ -600,7 +600,7 @@ const completeDrafts=useFormDrafts({showAddModal:{open:showAddModal,fields:{newU
       </div>
     </div>
 
-    <div v-if="showEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div v-if="showEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-business-form>
       <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-bold text-gray-800">编辑用户</h2>
@@ -645,7 +645,7 @@ const completeDrafts=useFormDrafts({showAddModal:{open:showAddModal,fields:{newU
       </div>
     </div>
 
-    <div v-if="showConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div v-if="showConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-business-form>
       <div class="bg-white rounded-xl shadow-lg w-full max-w-sm p-6">
         <div class="text-center">
           <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">

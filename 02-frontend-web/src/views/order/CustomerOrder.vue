@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
@@ -139,6 +140,7 @@ function buildPayload(): Customer {
 async function saveCustomer() {
   if (!form.customerCode.trim() || !form.customerName.trim()) {
     message.value = '客户编码和客户名称不能为空'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -323,7 +325,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
         </div>
       </section>
 
-      <div v-if="showForm" class="modal-mask" @click.self="showForm = false">
+      <div v-if="showForm" class="modal-mask" data-business-form @click.self="showForm = false">
         <section class="modal-card">
           <div class="mb-5 flex items-center justify-between">
             <div>
@@ -378,7 +380,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
         </section>
       </div>
 
-      <div v-if="showDetail && selectedCustomer" class="modal-mask" @click.self="showDetail = false">
+      <div v-if="showDetail && selectedCustomer" class="modal-mask" data-business-form @click.self="showDetail = false">
         <section class="modal-card max-w-2xl">
           <div class="mb-5 flex items-start justify-between">
             <div>

@@ -291,3 +291,6 @@ button:disabled{cursor:not-allowed}
 .workspace-content div.overflow-x-auto.border.rounded-lg{background:white;border-radius:14px;border-color:#e3eaf2;box-shadow:var(--mes-shadow)}
 .workspace-content table tbody tr+tr td{border-top:1px solid #edf1f6}
 @media(max-width:700px){.workspace-header>.space-x-4>:not([hidden])~:not([hidden]){margin-left:0}.workspace-header>.space-x-4>button[aria-label='个人设置']{display:none}.header-breadcrumb strong{max-width:125px;overflow:hidden;text-overflow:ellipsis}}
+
+/* Validation errors remain visible inside the active business form. */
+[data-business-form] [aria-invalid="true"] { border-color: #dc2626 !important; outline-color: #dc2626; }

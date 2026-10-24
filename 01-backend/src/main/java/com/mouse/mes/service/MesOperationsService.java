@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MesOperationsService {
+    @org.springframework.beans.factory.annotation.Autowired private AssignableStaffService assignableStaff;
     @org.springframework.beans.factory.annotation.Autowired private LineStockService lineStock;
     private final JdbcTemplate db;private final MesRulesService rules;private final FoundationService foundation;
     public MesOperationsService(JdbcTemplate db,MesRulesService rules,FoundationService foundation){this.db=db;this.rules=rules;this.foundation=foundation;}
@@ -37,7 +38,7 @@ public class MesOperationsService {
         db.queryForList("SELECT id FROM mm_guard WHERE id=1 FOR UPDATE");var t=db.queryForMap("SELECT * FROM t_production_task WHERE id=? FOR UPDATE",task);
         require(id(t.get("task_status"))<=2&&count("SELECT COUNT(*) FROM t_production_report WHERE task_id=?",task)==0,"任务已报工或完成，不能重新排产");
         long station=id(v.get("station_id")),owner=id(v.get("owner_id"));rules.equipmentAvailable(station);
-        require(count("SELECT COUNT(*) FROM t_user WHERE id=? AND role_id=3 AND deleted=0 AND status<>0",owner)==1,"任务负责人必须为有效操作工");
+        assignableStaff.require(owner,3);
         require(count("SELECT COUNT(*) FROM mm_station_resource WHERE station_id=? AND resource_type='USER'",station)==0||count("SELECT COUNT(*) FROM mm_station_resource WHERE station_id=? AND resource_type='USER' AND user_id=?",station,owner)>0,"负责人不属于此工作站的人员资源");
         LocalDateTime start=LocalDateTime.parse(v.get("start_at").toString().replace(' ','T')),end=LocalDateTime.parse(v.get("end_at").toString().replace(' ','T'));require(end.isAfter(start),"结束时间必须晚于开始时间");
         var covering=db.queryForList("SELECT s.id FROM mm_schedule s JOIN mm_member m ON m.team_id=s.team_id WHERE s.station_id=? AND m.user_id=? AND s.start_at<=? AND s.end_at>=? ORDER BY s.id LIMIT 1 FOR UPDATE",station,owner,start,end);require(!covering.isEmpty(),"任务时段必须被该工作站的人员排班完整覆盖");

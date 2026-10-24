@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
@@ -105,6 +106,7 @@ function statusClass(status?: string) {
 function openCreateOrder(item: MaterialRequest) {
   if (Number(item.shortageQuantity || 0) <= 0) {
     message.value = '该物料请求没有缺料数量，不需要生成采购单。'
+    showBusinessFormError(message.value)
     return
   }
   currentRequest.value = item
@@ -121,15 +123,18 @@ async function createPurchaseOrder() {
   if (!currentRequest.value?.id) return
   if (!orderForm.supplierId) {
     message.value = '请选择供应商。'
+    showBusinessFormError(message.value)
     return
   }
   if (Number(orderForm.unitPrice || 0) < 0) {
     message.value = '单价不能小于 0。'
+    showBusinessFormError(message.value)
     return
   }
   const shortageQuantity = Number(currentRequest.value.shortageQuantity || 0)
   if (shortageQuantity <= 0) {
     message.value = '缺料数量必须大于 0。'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -281,7 +286,7 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
         </div>
       </div>
 
-      <div v-if="showOrderForm && currentRequest" class="modal-mask">
+      <div v-if="showOrderForm && currentRequest" class="modal-mask" data-business-form>
         <div class="modal-card max-w-2xl">
           <div class="flex items-start justify-between gap-4 mb-5">
             <div>

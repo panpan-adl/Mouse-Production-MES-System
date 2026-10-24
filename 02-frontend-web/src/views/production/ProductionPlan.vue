@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, ref } from 'vue'
 import { AlertTriangle, Eye, Plus, RefreshCw, Search, X } from 'lucide-vue-next'
@@ -200,6 +201,7 @@ async function openDetail(plan: ProductionPlan) {
 function openCreate() {
   if (unplannedOrders.value.length === 0) {
     errorMessage.value = '当前没有未制定生产计划的订单'
+    showBusinessFormError(errorMessage.value)
     return
   }
   selectedOrderId.value = unplannedOrders.value[0].id || ''
@@ -225,14 +227,17 @@ async function savePlan() {
   const order = selectedOrder.value
   if (!order?.id) {
     errorMessage.value = '请先选择来源订单'
+    showBusinessFormError(errorMessage.value)
     return
   }
   if (!createForm.value.planNo.trim()) {
     errorMessage.value = '计划编号不能为空'
+    showBusinessFormError(errorMessage.value)
     return
   }
   if (!createForm.value.startDate || !createForm.value.endDate) {
     errorMessage.value = '计划开始日期和结束日期不能为空'
+    showBusinessFormError(errorMessage.value)
     return
   }
 
@@ -483,7 +488,7 @@ const completeDrafts=useFormDrafts({createVisible:{open:createVisible,fields:{cr
       </section>
     </div>
 
-    <div v-if="createVisible" class="modal-mask" @click.self="createVisible = false">
+    <div v-if="createVisible" class="modal-mask" data-business-form @click.self="createVisible = false">
       <section class="modal-card max-w-3xl">
         <div class="mb-6 flex items-start justify-between">
           <div>
@@ -526,8 +531,8 @@ const completeDrafts=useFormDrafts({createVisible:{open:createVisible,fields:{cr
                 <option :value="3">低</option>
               </select>
             </label>
-            <label class="field-label">计划开始时间<input v-model="createForm.startDate" type="datetime-local" class="input mt-1" /></label>
-            <label class="field-label">计划结束时间<input v-model="createForm.endDate" type="datetime-local" class="input mt-1" /></label>
+            <label class="field-label">计划开始时间<input v-model="createForm.startDate" type="datetime-local" class="input mt-1" data-date-role="start" data-date-pair="date"></label>
+            <label class="field-label">计划结束时间<input v-model="createForm.endDate" type="datetime-local" class="input mt-1" data-date-role="end" data-date-pair="date"></label>
           </div>
         </div>
 
@@ -538,7 +543,7 @@ const completeDrafts=useFormDrafts({createVisible:{open:createVisible,fields:{cr
       </section>
     </div>
 
-    <div v-if="detailVisible && selectedPlan" class="modal-mask" @click.self="detailVisible = false">
+    <div v-if="detailVisible && selectedPlan" class="modal-mask" data-business-form @click.self="detailVisible = false">
       <section class="modal-card max-w-4xl">
         <div class="mb-6 flex items-start justify-between">
           <div>

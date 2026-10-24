@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
@@ -146,6 +147,7 @@ async function refreshAttendance() {
 function openCreateForm() {
   if (!canManageAttendance.value) {
     message.value = '当前角色只能查看本人考勤，不能登记或修改考勤'
+    showBusinessFormError(message.value)
     return
   }
   resetForm()
@@ -156,6 +158,7 @@ function openCreateForm() {
 function openEditForm(row: AttendanceRow) {
   if (!canManageAttendance.value) {
     message.value = '当前角色只能查看本人考勤，不能登记或修改考勤'
+    showBusinessFormError(message.value)
     return
   }
   Object.assign(form, {
@@ -174,15 +177,18 @@ function openEditForm(row: AttendanceRow) {
 async function saveAttendance() {
   if (!canManageAttendance.value) {
     message.value = '当前角色只能查看本人考勤，不能登记或修改考勤'
+    showBusinessFormError(message.value)
     return
   }
   const selectedUser = activeUsers.value.find((user) => user.id === form.userId)
   if (!selectedUser) {
     message.value = '请选择有效员工'
+    showBusinessFormError(message.value)
     return
   }
   if (!form.attendanceDate) {
     message.value = '请选择考勤日期'
+    showBusinessFormError(message.value)
     return
   }
 
@@ -214,6 +220,7 @@ async function saveAttendance() {
 async function changeAttendanceStatus(row: AttendanceRow, event: Event) {
   if (!canManageAttendance.value) {
     message.value = '当前角色只能查看本人考勤，不能修改考勤状态'
+    showBusinessFormError(message.value)
     return
   }
   const target = event.target as HTMLSelectElement
@@ -523,7 +530,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
         </div>
       </div>
 
-      <div v-if="showForm" class="modal-mask">
+      <div v-if="showForm" class="modal-mask" data-business-form>
         <div class="modal-card max-w-2xl">
           <div class="mb-4 flex items-center justify-between">
             <div>
@@ -547,7 +554,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
             </label>
             <label class="field-label">
               考勤日期
-              <input v-model="form.attendanceDate" type="date" class="input mt-1" />
+              <input v-model="form.attendanceDate" type="date" class="input mt-1" data-date-role="end" data-date-pair="attancedate">
             </label>
             <label class="field-label">
               签到时间

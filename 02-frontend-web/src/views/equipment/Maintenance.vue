@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useRoute, useRouter } from 'vue-router'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
 import { equipmentApi, maintenanceApi, type Equipment, type Maintenance } from '@/api/mes'
-import request from '@/utils/request'
+import { assignablePeople } from '@/api/assignment'
 import { type User } from '@/api/user'
 import { useAuthStore } from '@/stores/auth'
 
@@ -85,11 +86,11 @@ async function loadAll() {
     const [maintenanceData, equipmentData, maintainerData] = await Promise.all([
       maintenanceApi.list(),
       equipmentApi.list(),
-      request.get<User[]>('/mes/people'),
+      assignablePeople(8),
     ])
     maintenances.value = maintenanceData
     equipments.value = equipmentData
-    maintainers.value = maintainerData.filter((user) => user.roleId===8)
+    maintainers.value = maintainerData
   } catch (error: any) {
     message.value = error.message || '维修数据加载失败'
   } finally {
@@ -118,6 +119,7 @@ function typeText(type?: number) {
 function openCreate() {
   if (isMaintainer.value) {
     message.value = '设备维护员只能处理已指派给自己的维修工单'
+    showBusinessFormError(message.value)
     return
   }
   Object.assign(createForm, {
@@ -133,6 +135,7 @@ function openCreate() {
 async function saveMaintenance() {
   if (!createForm.maintenanceNo || !createForm.equipmentId) {
     message.value = '维修单号和设备不能为空'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -151,6 +154,7 @@ async function saveMaintenance() {
 function openAssign(item: Maintenance) {
   if (isMaintainer.value) {
     message.value = '设备维护员不能指派维修人员'
+    showBusinessFormError(message.value)
     return
   }
   selectedMaintenance.value = item
@@ -169,6 +173,7 @@ async function assignMaintenance() {
   const selectedMaintainer = maintainers.value.find((user) => user.id === assignForm.userId)
   if (!selectedMaintenance.value?.id || !selectedMaintainer) {
     message.value = '维修人员不能为空'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -191,6 +196,7 @@ async function startMaintenance(item: Maintenance) {
   if (!item.id) return
   if (isMaintainer.value && item.maintenanceUserId !== currentUser.value?.id) {
     message.value = '只能开始分配给自己的维修单'
+    showBusinessFormError(message.value)
     return
   }
   try {
@@ -205,6 +211,7 @@ async function startMaintenance(item: Maintenance) {
 function openFinish(item: Maintenance) {
   if (isMaintainer.value && item.maintenanceUserId !== currentUser.value?.id) {
     message.value = '只能填报分配给自己的维修单'
+    showBusinessFormError(message.value)
     return
   }
   selectedMaintenance.value = item
@@ -220,6 +227,7 @@ function openFinish(item: Maintenance) {
 async function finishMaintenance() {
   if (!selectedMaintenance.value?.id || !finishForm.maintenanceContent) {
     message.value = '维修内容不能为空'
+    showBusinessFormError(message.value)
     return
   }
   saving.value = true
@@ -243,6 +251,7 @@ async function finishMaintenance() {
 async function cancelMaintenance(item: Maintenance) {
   if (isMaintainer.value) {
     message.value = '设备维护员不能取消维修单'
+    showBusinessFormError(message.value)
     return
   }
   if (!item.id || !window.confirm(`确认取消维修单「${item.maintenanceNo}」吗？`)) return
@@ -352,17 +361,17 @@ const completeDrafts=useFormDrafts({showCreateForm:{open:showCreateForm,fields:{
         </div>
       </div>
 
-      <div v-if="billDetails" class="modal-mask" @click.self="billDetails=null"><section class="modal-card max-w-xl space-y-4"><h2 class="text-xl font-bold">维修记录与费用明细</h2><p>{{billDetails.maintenanceNo}} · {{billDetails.equipmentName}}</p><p>执行人：{{billDetails.maintenanceUserName||'未指派'}}</p><p>问题描述：{{billDetails.faultDesc||'—'}}</p><p>维修／保养内容：{{billDetails.maintenanceContent||'未填报'}}</p><p>实际开始：{{formatDate(billDetails.startTime)}}</p><p>实际结束：{{formatDate(billDetails.endTime)}}</p><p>结果：{{billDetails.result||'未完成'}}</p><p>费用：¥{{Number(billDetails.cost||0).toFixed(2)}}</p><p>备注：{{billDetails.remark||'—'}}</p><button class="btn-secondary" @click="billDetails=null">关闭</button></section></div>
-      <div v-if="showCreateForm" class="modal-mask">
+      <div v-if="billDetails" class="modal-mask" data-business-form @click.self="billDetails=null"><section class="modal-card max-w-xl space-y-4"><h2 class="text-xl font-bold">维修记录与费用明细</h2><p>{{billDetails.maintenanceNo}} · {{billDetails.equipmentName}}</p><p>执行人：{{billDetails.maintenanceUserName||'未指派'}}</p><p>问题描述：{{billDetails.faultDesc||'—'}}</p><p>维修／保养内容：{{billDetails.maintenanceContent||'未填报'}}</p><p>实际开始：{{formatDate(billDetails.startTime)}}</p><p>实际结束：{{formatDate(billDetails.endTime)}}</p><p>结果：{{billDetails.result||'未完成'}}</p><p>费用：¥{{Number(billDetails.cost||0).toFixed(2)}}</p><p>备注：{{billDetails.remark||'—'}}</p><button class="btn-secondary" @click="billDetails=null">关闭</button></section></div>
+      <div v-if="showCreateForm" class="modal-mask" data-business-form>
         <div class="modal-card max-w-2xl">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">新增维修单</h2>
             <button class="icon-btn" @click="showCreateForm = false"><X class="w-5 h-5" /></button>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label class="field-label">维修单号<input v-model="createForm.maintenanceNo" class="input mt-1" /></label>
+            <label class="field-label">维修单号<input v-model="createForm.maintenanceNo" required class="input mt-1" /></label>
             <label class="field-label">设备
-              <select v-model.number="createForm.equipmentId" class="input mt-1">
+              <select v-model.number="createForm.equipmentId" required class="input mt-1">
                 <option :value="0">请选择设备</option>
                 <option v-for="item in equipments" :key="item.id" :value="item.id">{{ item.equipmentName }}（{{ item.status }}）</option>
               </select>
@@ -374,7 +383,7 @@ const completeDrafts=useFormDrafts({showCreateForm:{open:showCreateForm,fields:{
                 <option :value="3">巡检</option>
               </select>
             </label>
-            <label class="field-label md:col-span-2">故障描述<textarea v-model="createForm.faultDesc" class="input mt-1 h-20"></textarea></label>
+            <label class="field-label md:col-span-2">故障描述<textarea v-model="createForm.faultDesc" required maxlength="500" class="input mt-1 h-20"></textarea></label>
             <label class="field-label md:col-span-2">备注<input v-model="createForm.remark" class="input mt-1" /></label>
           </div>
           <div class="flex justify-end gap-3 mt-6">
@@ -384,7 +393,7 @@ const completeDrafts=useFormDrafts({showCreateForm:{open:showCreateForm,fields:{
         </div>
       </div>
 
-      <div v-if="showAssignForm" class="modal-mask">
+      <div v-if="showAssignForm" class="modal-mask" data-business-form>
         <div class="modal-card max-w-3xl">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">指派维修人员</h2>
@@ -423,14 +432,14 @@ const completeDrafts=useFormDrafts({showCreateForm:{open:showCreateForm,fields:{
         </div>
       </div>
 
-      <div v-if="showFinishForm" class="modal-mask">
+      <div v-if="showFinishForm" class="modal-mask" data-business-form>
         <div class="modal-card max-w-xl">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">完成维修</h2>
             <button class="icon-btn" @click="showFinishForm = false"><X class="w-5 h-5" /></button>
           </div>
           <div class="grid grid-cols-1 gap-4">
-            <label class="field-label">维修内容<textarea v-model="finishForm.maintenanceContent" class="input mt-1 h-24"></textarea></label>
+            <label class="field-label">维修内容<textarea v-model="finishForm.maintenanceContent" required class="input mt-1 h-24"></textarea></label>
             <label class="field-label">维修结果
               <select v-model="finishForm.result" class="input mt-1">
                 <option value="REPAIRED">已修复</option>
