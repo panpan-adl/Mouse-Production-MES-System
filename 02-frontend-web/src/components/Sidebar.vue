@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   BarChart3,
+  Bot,
   Calendar,
   CheckCircle,
   ClipboardCheck,
@@ -44,13 +45,14 @@ const authStore = useAuthStore()
 const collapsed = sidebarCollapsed
 
 const allMenuItems = ref<MenuItem[]>([
+  {path:'/assistant',name:'Skill业务智能体',icon:Bot},
   {path:'/mes',name:'MES运营中心',icon:Package},
   {path:'/intelligence',name:'智能业务查询',icon:BarChart3},
-  {path:'/automation',name:'规则与自动化',icon:ClipboardCheck},
+  {path:'/automation',name:'自动任务与提醒',icon:ClipboardCheck},
   { path: '/', name: '首页', icon: LayoutDashboard },
   { path: '/foundation/workshops', name: '基础配置中心', icon: Settings },
   { path: '/manufacturing', name: '制造与质量放行', icon: ClipboardCheck },
-  { path: '/fulfillment', name: '生产与仓储闭环', icon: Package },
+  { path: '/fulfillment', name: '生产与仓储流程总览', icon: Package },
   {
     name: '销售订单',
     icon: FileText,
@@ -65,6 +67,7 @@ const allMenuItems = ref<MenuItem[]>([
     children: [
       { path: '/purchase/requests', name: '采购需求', icon: ClipboardCheck },
       { path: '/purchase/order', name: '采购订单', icon: FileText },
+      {path:'/purchase/receipts',name:'采购收货',icon:Package,roles:[1,2,4,5,6,10]},
       { path: '/purchase/returns', name: '供应商退货', icon: FileText, roles: [1,2,5,6,10] },
       { path: '/purchase/supplier', name: '供应商管理', icon: Users },
     ],
@@ -74,6 +77,7 @@ const allMenuItems = ref<MenuItem[]>([
     icon: MousePointer2,
     children: [
       { path: '/production/work-orders', name: '生产工单', icon: ClipboardCheck, roles: [1,2,3,4,5] },
+      {path:'/production/schedules',name:'班组排班计划',icon:Calendar},
       { path: '/production/plan', name: '生产计划', icon: FileText },
       { path: '/production/task', name: '生产任务', icon: CheckCircle },
       { path: '/production/equipment-status', name: '设备状态管理', icon: Wrench, roles: [3] },
@@ -100,6 +104,8 @@ const allMenuItems = ref<MenuItem[]>([
       { path: '/inventory/production-issue', name: '生产领料', icon: Package, roles:[1,2,5] },
       { path: '/inventory/production-return', name: '生产退料', icon: Package, roles:[1,2,5] },
       { path: '/inventory/product-receipts', name: '产成品入库', icon: Package, roles:[1,2,5] },
+      {path:'/inventory/shipments',name:'销售发货',icon:Package,roles:[1,2,4,5,7]},
+      {path:'/inventory/trace',name:'库存与批次追溯',icon:Package},
       { path: '/inventory/packages', name: '装箱管理', icon: Package, roles:[1,2,5,7] },
       { path: '/inventory/material-requests', name: '物料请求', icon: ClipboardCheck },
     ],
@@ -110,9 +116,9 @@ const allMenuItems = ref<MenuItem[]>([
     icon: Wrench,
     children: [
       { path: '/equipment/list', name: '设备台账', icon: Wrench },
-      { path: '/equipment/maintenance', name: '设备维修', icon: Settings },
-      { path: '/equipment/repair-tasks', name: '设备维修任务', icon: Wrench, roles: [8] },
-      { path: '/equipment/periodic', name: '定期维护保养', icon: Calendar, roles: [8] },
+      { path: '/equipment/maintenance', name: '维修申请与派工', icon: Settings },
+      { path: '/equipment/repair-tasks', name: '维修执行与记录', icon: Wrench, roles: [8] },
+      { path: '/equipment/periodic', name: '定期保养计划', icon: Calendar, roles: [8] },
       { path: '/equipment/bills', name: '维护账单', icon: FileText, roles: [8] },
     ],
   },
@@ -122,7 +128,7 @@ const allMenuItems = ref<MenuItem[]>([
     icon: Settings,
     children: [
       { path: '/system/user', name: '员工管理', icon: Users },
-      { path: '/system/role', name: '角色管理', icon: Settings },
+      { path: '/system/role', name: '岗位与权限管理', icon: Settings },
       { path: '/system/department', name: '部门管理', icon: Users },
       { path: '/system/logs', name: '日志管理', icon: FileText },
     ],
@@ -132,7 +138,7 @@ const allMenuItems = ref<MenuItem[]>([
 const roleMenus: Record<number, string[]> = {
   1: ['首页', '生产管理', '质量管理', '仓库管理', '设备管理', '考勤管理'],
   2: ['首页', '生产管理', '设备管理', '考勤管理'],
-  3: ['首页', '生产管理', '考勤管理'],
+  3: ['首页','仓库管理', '生产管理', '考勤管理'],
   4: ['首页', '质量管理', '考勤管理'],
   5: ['首页', '仓库管理', '采购管理', '考勤管理'],
   6: ['首页', '采购管理', '仓库管理', '考勤管理'],
@@ -145,24 +151,25 @@ const roleMenus: Record<number, string[]> = {
 
 const roleChildMenus: Record<number, Record<string, string[]>> = {
   3: {
-    生产管理: ['生产工单', '生产任务', '设备状态管理'],
+    生产管理: ['生产工单', '生产任务', '设备状态管理','班组排班计划'],
+    仓库管理: ['物料请求'],
   },
   5: {
-    仓库管理: ['仓库库存', '物料管理', '入库管理', '出库管理', '物料请求','生产领料','生产退料','产成品入库','装箱管理'],
-    采购管理: ['采购订单','供应商退货'],
+    仓库管理: ['仓库库存', '物料管理', '入库管理', '出库管理', '物料请求','生产领料','生产退料','产成品入库','装箱管理','销售发货','库存与批次追溯'],
+    采购管理: ['采购订单','采购收货','供应商退货'],
   },
   6: {
-    采购管理: ['采购需求', '采购订单', '供应商管理','供应商退货'],
+    采购管理: ['采购需求', '采购订单', '供应商管理','采购收货','供应商退货'],
   },
   8: {
-    设备管理: ['设备维修任务', '定期维护保养', '维护账单'],
+    设备管理: ['维修执行与记录', '定期保养计划', '维护账单'],
   },
 }
 
 const roleMenuItems = computed(() => {
-  const roleId = authStore.currentUser?.roleId
+  const roleId = authStore.effectiveRoleId
   if (!roleId || !roleMenus[roleId]) return []
-  return allMenuItems.value.filter((item) => roleId === 9 || item.name==='MES运营中心' || (item.name === '智能业务查询' && [1,2,4,5,6,7,10].includes(roleId)) || (item.name === '规则与自动化' && [1,2,4,6].includes(roleId)) || (item.name === '生产与仓储闭环' && [1,2,3,4,5,6,7,8,10].includes(roleId)) || roleMenus[roleId].includes(item.name) || (item.name === '基础配置中心' && [1,2,4,5,6,7,8,11].includes(roleId)) || (item.name === '制造与质量放行' && [1,2,3,4].includes(roleId)))
+  return allMenuItems.value.filter((item) => roleId === 9 || item.name==='Skill业务智能体' || item.name==='MES运营中心' || (item.name === '智能业务查询' && [1,2,4,5,6,7,10].includes(roleId)) || (item.name === '自动任务与提醒' && [1,2,4,6,8].includes(roleId)) || (item.name === '生产与仓储流程总览' && [1,2,3,4,5,6,7,8,10].includes(roleId)) || roleMenus[roleId].includes(item.name) || (item.name === '基础配置中心' && [1,2,4,5,6,7,8,11].includes(roleId)) || (item.name === '制造与质量放行' && [1,2,3,4].includes(roleId)))
 })
 
 const menuItems=computed(()=>roleMenuItems.value.map(item=>{
@@ -175,7 +182,7 @@ const menuItems=computed(()=>roleMenuItems.value.map(item=>{
 const currentUser = computed(() => authStore.currentUser)
 
 function visibleChildren(item: MenuItem) {
-  const roleId = authStore.currentUser?.roleId
+  const roleId = authStore.effectiveRoleId
   const allowedChildren = roleId ? roleChildMenus[roleId]?.[item.name] : undefined
   if (!item.children) return []
   const roleVisibleChildren = item.children.filter((child) => roleId === 9 || !child.roles || (roleId && child.roles.includes(roleId)))

@@ -3,7 +3,10 @@ import { useAuthStore } from '@/stores/auth'
 import { canVisit } from '@/utils/permissions'
 
 const routes: RouteRecordRaw[] = [
+  {path:'/production/schedules',component:()=>import('@/views/production/SchedulePlanning.vue'),meta:{requiresAuth:true}},
   ...[
+    {path:'/purchase/receipts',title:'采购收货',mesTab:'documents',documentKind:'PURCHASE_RECEIPT',description:'选择已审批采购单，登记实际到货批次，逐批检验放行后确认过账。'},
+    {path:'/inventory/shipments',title:'销售发货',mesTab:'documents',documentKind:'SALES_SHIPMENT',description:'选择销售订单与成品库存批次，出货检验放行后过账发货。'},
     {path:'/purchase/returns',title:'供应商退货',mesTab:'documents',documentKind:'PURCHASE_RETURN',description:'按原采购单与收货批次退货，确认后从指定仓库扣减库存。'},
     {path:'/inventory/production-issue',title:'生产领料',mesTab:'documents',documentKind:'LINE_ISSUE',description:'选择生产工单与库存批次，将物料从原仓库转入工单线边库。'},
     {path:'/inventory/production-return',title:'生产退料',mesTab:'documents',documentKind:'LINE_RETURN',description:'将指定工单线边库中的剩余物料退回仓库，保留批次与库存流水。'},
@@ -13,7 +16,9 @@ const routes: RouteRecordRaw[] = [
   ].map(module=>({path:module.path,component:()=>import('@/views/foundation/MesOperations.vue'),meta:{requiresAuth:true,...module}})),
   {path:'/mes',component:()=>import('@/views/foundation/MesOperations.vue'),meta:{requiresAuth:true}},
   {path:'/intelligence',component:()=>import('@/views/foundation/Intelligence.vue'),meta:{requiresAuth:true}},
+  {path:'/assistant',component:()=>import('@/views/foundation/SkillAssistant.vue'),meta:{requiresAuth:true,title:'Skill 业务智能体'}},
   {path:'/automation',component:()=>import('@/views/foundation/Automation.vue'),meta:{requiresAuth:true}},
+  {path:'/inventory/trace',component:()=>import('@/views/inventory/StockTrace.vue'),meta:{requiresAuth:true}},
   { path: '/fulfillment', component: () => import('@/views/foundation/Fulfillment.vue'), meta: { requiresAuth: true } },
   { path: '/foundation/:key?', component: () => import('@/views/foundation/FoundationCenter.vue'), meta: { requiresAuth: true } },
   { path: '/manufacturing', component: () => import('@/views/foundation/Manufacturing.vue'), meta: { requiresAuth: true } },
@@ -104,13 +109,13 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/inventory/in',
     name: 'InventoryIn',
-    redirect: '/fulfillment?tab=purchases',
+    redirect: '/purchase/receipts',
     meta: { requiresAuth: true },
   },
   {
     path: '/inventory/out',
     name: 'InventoryOut',
-    redirect: '/fulfillment',
+    redirect: '/inventory/shipments',
     meta: { requiresAuth: true },
   },
   {
@@ -278,14 +283,14 @@ const router = createRouter({
 
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
-  if(authStore.isLoggedIn&&authStore.menuPaths===null){try{await authStore.refreshMenuAccess()}catch{authStore.logout();next('/login');return}}
+  if(authStore.isLoggedIn&&to.meta.requiresAuth){try{await authStore.refreshMenuAccess()}catch{authStore.logout();next('/login');return}}
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
     next('/login')
   } else if (to.path === '/login' && authStore.isLoggedIn) {
     next(authStore.redirectPath)
   } else if (to.path === '/' && authStore.isLoggedIn && authStore.redirectPath !== '/') {
     next(authStore.redirectPath)
-  } else if (to.meta.requiresAuth && !canVisit(Number(authStore.currentUser?.roleId), to.path)) {
+  } else if (to.meta.requiresAuth && !canVisit(Number(authStore.effectiveRoleId), to.path)) {
     next('/dashboard')
   } else if(to.meta.requiresAuth&&!authStore.hasMenu(to.path)) {
     next('/dashboard')

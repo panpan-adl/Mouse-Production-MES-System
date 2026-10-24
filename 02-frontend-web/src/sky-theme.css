@@ -1,0 +1,97 @@
+/* Sky-blue palette. Motion and geometry remain defined in immersive.css. */
+:root{--tech-cyan:#0989c6;--tech-blue:#367de1;--tech-violet:#8475dd;--tech-ink:#203f64;--tech-muted:#5d7d9f;--tech-line:#a6c9e96b;--tech-panel:#f6fbfff2}
+.immersive-workspace{background:#eaf4ff;color:var(--tech-ink);color-scheme:light}
+.workspace-atmosphere,.login-page.immersive-login .login-cosmos{background:radial-gradient(ellipse at 12% 28%,#b9e5ffb3,transparent 53%),radial-gradient(ellipse at 90% 76%,#c9dcff99,transparent 46%),linear-gradient(135deg,#eef8ff,#dfeeff 60%,#edf5ff)}
+.ambient-grid,.cosmos-grid{background-image:linear-gradient(#4389c212 1px,transparent 1px),linear-gradient(90deg,#4389c212 1px,transparent 1px)}
+.ambient-orb{opacity:.15}.ambient-orb-purple{background:#8db6ff}.ambient-orb-cyan{background:#53c6ff}
+.mes-workspace.immersive-workspace .mes-sidebar{background:linear-gradient(165deg,#f4fbfff5,#e0effffa);border-right-color:#abcde778;box-shadow:10px 0 50px #528bc810}
+.mes-workspace.immersive-workspace .sidebar-brand,.mes-workspace.immersive-workspace .sidebar-brand .text-white{color:#214e7c}
+.mes-workspace.immersive-workspace .sidebar-brand .text-blue-100{color:#6285aa}
+.mes-workspace.immersive-workspace .sidebar-identity{background:linear-gradient(110deg,#d9efffba,#e8f3ffbd);border-color:#99c5e75e;color:#315d86}
+.mes-workspace.immersive-workspace .sidebar-identity .text-white{color:#284e76}
+.mes-workspace.immersive-workspace .sidebar-identity .text-gray-800{color:#30577e}
+.mes-workspace.immersive-workspace .sidebar-identity .text-gray-500{color:#6689a9}
+.mes-workspace.immersive-workspace .sidebar-identity .bg-blue-100{background:#d4ebff;border-color:#9ec6e7;color:#327fb8}
+.mes-workspace.immersive-workspace .sidebar-brand button{color:#628bad}
+.mes-workspace.immersive-workspace .mes-sidebar .text-blue-100,.mes-workspace.immersive-workspace .mes-sidebar .text-blue-200,.mes-workspace.immersive-workspace .mes-sidebar .text-blue-300{color:#6485a5}
+.mes-workspace.immersive-workspace .mes-sidebar nav button{color:#547293}
+.mes-workspace.immersive-workspace .mes-sidebar nav button:hover{background:#cce7ff90;color:#155891}
+.mes-workspace.immersive-workspace .mes-sidebar nav button.bg-blue-50{background:linear-gradient(90deg,#b9e6ffad,#d6e6ffab);color:#096ab2;border-color:#7db7e36b;box-shadow:inset 2px 0 #229fe1,0 0 20px #59a9e414}
+.mes-workspace.immersive-workspace .workspace-header{background:#f5fbffe0;border-color:#accde977;box-shadow:0 7px 25px #377fc40a}
+.mes-workspace.immersive-workspace .header-breadcrumb{color:#6586a6}.mes-workspace.immersive-workspace .header-breadcrumb strong{color:#264f7a}
+.mes-workspace.immersive-workspace .header-menu-toggle{background:#e0f0ff;border-color:#a9cce9;color:#3984b8}
+.mes-workspace.immersive-workspace .workspace-header button:hover{background:#cfe8ff90}
+.mes-workspace.immersive-workspace .workspace-header .bg-blue-100{background:linear-gradient(145deg,#d3efff,#dce4ff);color:#3977be;border-color:#a2c7e6}
+.mes-workspace.immersive-workspace .workspace-header .text-gray-800{color:#284c73}.mes-workspace.immersive-workspace .workspace-header .text-gray-600{color:#557594}.mes-workspace.immersive-workspace .workspace-header .text-gray-500{color:#6685a5}
+.mes-workspace.immersive-workspace .workspace-header .border-gray-200{border-color:#b6d2ea}
+.motion-switch{background:#e0f3ffab;color:#177db0;border-color:#8dc5e590}.motion-switch[aria-pressed=false]{color:#6e87a0}
+.workspace-signal,.workspace-signal>span:last-child{color:#5a88ac}
+.mes-workspace.immersive-workspace .environment-notice{background:#fff6dfa8;border-color:#e2ca8c77;color:#907344}.mes-workspace.immersive-workspace .environment-notice strong{color:#83632b}.mes-workspace.immersive-workspace .notice-note{color:#967b4c}
+.mes-workspace.immersive-workspace .workspace-footer,.mes-workspace.immersive-workspace .workspace-footer>span:first-child{color:#6a8cad}
+.mes-workspace.immersive-workspace .workspace-content h1,.mes-workspace.immersive-workspace .panorama-page .dashboard-header h1{color:#234d79;text-shadow:0 2px 20px #69b5e22b}
+.mes-workspace.immersive-workspace .workspace-content h2{color:#315b84}
+.mes-workspace.immersive-workspace .workspace-content .text-gray-800,.mes-workspace.immersive-workspace .workspace-content .text-gray-900,.mes-workspace.immersive-workspace .workspace-content .text-slate-800{color:#294c73}
+.mes-workspace.immersive-workspace .workspace-content .text-gray-600,.mes-workspace.immersive-workspace .workspace-content .text-gray-700,.mes-workspace.immersive-workspace .workspace-content .text-slate-600{color:#547595}
+.mes-workspace.immersive-workspace .workspace-content .text-gray-500,.mes-workspace.immersive-workspace .workspace-content .text-slate-500{color:#6685a3}
+.mes-workspace.immersive-workspace .workspace-content .text-gray-400,.mes-workspace.immersive-workspace .workspace-content .text-slate-400{color:#7492ad}
+.mes-workspace.immersive-workspace .workspace-content .text-blue-600{color:#217fc6}
+.mes-workspace.immersive-workspace .workspace-content .bg-white,.mes-workspace.immersive-workspace .workspace-header .bg-white{background:var(--tech-panel);border-color:var(--tech-line);color:#355a7c}
+.mes-workspace.immersive-workspace .workspace-content .bg-gray-50,.mes-workspace.immersive-workspace .workspace-content .bg-slate-50{background:#eaf4ff}
+.mes-workspace.immersive-workspace .workspace-content .bg-white.border.rounded-xl,.mes-workspace.immersive-workspace .workspace-content .bg-white.rounded-xl.shadow-sm,.mes-workspace.immersive-workspace .workspace-content .panel,.mes-workspace.immersive-workspace .panorama-page .panel,.mes-workspace.immersive-workspace .panorama-page .kpi-card,.mes-workspace.immersive-workspace .panorama-page .insight-row>.text-slate-100{background:linear-gradient(125deg,#f9fdfff0,#edf6ffed);border-color:#a7c9e57d;box-shadow:inset 0 1px 0 #fff,0 8px 28px #3679b70d;color:#476b90}
+.mes-workspace.immersive-workspace .workspace-content input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),.mes-workspace.immersive-workspace .workspace-content select,.mes-workspace.immersive-workspace .workspace-content textarea{color-scheme:light;background:#f7fcff;border-color:#a5c9e7;color:#30577d}
+.mes-workspace.immersive-workspace .workspace-content input::placeholder,.mes-workspace.immersive-workspace .workspace-content textarea::placeholder{color:#819db8}
+.mes-workspace.immersive-workspace .workspace-content option{background:#f3f9ff;color:#30577d}
+.mes-workspace.immersive-workspace .workspace-content button.bg-blue-600,.mes-workspace.immersive-workspace .workspace-content a.bg-blue-600{background:linear-gradient(110deg,#299edb,#4c86e3);border-color:#65b0e0;color:white;box-shadow:0 4px 14px #4b9ad32b}
+.mes-workspace.immersive-workspace .workspace-content button.bg-blue-600:hover{background:linear-gradient(110deg,#218dcc,#3975d1)}
+.mes-workspace.immersive-workspace .workspace-content button.border{border-color:#a6c7e4}.mes-workspace.immersive-workspace .workspace-content button.border:not(.bg-blue-600):hover{background:#d9eeff;border-color:#7bb2dc}
+.mes-workspace.immersive-workspace .workspace-content div.overflow-x-auto.border.rounded-lg{background:#f6fbffed;border-color:#b3cfe7;box-shadow:0 10px 30px #387bb80a}
+.mes-workspace.immersive-workspace .workspace-content table th{background:#e6f2ff;color:#557b9f;border-color:#b6d3ed75}
+.mes-workspace.immersive-workspace .workspace-content table td{color:#486b8d;border-color:#c5ddf080}
+.mes-workspace.immersive-workspace .workspace-content table tbody tr+tr td{border-top-color:#c5ddf080}.mes-workspace.immersive-workspace .workspace-content table tbody tr:hover{background:#dceeffa6}
+.mes-workspace.immersive-workspace .workspace-content [class*=border-gray],.mes-workspace.immersive-workspace .workspace-content [class*=border-slate],.mes-workspace.immersive-workspace .workspace-content .divide-y>:not([hidden])~:not([hidden]){border-color:#b5d2e97a}
+.mes-workspace.immersive-workspace .workspace-content [role=dialog]{background:#264e795e;box-shadow:0 0 60px #477fa230}
+.mes-workspace.immersive-workspace .workspace-content [role=dialog] form,.mes-workspace.immersive-workspace .workspace-content .modal-card{background:linear-gradient(135deg,#f8fcff,#eaf4ff);border-color:#a0c7e6}
+.mes-workspace.immersive-workspace .workspace-content .bg-blue-50,.mes-workspace.immersive-workspace .workspace-content .bg-blue-100,.mes-workspace.immersive-workspace .workspace-header [class*="bg-blue-50"]{background:#dceeff;color:#2774b3;border-color:#a8d0ed}
+.mes-workspace.immersive-workspace .workspace-content .bg-red-50,.mes-workspace.immersive-workspace .workspace-content .bg-red-100{background:#fff0f2;color:#bd5269;border-color:#edbdc9}
+.mes-workspace.immersive-workspace .workspace-content .bg-green-50,.mes-workspace.immersive-workspace .workspace-content .bg-green-100{background:#e0f6ef;color:#237e67;border-color:#aad9c9}
+.mes-workspace.immersive-workspace .workspace-content .bg-amber-50,.mes-workspace.immersive-workspace .workspace-content .bg-yellow-100{background:#fff4dd;color:#997124}
+.mes-workspace.immersive-workspace .workspace-content .text-red-600,.mes-workspace.immersive-workspace .workspace-content .text-red-700{color:#c1546b}.mes-workspace.immersive-workspace .workspace-content .text-green-700{color:#277e64}.mes-workspace.immersive-workspace .workspace-content .text-amber-700{color:#956d28}
+.mes-workspace.immersive-workspace .workspace-content .hover\:bg-gray-50:hover,.mes-workspace.immersive-workspace .workspace-header .hover\:bg-gray-50:hover,.mes-workspace.immersive-workspace .workspace-content .hover\:bg-gray-100:hover{background:#daeeff}
+.mes-workspace.immersive-workspace .mes-module-tabs{background:#f0f8ffe6;border-color:#b2d0ea;box-shadow:inset 0 1px 0 white}
+.mes-workspace.immersive-workspace .mes-module-tabs button{color:#6082a3}.mes-workspace.immersive-workspace .mes-module-tabs button.bg-blue-600{background:linear-gradient(110deg,#269bd3,#4b83d5)!important;color:white;border-color:#78b3df!important}
+.mes-workspace.immersive-workspace .module-heading-mark{background:linear-gradient(140deg,#d1eeff,#dfeaff);border-color:#9ec8e6;color:#2987c0;box-shadow:0 0 20px #399bda18}
+.mes-workspace.immersive-workspace .mes-hero-label,.mes-workspace.immersive-workspace .panorama-page .eyebrow{color:#2989b4}
+.mes-workspace.immersive-workspace .panorama-page .panel-title h2,.mes-workspace.immersive-workspace .panorama-page .panel h2{color:#3c6388}
+.mes-workspace.immersive-workspace .panorama-page .kpi-value strong{color:#255482;text-shadow:none}.mes-workspace.immersive-workspace .panorama-page .kpi-label{color:#6283a3}
+.mes-workspace.immersive-workspace .panorama-page .status-row,.mes-workspace.immersive-workspace .panorama-page .alert-row,.mes-workspace.immersive-workspace .panorama-page .flow-node,.mes-workspace.immersive-workspace .shortage-row,.mes-workspace.immersive-workspace .inventory-card{background:linear-gradient(120deg,#e6f4ffc9,#eef5ffcf);border-color:#aacfe96b;box-shadow:inset 0 1px 0 #fff}
+.mes-workspace.immersive-workspace .panorama-page .flow-node.active{background:#cbeaff;border-color:#4aa7d6}
+.mes-workspace.immersive-workspace .panorama-page .flow-node strong,.mes-workspace.immersive-workspace .panorama-page .status-row strong,.mes-workspace.immersive-workspace .panorama-page .alert-head strong,.mes-workspace.immersive-workspace .shortage-row .name span,.mes-workspace.immersive-workspace .defect-row strong{color:#3c648b}
+.mes-workspace.immersive-workspace .inventory-card span,.mes-workspace.immersive-workspace .panorama-page .dashboard-caption{color:#6587a5}
+.mes-workspace.immersive-workspace .panorama-page .time-box,.mes-workspace.immersive-workspace .panorama-page .icon-button{background:#e4f2ff;border-color:#afcde8;color:#5485ac}.mes-workspace.immersive-workspace .panorama-page .time-box strong{color:#248da9}
+.mes-workspace.immersive-workspace .panorama-page .insight-row .bg-slate-700{background:#cce2f4}
+/* Bright login console and blue hologram. */
+.login-page.immersive-login{background:#e8f4ff;color:#234f7a;color-scheme:light}
+.login-page.immersive-login .login-brand{color:#285982}.login-page.immersive-login .login-brand small{color:#5d87aa}
+.login-page.immersive-login .login-brand-icon{background:linear-gradient(145deg,#d6f1ffbb,#d4e9ffbb);border-color:#89bee1;color:#2e92bf;box-shadow:0 0 25px #63b3e32b,inset 0 0 15px #ffffff8c}
+.login-page.immersive-login .story-eyebrow{color:#238ab2}.login-page.immersive-login .story-copy h1{color:#2b5c88;text-shadow:0 3px 30px #6bb5e526}.login-page.immersive-login .story-copy h1>span{color:#179fc3}
+.login-page.immersive-login .story-copy p{color:#5a83a7}.login-page.immersive-login .story-footer{color:#608ab1}
+.login-page.immersive-login .login-card{background:linear-gradient(130deg,#ffffffde,#f0f8ffeb);border-color:#9dc8e880;box-shadow:0 25px 100px #4188be1a,inset 0 1px 0 #fff}
+.login-page.immersive-login .login-card h2{color:#2d557f;text-shadow:none}.login-page.immersive-login .login-greeting{color:#278cb7}
+.login-page.immersive-login .login-description{color:#6a8baa}.login-page.immersive-login .login-fields label{color:#486f93}
+.login-page.immersive-login .login-input{background:#f5fbffd9;border-color:#a7cae5;color:#5796bd;box-shadow:inset 0 1px 5px #5188b008}
+.login-page.immersive-login .login-input input{color:#305d85}.login-page.immersive-login .login-input input::placeholder{color:#83a3be}
+.login-page.immersive-login .password-label span,.login-page.immersive-login .login-help{color:#7394b1}.login-page.immersive-login .login-help{border-color:#b4cfe757}
+.login-page.immersive-login .login-submit{background:linear-gradient(110deg,#2da5d8,#4a8ce0 60%,#7b96e4);border-color:#79b9e1;box-shadow:0 6px 23px #4c95d02b,inset 0 1px 0 #ffffff70}
+.login-page.immersive-login .login-error{background:#fff0f3;border-color:#e9b5c3;color:#b84c65}
+.login-page.immersive-login .login-demo{background:#fff6ddc9;border-color:#dcc88b88;color:#92733a}
+.login-page.immersive-login .login-access-footer,.login-page.immersive-login .login-top-note{color:#6b8daf}
+.login-page.immersive-login .login-motion-control{background:#edf8ffb8;border-color:#a1c9e0;color:#4c88ae}
+.holo-scene{color:#248dc6}.holo-core{background:linear-gradient(145deg,#bce5ffd9,#d7e7ffeb);border-color:#64b3df;box-shadow:inset 0 0 25px #fff8}
+.holo-core svg{color:#168ec0}.holo-core strong{color:#287ba6;text-shadow:0 0 14px #53b9ee3d}.holo-core small{color:#4e89b2}
+.holo-satellite{background:linear-gradient(100deg,#e1f4fff0,#eff7fff0);border-color:#91c3e18c;box-shadow:inset 0 1px 0 #fff,0 10px 30px #448bc015}
+.holo-satellite b{color:#38729c}.holo-satellite svg{color:#2a9ac3}.satellite-quality svg{color:#8a84c9}.holo-satellite small{color:#7198b8}
+.holo-coordinates,.holo-legend{color:#6597b7}.holo-radar{opacity:.9}.holo-orbit{border-color:#399ed084}.orbit-two{border-color:#9a9cdd88}.orbit-three{border-color:#339bc45c}
+/* The particle sphere now supplies the login centerpiece; keep the business satellites. */
+.login-page.immersive-login .holo-radar,.login-page.immersive-login .holo-core,.login-page.immersive-login .holo-orbit{display:none}
+.login-page.immersive-login .login-particle-cloud{z-index:2;opacity:.88}
+.login-page.immersive-login .holo-grid{opacity:.45}

@@ -51,6 +51,11 @@ public class FoundationService {
         Resource r=definition(key);
         return db.queryForList("SELECT id,"+String.join(",",r.fields().stream().map(Field::name).toList())+" FROM "+r.table()+" WHERE "+r.where()+" ORDER BY id DESC");
     }
+    private boolean isGeneratedCode(String key,Field f){return !Set.of("code-rules","parameters","menus","jobs").contains(key)&&f.ref()==null&&(f.name().equals("code")||f.name().endsWith("_code"));}
+    private String generatedCode(String key){
+        String rule=switch(key){case "units"->"UOM_CODE";case "materials"->"ITEM_CODE";case "products"->"PRODUCT_CODE";case "suppliers"->"VENDOR_CODE";case "customers"->"CLIENT_CODE";case "workshops"->"WORKSHOP_CODE";case "stations"->"WORKSTATION_CODE";case "warehouses"->"WAREHOUSE_CODE";case "areas"->"AREA_CODE";case "locations"->"LOCATION_CODE";case "operations"->"PROCESS_CODE";case "routes"->"ROUTE_CODE";case "checks"->"CHECKPLAN_CODE";case "equipment"->"MACHINERY_CODE";case "qc-templates"->"QC_TEMPLATR_CODE";case "qc-items"->"QC_ITEM_CODE";case "defects"->"DEFECT_CODE";case "bom-versions"->"BOM_CODE";case "teams"->"TEAM_CODE";case "rotations"->"CAL_PLAN_CODE";case "sops"->"SOP_CODE";default->null;};
+        return rule==null?UUID.randomUUID().toString().replace("-","").substring(0,20):mesRules.nextCode(rule);
+    }
     public Map<String,Object> get(String key,long id) {
         return list(key).stream().filter(row->number(row.get("id"))==id).findFirst().orElseThrow(()->new IllegalArgumentException("记录不存在或已停用"));
     }
@@ -88,10 +93,21 @@ public class FoundationService {
         fulfillment.lock();
         input=new LinkedHashMap<>(input);mesRules.defaults(key,input);
         Resource r=definition(key);Map<String,Object> values=new LinkedHashMap<>();
+        for(Field f:r.fields())if(isGeneratedCode(key,f)) {
+            if(id!=null)input.put(f.name(),get(key,id).get(f.name()));
+            else input.put(f.name(),generatedCode(key));
+        }
         if(id!=null)get(key,id);
         fail(id!=null && key.equals("check-records"),"点检记录不可修改，请新增记录保留历史");
         for(Field f:r.fields())values.put(f.name(),normalized(f,input.get(f.name())));
         if(r.unique()!=null) fail(count("SELECT COUNT(*) FROM "+r.table()+" WHERE "+r.unique()+"=? AND id<>?",values.get(r.unique()),id==null?0:id)>0,"编码已存在，请使用其他编码");
+        if(key.equals("maintenance-plans")) {
+            fail(number(values.get("frequency"))<1||number(values.get("frequency"))>1000,"保养间隔须为1至1000的整数");
+            fail(new BigDecimal(values.get("frequency").toString()).stripTrailingZeros().scale()>0,"保养间隔必须是整数");
+            fail(number(values.get("remind_days"))>365||new BigDecimal(values.get("remind_days").toString()).stripTrailingZeros().scale()>0,"提前提醒应为0至365天的整数");
+            fail(count("SELECT COUNT(*) FROM t_user WHERE id=? AND role_id=8 AND status=1 AND deleted=0",values.get("owner_id"))!=1,"负责人须为在职设备维护员");
+            if(id!=null) { var old=get(key,id); fail(count("SELECT COUNT(*) FROM mm_maintenance_occurrence WHERE plan_id=?",id)>0&&(!PeriodicMaintenanceService.dateTime(old.get("anchor_at")).equals(values.get("anchor_at"))||number(old.get("frequency"))!=number(values.get("frequency"))||!old.get("cycle_unit").equals(values.get("cycle_unit"))),"已有保养任务的周期不可改变，请停用原计划后新建"); }
+        }
         validateBusiness(key,id,values);
         mesRules.validate(key,id,values);
         if(id==null) { values.putAll(r.extra());if(key.equals("check-records"))values.put("actor_id",actor);id=insert(r.table(),values); }
@@ -154,6 +170,7 @@ public class FoundationService {
         db.queryForList("SELECT id FROM mm_guard WHERE id=1 FOR UPDATE");
         fail(((LocalDateTime)v.get("end_at")).compareTo((LocalDateTime)v.get("start_at"))<=0,"结束时间必须晚于开始时间（跨日请填写次日）");
         fail(count("SELECT COUNT(*) FROM mm_member WHERE team_id=?",v.get("team_id"))==0,"班组尚未设置成员");
+        fail(count("SELECT COUNT(*) FROM mm_member m JOIN t_user u ON u.id=m.user_id WHERE m.team_id=? AND (u.status=0 OR u.deleted=1)",v.get("team_id"))>0,"班组包含离职人员，请先调整班组成员");
         Map<String,Object> station=get("stations",number(v.get("station_id")));
         mesRules.equipmentAvailable(number(v.get("station_id")));
         if(v.get("equipment_id")==null&&station.get("equipment_id")!=null)v.put("equipment_id",station.get("equipment_id"));
@@ -180,6 +197,7 @@ public class FoundationService {
         if(key.equals("checks"))fail(count("SELECT COUNT(*) FROM mm_check_due WHERE plan_id=?",id)>0,"已有周期任务的点检计划不可删除，请停用");
         if(key.equals("defects"))fail(count("SELECT COUNT(*) FROM mm_nc WHERE defect_id=?",id)>0,"缺陷分类已用于质量处置，不能删除");
         if(key.equals("qc-lines"))fail(count("SELECT COUNT(*) FROM mm_document_check WHERE template_id=?",get(key,id).get("template_id"))>0,"模板已有批次检验记录，不能删除检测项");
+        fail(key.equals("maintenance-plans")&&count("SELECT COUNT(*) FROM mm_maintenance_occurrence WHERE plan_id=?",id)>0,"已有保养任务的计划不可删除，请停用");
         Resource resource=definition(key);Map<String,Object> existing=get(key,id);
         fail(key.equals("check-records"),"点检记录不可删除");
         fail(key.equals("locations"),"库位保留历史引用，请勿删除");
@@ -219,7 +237,7 @@ public class FoundationService {
     }
     public List<Map<String,Object>> workOrders() {return db.queryForList("SELECT w.*,p.plan_no,p.product_id,p.product_name,p.completed_quantity FROM mm_work_order w JOIN t_production_plan p ON p.id=w.plan_id ORDER BY w.id DESC");}
     public List<Map<String,Object>> workTasks(long id) {return db.queryForList("SELECT t.*,c.operation_id,c.station_id,c.schedule_id,c.sequence_no,c.is_terminal,o.name AS operation_name FROM mm_task_context c JOIN t_production_task t ON t.id=c.task_id JOIN mm_operation o ON o.id=c.operation_id WHERE c.work_order_id=? ORDER BY c.sequence_no",id);}
-    public List<Map<String,Object>> plans() {return db.queryForList("SELECT id,plan_no AS name,product_id,plan_quantity,plan_status FROM t_production_plan ORDER BY id DESC");}
+    public List<Map<String,Object>> plans() {return db.queryForList("SELECT p.id,CONCAT(p.plan_no,' · ',COALESCE(p.product_name,''),' · 计划量',p.plan_quantity) AS name,p.product_id,p.plan_quantity,p.plan_status FROM t_production_plan p WHERE p.plan_status<2 AND NOT EXISTS(SELECT 1 FROM mm_work_order w WHERE w.plan_id=p.id) ORDER BY p.id DESC");}
     @Transactional
     public Map<String,Object> createWorkOrder(Map<String,Object> v,long actor) throws Exception {
         fulfillment.lock();

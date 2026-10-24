@@ -21,7 +21,7 @@ public class MesDocumentService {
     public List<Map<String,Object>> lines(long doc){return db.queryForList("SELECT l.*,m.material_code,m.material_name,b.lot_no,(SELECT status FROM mm_document_check c WHERE c.line_id=l.id ORDER BY id DESC LIMIT 1) qc_status FROM mm_document_line l JOIN t_material m ON m.id=l.material_id JOIN t_lot b ON b.id=l.lot_id WHERE document_id=? ORDER BY l.id",doc);}
     public List<Map<String,Object>> returnLots(String kind,long source){
         require(Set.of("PURCHASE_RETURN","SALES_RETURN").contains(kind),"只支持采购或销售退货批次");boolean sales=kind.equals("SALES_RETURN");String items=sales?"t_stock_out_item":"t_stock_in_item",headers=sales?"t_stock_out":"t_stock_in",fk=sales?"stock_out_id":"stock_in_id",type=sales?"stock_out_type":"stock_in_type";
-        return db.queryForList("SELECT i.material_id,i.lot_id,l.lot_no,m.material_name,SUM(i.quantity)-COALESCE((SELECT SUM(dl.quantity) FROM mm_document_line dl JOIN mm_document d ON d.id=dl.document_id WHERE d.kind=? AND d.source_id=? AND d.status='POSTED' AND dl.material_id=i.material_id AND dl.lot_id=i.lot_id),0) quantity FROM "+items+" i JOIN "+headers+" h ON h.id=i."+fk+" JOIN t_lot l ON l.id=i.lot_id JOIN t_material m ON m.id=i.material_id WHERE h.source_order_id=? AND h."+type+"=? GROUP BY i.material_id,i.lot_id,l.lot_no,m.material_name HAVING quantity>0",kind,source,source,sales?"SALES_SHIPMENT":"PURCHASE_RECEIPT");
+        return db.queryForList("SELECT i.material_id,i.lot_id,l.lot_no,m.material_name,SUM(i.quantity) received_quantity,SUM(i.quantity)-COALESCE((SELECT SUM(dl.quantity) FROM mm_document_line dl JOIN mm_document d ON d.id=dl.document_id WHERE d.kind=? AND d.source_id=? AND d.status='POSTED' AND dl.material_id=i.material_id AND dl.lot_id=i.lot_id),0) quantity FROM "+items+" i JOIN "+headers+" h ON h.id=i."+fk+" JOIN t_lot l ON l.id=i.lot_id JOIN t_material m ON m.id=i.material_id WHERE h.status='COMPLETED' AND h.source_order_id=? AND h."+type+"=? GROUP BY i.material_id,i.lot_id,l.lot_no,m.material_name HAVING quantity>0",kind,source,source,sales?"SALES_SHIPMENT":"PURCHASE_RECEIPT");
     }
     @Transactional
     public long create(Map<String,Object> v,long actor){
@@ -58,14 +58,14 @@ public class MesDocumentService {
         String kind=doc.get("kind").toString();long source=id(doc.get("source_id")),docId=id(doc.get("id"));
         var grouped=db.queryForList("SELECT material_id,lot_id,SUM(quantity) quantity FROM mm_document_line WHERE document_id=? GROUP BY material_id,lot_id",docId);
         require(!grouped.isEmpty(),"单据没有明细");
-        if(kind.startsWith("PURCHASE"))require(count("SELECT COUNT(*) FROM t_purchase_order WHERE id=? AND is_deleted=0 AND status IN ('APPROVED','COMPLETED')",source)==1,"采购来源必须为已审批采购订单");
+        if(kind.startsWith("PURCHASE"))require(count("SELECT COUNT(*) FROM t_purchase_order WHERE id=? AND is_deleted=0 AND status IN ('APPROVED','PARTIAL_RECEIVED','COMPLETED')",source)==1,"采购来源必须为已审批采购订单");
         if(kind.equals("SALES_SHIPMENT"))require(count("SELECT COUNT(*) FROM t_order WHERE id=? AND deleted=0 AND order_status=2",source)==1,"销售来源必须为生产中订单");
         for(var r:grouped){long material=id(r.get("material_id")),lot=id(r.get("lot_id"));BigDecimal q=dec(r.get("quantity"));
             if(kind.equals("PURCHASE_RECEIPT")){
                 BigDecimal ordered=db.queryForObject("SELECT COALESCE(SUM(quantity-received_quantity),0) FROM t_purchase_order_item WHERE po_id=? AND material_id=?",BigDecimal.class,source,material);
                 BigDecimal allLines=db.queryForObject("SELECT SUM(quantity) FROM mm_document_line WHERE document_id=? AND material_id=?",BigDecimal.class,docId,material);require(allLines.compareTo(ordered)<=0,"到货数量超过采购剩余量或物料不属于该采购单");
             }else if(kind.equals("PURCHASE_RETURN")){
-                BigDecimal original=db.queryForObject("SELECT COALESCE(SUM(i.quantity),0) FROM t_stock_in_item i JOIN t_stock_in s ON s.id=i.stock_in_id WHERE s.source_order_id=? AND s.stock_in_type='PURCHASE_RECEIPT' AND i.material_id=? AND i.lot_id=?",BigDecimal.class,source,material,lot);
+                BigDecimal original=db.queryForObject("SELECT COALESCE(SUM(i.quantity),0) FROM t_stock_in_item i JOIN t_stock_in s ON s.id=i.stock_in_id WHERE s.source_order_id=? AND s.stock_in_type='PURCHASE_RECEIPT' AND s.status='COMPLETED' AND i.material_id=? AND i.lot_id=?",BigDecimal.class,source,material,lot);
                 require(sumPosted(kind,source,material,lot).add(q).compareTo(original)<=0,"退货批次未从该供应商采购入库，或累计退货超过收货数量");
             }else if(kind.equals("SALES_RETURN")){
                 BigDecimal shipped=db.queryForObject("SELECT COALESCE(SUM(i.quantity),0) FROM t_stock_out_item i JOIN t_stock_out s ON s.id=i.stock_out_id WHERE s.source_order_id=? AND s.stock_out_type='SALES_SHIPMENT' AND i.material_id=? AND i.lot_id=?",BigDecimal.class,source,material,lot);
@@ -118,7 +118,7 @@ public class MesDocumentService {
         db.update("UPDATE mm_document SET status='POSTED',posted_at=NOW() WHERE id=?",doc);
         if(kind.equals("PURCHASE_RECEIPT")){
             for(var r:db.queryForList("SELECT material_id,SUM(quantity) quantity FROM mm_document_line WHERE document_id=? GROUP BY material_id",doc)){BigDecimal left=dec(r.get("quantity"));for(var item:db.queryForList("SELECT * FROM t_purchase_order_item WHERE po_id=? AND material_id=? AND received_quantity<quantity ORDER BY id FOR UPDATE",source,r.get("material_id"))){BigDecimal take=dec(item.get("quantity")).subtract(dec(item.get("received_quantity"))).min(left);db.update("UPDATE t_purchase_order_item SET received_quantity=received_quantity+? WHERE id=?",take,item.get("id"));left=left.subtract(take);if(left.signum()==0)break;}}
-            if(count("SELECT COUNT(*) FROM t_purchase_order_item WHERE po_id=? AND received_quantity<quantity",source)==0)db.update("UPDATE t_purchase_order SET status='COMPLETED' WHERE id=?",source);
+            db.update("UPDATE t_purchase_order SET status=IF(EXISTS(SELECT 1 FROM t_purchase_order_item WHERE po_id=? AND received_quantity<quantity),'PARTIAL_RECEIVED','COMPLETED') WHERE id=?",source,source);
         }
         if(kind.equals("SALES_SHIPMENT")){
             BigDecimal total=db.queryForObject("SELECT COALESCE(SUM(l.quantity),0) FROM mm_document_line l JOIN mm_document d ON d.id=l.document_id WHERE d.kind='SALES_SHIPMENT' AND d.source_id=? AND d.status='POSTED'",BigDecimal.class,source);

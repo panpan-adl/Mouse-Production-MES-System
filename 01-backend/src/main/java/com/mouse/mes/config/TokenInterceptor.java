@@ -23,6 +23,8 @@ public class TokenInterceptor implements HandlerInterceptor {
     private ObjectMapper objectMapper;
     @Autowired private com.mouse.mes.mapper.UserMapper userMapper;
 
+    @Autowired private com.mouse.mes.service.RoleAccessService roleAccess;
+
     private static final List<String> WHITE_LIST = Arrays.asList(
             "/api/auth/login",
             "/api/auth/logout"
@@ -80,6 +82,9 @@ public class TokenInterceptor implements HandlerInterceptor {
         if(current==null||current.getStatus()==null||current.getStatus()==0||Integer.valueOf(1).equals(current.getDeleted())||!java.util.Objects.equals(current.getRoleId(),identity.getRoleId())){
             redisService.delete("user:token:"+token);response.setStatus(401);response.setContentType("application/json;charset=UTF-8");response.getWriter().write(objectMapper.writeValueAsString(JsonResult.error(401,"账号状态或岗位已变更，请重新登录")));return false;
         }
+        request.setAttribute("assignedRoleId",identity.getRoleId());
+        try{identity.setPermissionRoleId(roleAccess.effective(identity.getRoleId()));identity.setRoleId(identity.getPermissionRoleId());}
+        catch(SecurityException e){response.setStatus(403);response.setContentType("application/json;charset=UTF-8");response.getWriter().write(objectMapper.writeValueAsString(JsonResult.error(403,e.getMessage())));return false;}
         if (("GET".equals(request.getMethod()) || "HEAD".equals(request.getMethod()))
                 && !RolePermissions.canRead(identity.getRoleId().intValue(), requestUri)
                 && !requestUri.equals("/api/users/" + identity.getId())) {
@@ -95,7 +100,7 @@ public class TokenInterceptor implements HandlerInterceptor {
             response.getWriter().write(objectMapper.writeValueAsString(JsonResult.error(403, "当前岗位没有此操作权限")));
             return false;
         }
-        request.setAttribute("userInfo", userInfo);
+        request.setAttribute("userInfo", identity);
         return true;
     }
 

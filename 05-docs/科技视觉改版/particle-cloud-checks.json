@@ -1,0 +1,13 @@
+{
+  "moving": true,
+  "paused": true,
+  "cssPaused": true,
+  "persisted": true,
+  "resumed": true,
+  "headerControl": true,
+  "reducedStatic": true,
+  "mobileNoOverflow": true,
+  "mobileLogin": true,
+  "desktopLogin": true,
+  "errors": []
+}

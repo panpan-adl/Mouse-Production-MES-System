@@ -7,7 +7,7 @@ import {useAuthStore} from '@/stores/auth'
 type Row=Record<string,any>
 const auth=useAuthStore(),tab=ref('chat'),question=ref(''),session=ref(''),busy=ref(false),error=ref(''),config=ref<Row>({}),catalog=ref<Row>({materials:[],warehouses:[],products:[]}),answer=ref<Row>(),history=ref<Row[]>([]),messages=ref<{question:string;reply:Row}[]>([])
 const form=reactive<Row>({kind:'INVENTORY',material:'',warehouse:'',type:'',product:'',from:'',to:'',document:''})
-const canInventory=computed(()=>[1,2,5,6,9,10].includes(Number(auth.currentUser?.roleId)))
+const canInventory=computed(()=>[1,2,5,6,9,10].includes(Number(auth.effectiveRoleId)))
 const examples=['本月原材料库存','当前缺料和安全库存','改查上个月','只看原料仓']
 const labels:Row={kind:'查询类型',material:'物料ID',warehouse:'仓库ID',product:'产品ID',type:'物料类别',from:'开始日期',to:'结束日期',document:'单据编号'}
 async function load(){try{config.value=await request.get('/ai/config');history.value=await request.get('/ai/history');if(canInventory.value)catalog.value=await request.get('/analytics/catalog');else form.kind='TRACE'}catch(e:any){error.value=e.message}}

@@ -15,6 +15,7 @@ public class LoginResponse {
     private Integer gender;
     private String avatar;
     private Long roleId;
+    private Long permissionRoleId;
     private String roleName;
     private Long deptId;
     private String deptName;

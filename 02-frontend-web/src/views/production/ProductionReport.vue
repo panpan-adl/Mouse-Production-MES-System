@@ -27,7 +27,7 @@ const form = reactive({
   remark: '',
 })
 
-const isWorker = computed(() => authStore.currentUser?.roleId === 3)
+const isWorker = computed(() => authStore.effectiveRoleId === 3)
 const canCreateReport = computed(() => Boolean(authStore.currentUser))
 
 const taskMap = computed(() => {

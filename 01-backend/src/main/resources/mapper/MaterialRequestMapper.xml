@@ -19,12 +19,12 @@
 
     <insert id="insert" parameterType="com.mouse.mes.entity.MaterialRequest" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO t_material_request (
-            request_no, source_task_id, source_task_no, product_name,
+            request_no, required_date, source_task_id, source_task_no, product_name,
             material_id, material_code, material_name,
             required_quantity, available_quantity, shortage_quantity,
             warehouse_id, request_status, remark, created_by, created_at, updated_at, is_deleted
         ) VALUES (
-            #{requestNo}, #{sourceTaskId}, #{sourceTaskNo}, #{productName},
+            #{requestNo}, #{requiredDate}, #{sourceTaskId}, #{sourceTaskNo}, #{productName},
             #{materialId}, #{materialCode}, #{materialName},
             #{requiredQuantity}, #{availableQuantity}, #{shortageQuantity},
             #{warehouseId}, #{requestStatus}, #{remark}, #{createdBy}, #{createdAt}, #{updatedAt}, #{isDeleted}
@@ -33,6 +33,7 @@
 
     <update id="update" parameterType="com.mouse.mes.entity.MaterialRequest">
         UPDATE t_material_request SET
+            required_date = #{requiredDate},
             source_task_id = #{sourceTaskId},
             source_task_no = #{sourceTaskNo},
             product_name = #{productName},

@@ -104,9 +104,9 @@ const sourcePlans = computed(() => {
   return plans.value.filter((plan) => plan.id && !isPlanCompleted(plan))
 })
 
-const isWorker = computed(() => authStore.currentUser?.roleId === 3)
-const canCreateTask = computed(() => [1, 2, 9].includes(Number(authStore.currentUser?.roleId || 0)))
-const canCreateMaterialRequest = computed(() => [1, 2, 9].includes(Number(authStore.currentUser?.roleId || 0)))
+const isWorker = computed(() => authStore.effectiveRoleId === 3)
+const canCreateTask = computed(() => [1, 2, 9].includes(Number(authStore.effectiveRoleId || 0)))
+const canCreateMaterialRequest = computed(() => [1, 2, 9].includes(Number(authStore.effectiveRoleId || 0)))
 
 const visibleTasks = computed(() => {
   if (!isWorker.value) return tasks.value

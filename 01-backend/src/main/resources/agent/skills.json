@@ -1,0 +1,7 @@
+[
+  {"id":"inventory","name":"库存查询","description":"查询当前库存、指定期间出入库和来源流水；不修改库存。","example":"查询当前原材料库存","roles":[1,2,5,6,9,10],"write":false},
+  {"id":"shortage","name":"缺料分析","description":"核对当前未领料需求、安全库存与可用量，逐物料展示缺口。","example":"分析当前缺料和安全库存","roles":[1,2,5,6,9,10],"write":false},
+  {"id":"trace","name":"工单追溯","description":"按完整工单、订单或计划编号查询关联记录；缺少编号时追问。","example":"追溯工单","roles":[1,2,4,5,6,7,9,10],"write":false},
+  {"id":"maintenance","name":"点检保养待办","description":"查询截至今天未完成的周期点检保养任务，不代填执行记录。","example":"检查到期的点检保养任务","roles":[1,2,8,9],"write":false},
+  {"id":"replenishment","name":"补货建议确认","description":"读取低于安全库存的补货建议，用户选择物料后创建待确认任务；确认只登记建议，不创建采购订单。","example":"帮我处理需要补货的物料","roles":[1,2,5,6,9],"write":true}
+]

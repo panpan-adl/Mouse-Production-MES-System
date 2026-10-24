@@ -274,7 +274,7 @@ function canCancel(item: Maintenance) {
     <div class="space-y-6 animate-fadeIn">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">设备维修</h1>
+          <h1 class="text-2xl font-bold text-gray-900">维修申请与派工</h1>
           <p class="text-gray-500 mt-1">{{ isMaintainer ? '设备维护员只处理分配给自己的维修工单。' : '创建维修单、指派人员、开始和完成维修。' }}</p>
         </div>
         <button v-if="!isMaintainer" class="btn-primary" @click="openCreate"><Plus class="w-4 h-4" />新增维修单</button>

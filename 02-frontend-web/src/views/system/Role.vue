@@ -1,65 +1,14 @@
 <script setup lang="ts">
+import {computed,onMounted,reactive,ref} from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
-import { Plus, Search } from 'lucide-vue-next'
+import request from '@/utils/request'
+type Row=Record<string,any>
+const rows=ref<Row[]>([]),members=ref<Row[]>([]),search=ref(''),error=ref(''),message=ref(''),modal=ref(false),busy=ref(false),memberTitle=ref(''),form=reactive<Row>({})
+const filtered=computed(()=>rows.value.filter(r=>(r.role_name+' '+r.role_desc).includes(search.value)))
+async function load(){try{rows.value=await request.get('/roles/manage')}catch(e:any){error.value=e.message}}
+function edit(r?:Row){Object.keys(form).forEach(k=>delete form[k]);Object.assign(form,r||{role_name:'',role_desc:'',base_role_id:3,status:1});modal.value=true;error.value=''}
+async function save(){busy.value=true;try{await request.post('/roles/manage',form);modal.value=false;message.value='岗位已保存，业务权限由服务端校验，已有登录用户下次请求即应用新权限。';await load()}catch(e:any){error.value=e.message}finally{busy.value=false}}
+async function showMembers(r:Row){try{members.value=await request.get(`/roles/manage/${r.id}/members`);memberTitle.value=r.role_name}catch(e:any){error.value=e.message}}
+onMounted(load)
 </script>
-
-<template>
-  <MainLayout>
-    <div class="animate-fadeIn">
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-800">角色管理</h1>
-          <p class="text-gray-500 mt-1">管理系统角色</p>
-        </div>
-        <div class="flex items-center space-x-3">
-          <button class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Plus class="w-4 h-4" />
-            <span>新建角色</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div class="flex items-center space-x-4 mb-6">
-          <div class="relative flex-1 max-w-md">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="搜索角色名称..."
-              class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead>
-              <tr class="bg-gray-50">
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">角色编码</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">角色名称</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">描述</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">状态</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">操作</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr class="hover:bg-gray-50 transition-colors">
-                <td class="px-4 py-4">
-                  <span class="font-medium text-gray-800">109</span>
-                </td>
-                <td class="px-4 py-4 text-gray-600">CEO</td>
-                <td class="px-4 py-4 text-gray-600">公司最高管理者</td>
-                <td class="px-4 py-4">
-                  <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-600 rounded-full">启用</span>
-                </td>
-                <td class="px-4 py-4">
-                  <button class="text-blue-600 hover:text-blue-700 text-sm font-medium">编辑</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </MainLayout>
-</template>
+<template><MainLayout><div class="space-y-5"><div class="flex justify-between"><div><h1 class="text-2xl font-bold">岗位与权限管理</h1><p class="text-gray-500 mt-2">岗位决定员工可访问的业务和可执行的操作。新岗位选择一套业务权限，内置岗位保留原有身份。</p></div><button class="btn-primary" @click="edit()">新增岗位</button></div><p v-if="error" role="alert" class="text-red-600">{{error}}</p><p v-if="message" class="text-green-700">{{message}}</p><section class="panel p-4"><input v-model="search" placeholder="搜索岗位名称或职责" class="input mb-4"/><table class="data-table"><thead><tr><th>岗位</th><th>职责</th><th>业务权限</th><th>员工数</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="r in filtered" :key="r.id"><td>{{r.role_name}}</td><td>{{r.role_desc}}</td><td>{{rows.find(b=>Number(b.id)===Number(r.base_role_id))?.role_name}}</td><td>{{r.member_count}}</td><td>{{r.status===1?'启用':'停用'}}</td><td><button class="link-btn mr-3" @click="edit(r)">编辑／权限</button><button class="link-btn" @click="showMembers(r)">查看成员</button></td></tr></tbody></table></section><section v-if="memberTitle" class="panel p-4"><h2 class="font-bold">{{memberTitle}}的员工</h2><p v-for="(m,i) in members" :key="i">{{m.real_name}} · {{m.status===1?'在职':'离职'}}</p><p v-if="!members.length">暂无关联员工</p><router-link to="/system/user" class="link-btn">前往员工管理分配岗位</router-link></section></div><div v-if="modal" class="modal-mask"><form class="modal-card max-w-xl space-y-4" @submit.prevent="save"><h2 class="text-xl font-bold">{{form.id?'编辑岗位':'新增岗位'}}</h2><p v-if="error" class="text-red-600">{{error}}</p><label class="block">岗位名称<input v-model="form.role_name" required maxlength="50" class="input" /></label><label class="block">岗位职责<textarea v-model="form.role_desc" maxlength="200" class="input" /></label><label class="block">业务权限<select v-model="form.base_role_id" :disabled="form.id&&form.id<=11" required class="input"><option v-for="r in rows.filter(r=>r.id<=11&&(r.id!==9||form.id===9))" :key="r.id" :value="r.id">{{r.role_name}}的业务权限</option></select></label><p class="text-sm text-gray-500">权限包含该业务的菜单和操作；内置管理员权限不能复制。员工离职及岗位停用会阻止访问。</p><label class="block">状态<select v-model="form.status" :disabled="form.id&&form.id<=11" class="input"><option :value="1">启用</option><option :value="0">停用</option></select></label><div class="flex justify-end gap-3"><button type="button" @click="modal=false">取消</button><button :disabled="busy" class="btn-primary">保存</button></div></form></div></MainLayout></template>

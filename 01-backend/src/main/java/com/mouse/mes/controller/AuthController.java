@@ -48,6 +48,7 @@ public class AuthController {
     @Autowired
     private OperationLogMapper operationLogMapper;
 
+    @Autowired private com.mouse.mes.service.RoleAccessService roleAccess;
     @Autowired
     private RedisService redisService;
 
@@ -76,14 +77,16 @@ public class AuthController {
             return JsonResult.error("用户编码或密码错误");
         }
         
-        if (user.getStatus() == 0) {
+        if (user.getStatus() == 0 || Integer.valueOf(1).equals(user.getDeleted())) {
             logger.warn("登录失败 - 用户已禁用: {}", userCode);
             saveLoginLog(user.getId(), user.getUserCode(), httpRequest, 0, "用户已禁用", user.getUserCode());
             return JsonResult.error("用户已禁用");
         }
         
         Role role = roleMapper.findById(user.getRoleId() != null ? user.getRoleId().intValue() : null);
-        String roleName = role != null ? role.getRoleName() : "";
+        if(role==null||!Integer.valueOf(1).equals(role.getStatus()))return JsonResult.error("岗位已停用，请联系管理员");
+        long permissionRole;try{permissionRole=roleAccess.effective(user.getRoleId());}catch(SecurityException e){return JsonResult.error(e.getMessage());}
+        String roleName = role.getRoleName();
         
         Department dept = null;
         String deptName = "";
@@ -102,6 +105,7 @@ public class AuthController {
         response.setGender(user.getGender());
         response.setAvatar(user.getAvatar());
         response.setRoleId(user.getRoleId());
+        response.setPermissionRoleId(permissionRole);
         response.setRoleName(roleName);
         response.setDeptId(user.getDeptId());
         response.setDeptName(deptName);

@@ -15,6 +15,12 @@ public class MaterialRequestController {
     @Autowired
     private MaterialRequestService materialRequestService;
 
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate db;
+    @GetMapping("/task-materials/{id}") public Object taskMaterials(@PathVariable long id){
+        var rows=db.queryForList("SELECT DISTINCT m.material_id FROM mm_task_context c JOIN mm_work_material m ON m.work_order_id=c.work_order_id WHERE c.task_id=?",id);
+        if(rows.isEmpty()&&db.queryForObject("SELECT COUNT(*) FROM mm_task_context WHERE task_id=?",Long.class,id)==0)rows=db.queryForList("SELECT id material_id FROM t_material WHERE status=1 AND is_deleted=0");
+        return JsonResult.success(rows);
+    }
     @GetMapping
     public JsonResult<List<MaterialRequest>> findAll() {
         return JsonResult.success(materialRequestService.findAll());
@@ -44,8 +50,10 @@ public class MaterialRequestController {
     }
 
     @PostMapping
-    public JsonResult<MaterialRequest> create(@RequestBody MaterialRequest materialRequest) {
+    public JsonResult<MaterialRequest> create(@RequestBody MaterialRequest materialRequest, jakarta.servlet.http.HttpServletRequest request) {
         try {
+            var identity=new com.fasterxml.jackson.databind.ObjectMapper().convertValue(request.getAttribute("userInfo"),com.mouse.mes.dto.LoginResponse.class);
+            materialRequest.setCreatedBy(identity.getId());
             return JsonResult.success(materialRequestService.create(materialRequest));
         } catch (RuntimeException e) {
             return JsonResult.error(e.getMessage());

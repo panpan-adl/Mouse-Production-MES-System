@@ -18,12 +18,14 @@ const groups = [
   { title:'产品与工艺', keys:['bom-versions','bom-lines','routes','operations','consumption','sops'] },
   { title:'班组排班', keys:['teams','members','shifts','schedules','holidays','rotations','rotation-teams','rotation-shifts'] },
   { title:'质量配置', keys:['defects','qc-items','qc-templates','qc-lines'] },
-  { title:'设备点检', keys:['equipment','check-subjects','checks','check-plan-subjects','check-records'] },
+  { title:'设备点检', keys:['equipment','check-subjects','checks','check-plan-subjects','check-records','maintenance-plans'] },
   { title:'系统与组织', keys:['positions','user-positions','code-rules','menus','role-menus','parameters','jobs'] },
 ]
 const key = computed(()=>String(route.params.key || 'workshops'))
 const definition = computed(()=>catalog.value.find(x=>x.key===key.value))
-const canEdit = computed(()=>auth.currentUser?.roleId===9 || !!definition.value?.roles.includes(Number(auth.currentUser?.roleId)))
+const canEdit = computed(()=>auth.effectiveRoleId===9 || !!definition.value?.roles.includes(Number(auth.effectiveRoleId)))
+const internalCode=(f:Field)=>!f.ref&&(f.name==='code'||f.name.endsWith('_code'))
+const visibleFields=computed(()=>definition.value?.fields.filter(f=>!internalCode(f))||[])
 const filtered = computed(()=>records.value.filter(r=>Object.values(r).join(' ').toLowerCase().includes(search.value.toLowerCase())))
 const categoryId=ref('')
 const categoryOptions=computed(()=>{
@@ -85,11 +87,7 @@ async function uploadSop(event:Event){
   const body=new FormData();body.append('file',file)
   try{form.image_path=await request.post<string>('/mes/sop-images',body)}catch(e:any){error.value=e.message}
 }
-async function generateCode(){
-  const rules:Record<string,string>={units:'UOM_CODE',products:'PRODUCT_CODE',operations:'PROCESS_CODE',routes:'ROUTE_CODE',checks:'CHECKPLAN_CODE',equipment:'MACHINERY_CODE','qc-templates':'QC_TEMPLATR_CODE','qc-items':'QC_ITEM_CODE',defects:'DEFECT_CODE','bom-versions':'BOM_CODE',teams:'TEAM_CODE',rotations:'CAL_PLAN_CODE',sops:'SOP_CODE',materials:'ITEM_CODE',suppliers:'VENDOR_CODE',customers:'CLIENT_CODE',workshops:'WORKSHOP_CODE',stations:'WORKSTATION_CODE',warehouses:'WAREHOUSE_CODE',areas:'AREA_CODE',locations:'LOCATION_CODE'}
-  const rule=rules[key.value];if(!rule)return
-  try{const codeField=definition.value?.fields.find(f=>f.name==='code'||f.name.endsWith('_code'));if(codeField)form[codeField.name]=await request.post(`/mes/codes/${rule}`)}catch(e:any){error.value=e.message}
-}
+
 watch(key,()=>{modal.value=false;search.value='';message.value='';load()})
 onMounted(load)
 </script>
@@ -114,12 +112,12 @@ onMounted(load)
             <select v-if="['materials','products'].includes(key)" v-model="categoryId" class="border rounded-lg px-3 py-2" aria-label="按分类及子分类筛选"><option value="">全部分类</option><option v-for="c in categoryOptions" :key="c.id" :value="c.id">{{c.treeLabel}}</option></select>
             <input v-model="search" aria-label="搜索记录" placeholder="搜索当前列表" class="border rounded-lg px-3 py-2 flex-1 min-w-32" />
             <button class="border rounded-lg px-4 py-2" :disabled="loading" @click="load">刷新</button>
-            <button v-if="canEdit" class="bg-blue-600 text-white rounded-lg px-4 py-2" @click="edit()">新增{{ definition?.label }}</button>
+            <button v-if="canEdit&&!['code-rules','parameters','jobs','menus'].includes(key)" class="bg-blue-600 text-white rounded-lg px-4 py-2" @click="edit()">新增{{ definition?.label }}</button>
             <span v-else class="text-sm text-gray-500">当前岗位只读</span>
           </div>
           <div v-if="key==='bom-versions'" class="px-4 py-3 bg-blue-50 text-sm">展开生产数量：<input v-model.number="bomQuantity" type="number" min="1" class="border rounded px-2 py-1 w-24" aria-label="BOM展开数量" />，点击对应BOM的“展开用料需求”。</div>
-          <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="bg-gray-50 text-gray-600"><tr><th class="px-4 py-3">编号</th><th v-for="f in definition?.fields" :key="f.name" class="px-4 py-3 whitespace-nowrap">{{f.label}}</th><th class="px-4 py-3">操作</th></tr></thead>
-            <tbody class="divide-y"><tr v-for="row in visibleRecords" :key="row.id"><td class="px-4 py-3 text-gray-400">{{row.id}}</td><td v-for="f in definition?.fields" :key="f.name" class="px-4 py-3 max-w-64 break-words">{{display(f,row[f.name])}}</td><td class="px-4 py-3 whitespace-nowrap"><button v-if="key==='bom-versions'" class="text-blue-600 mr-3" @click="expand(row)">展开用料需求</button><template v-if="canEdit && key!=='check-records'"><button class="text-blue-600 mr-3" @click="edit(row)">编辑</button><button v-if="key!=='locations'" class="text-red-600" @click="remove(row)">删除</button></template><span v-else>—</span></td></tr>
+          <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="bg-gray-50 text-gray-600"><tr><th v-for="f in visibleFields" :key="f.name" class="px-4 py-3 whitespace-nowrap">{{f.label}}</th><th class="px-4 py-3">操作</th></tr></thead>
+            <tbody class="divide-y"><tr v-for="row in visibleRecords" :key="row.id"><td v-for="f in visibleFields" :key="f.name" class="px-4 py-3 max-w-64 break-words">{{display(f,row[f.name])}}</td><td class="px-4 py-3 whitespace-nowrap"><button v-if="key==='bom-versions'" class="text-blue-600 mr-3" @click="expand(row)">展开用料需求</button><template v-if="canEdit && key!=='check-records'"><button class="text-blue-600 mr-3" @click="edit(row)">编辑</button><button v-if="key!=='locations'" class="text-red-600" @click="remove(row)">删除</button></template><span v-else>—</span></td></tr>
             <tr v-if="!visibleRecords.length"><td :colspan="(definition?.fields.length || 0)+2" class="p-12 text-center text-gray-400">{{ loading?'正在加载…':'暂无记录，可按业务需要新增。' }}</td></tr></tbody>
           </table></div>
         </div>
@@ -130,12 +128,12 @@ onMounted(load)
       <form class="bg-white rounded-xl shadow-xl p-6 w-full max-w-xl max-h-[85vh] overflow-y-auto" @submit.prevent="save">
         <h2 class="font-bold text-xl mb-5">{{editing?'编辑':'新增'}}{{definition?.label}}</h2>
         <p v-if="error" role="alert" class="bg-red-50 text-red-700 p-3 rounded mb-4">{{error}}</p>
-        <div v-for="f in definition?.fields" :key="f.name" class="mb-4"><label :for="`field-${f.name}`" class="block text-sm font-medium text-gray-700 mb-1">{{f.label}}<span v-if="f.required" class="text-red-500"> *</span></label>
-          <select v-if="f.ref" :id="`field-${f.name}`" v-model="form[f.name]" :required="f.required" class="w-full rounded-lg border px-3 py-2"><option value="">请选择</option><option v-for="r in lookups[f.ref] || []" :key="r.id" :value="r.id">{{rowName(r)}} (#{{r.id}})</option></select>
+        <div v-for="f in visibleFields" :key="f.name" class="mb-4"><label :for="`field-${f.name}`" class="block text-sm font-medium text-gray-700 mb-1">{{f.label}}<span v-if="f.required" class="text-red-500"> *</span></label>
+          <select v-if="f.ref" :id="`field-${f.name}`" v-model="form[f.name]" :required="f.required" class="w-full rounded-lg border px-3 py-2"><option value="">请选择</option><option v-for="r in lookups[f.ref] || []" :key="r.id" :value="r.id">{{rowName(r)}}</option></select>
           <select v-else-if="f.options" :id="`field-${f.name}`" v-model="form[f.name]" :required="f.required" class="w-full rounded-lg border px-3 py-2"><option value="">请选择</option><option v-for="(label,value) in f.options" :key="value" :value="value">{{label}}</option></select>
           <template v-else-if="f.type==='image'"><input type="file" accept="image/png,image/jpeg" @change="uploadSop" /><p class="text-xs text-gray-500 mt-1">{{form[f.name]||'上传图片后自动保存地址'}}</p></template><input v-else :id="`field-${f.name}`" v-model="form[f.name]" :required="f.required" :type="['number','positive','decimal'].includes(f.type)?'number':f.type" :min="f.type==='positive'?0.0001:f.type==='number'?0:undefined" :step="['number','positive','decimal'].includes(f.type)?'0.0001':undefined" maxlength="500" class="w-full rounded-lg border px-3 py-2" />
         </div>
-        <button v-if="!editing" type="button" class="text-blue-600 mb-3" @click="generateCode">按编码规则自动生成编号</button><div class="flex justify-end gap-3 mt-6"><button type="button" class="border rounded-lg px-4 py-2" @click="modal=false">取消</button><button :disabled="saving" class="bg-blue-600 text-white rounded-lg px-5 py-2">{{saving?'保存中…':'保存'}}</button></div>
+        <p class="text-sm text-gray-500 mt-4">内部编号由系统自动生成，关联资料按名称选择。</p><div class="flex justify-end gap-3 mt-6"><button type="button" class="border rounded-lg px-4 py-2" @click="modal=false">取消</button><button :disabled="saving" class="bg-blue-600 text-white rounded-lg px-5 py-2">{{saving?'保存中…':'保存'}}</button></div>
       </form>
     </div>
   </MainLayout>

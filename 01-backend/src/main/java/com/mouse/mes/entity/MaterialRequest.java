@@ -15,6 +15,7 @@ public class MaterialRequest {
 
     /** 来源生产任务ID。 */
     private Long sourceTaskId;
+    private java.time.LocalDate requiredDate;
 
     /** 来源生产任务编号。 */
     private String sourceTaskNo;

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import request from '@/utils/request'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, RefreshCw, Search, Send, X } from 'lucide-vue-next'
 import {
@@ -27,10 +28,16 @@ const requests = ref<MaterialRequestRecord[]>([])
 const tasks = ref<ProductionTask[]>([])
 const materials = ref<Material[]>([])
 const warehouses = ref<Warehouse[]>([])
+const taskMaterials=ref<number[]|null>(null)
+const stock=ref<Record<string,any>[]>([])
+const availableMaterials=computed(()=>materials.value.filter(m=>!taskMaterials.value||taskMaterials.value.includes(Number(m.id))))
+const availableStock=computed(()=>stock.value.filter(s=>Number(s.material_id)===Number(form.materialId)&&(!form.warehouseId||Number(s.warehouse_id)===Number(form.warehouseId))).reduce((n,s)=>n+Number(s.quantity||0),0))
+const requestedQuantity=computed(()=>requests.value.filter(r=>r.sourceTaskId===Number(selectedTaskId.value)&&r.materialId===Number(form.materialId)).reduce((n,r)=>n+Number(r.requiredQuantity||0),0))
 const selectedTaskId = ref<number | ''>('')
 
 const form = reactive<MaterialRequestRecord>({
   sourceTaskId: undefined,
+  requiredDate: new Date().toLocaleDateString('sv-SE'),
   sourceTaskNo: '',
   productName: '',
   materialId: 0,
@@ -88,6 +95,7 @@ async function loadTasks() {
 async function loadMaterials() {
   try {
     materials.value = await materialApi.list()
+    stock.value=await request.get('/fulfillment/stock')
     if (!form.materialId && materials.value[0]?.id) {
       form.materialId = materials.value[0].id
     }
@@ -108,9 +116,10 @@ async function loadWarehouses() {
 }
 
 function resetForm() {
-  selectedTaskId.value = ''
+  selectedTaskId.value = '';taskMaterials.value=null
   Object.assign(form, {
     sourceTaskId: undefined,
+  requiredDate: new Date().toLocaleDateString('sv-SE'),
     sourceTaskNo: '',
     productName: '',
     materialId: materials.value[0]?.id || 0,
@@ -127,11 +136,12 @@ function openCreate() {
   showForm.value = true
 }
 
-function handleTaskChange() {
+async function handleTaskChange() {
   const task = tasks.value.find((item) => item.id === Number(selectedTaskId.value))
   form.sourceTaskId = task?.id
   form.sourceTaskNo = task?.taskNo || ''
   form.productName = task?.productName || ''
+  taskMaterials.value=null;try{const orders=await request.get<Record<string,any>[]>(`/material-requests/task-materials/${task?.id}`);taskMaterials.value=orders.map(r=>Number(r.material_id));form.materialId=availableMaterials.value[0]?.id||0}catch(e:any){message.value=e.message}
 }
 
 function materialText(id?: number) {
@@ -349,28 +359,28 @@ async function sendPurchaseRequest(item: MaterialRequestRecord) {
             <button class="icon-btn" @click="showForm = false"><X class="w-5 h-5" /></button>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <p class="text-sm text-blue-700 mb-4">可用库存：{{availableStock}}；该任务累计申请：{{requestedQuantity}}。登记请求不会扣库存，实际发料请由仓库办理。</p><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><label class="form-field"><span>需求日期</span><input v-model="form.requiredDate" type="date" required class="input" /></label>
             <label class="form-field md:col-span-2">
               <span>来源生产任务</span>
-              <select v-model="selectedTaskId" class="input" @change="handleTaskChange">
-                <option value="">不选择任务，手工登记</option>
-                <option v-for="task in tasks" :key="task.id" :value="task.id">
+              <select v-model="selectedTaskId" required class="input" @change="handleTaskChange">
+                <option value="">请选择有效生产任务</option>
+                <option v-for="task in tasks.filter(t=>Number(t.taskStatus||0)<4)" :key="task.id" :value="task.id">
                   {{ task.taskNo }} - {{ task.productName || '未填写产品' }} - {{ task.quantity || 0 }}
                 </option>
               </select>
             </label>
             <label class="form-field">
               <span>来源任务编号</span>
-              <input v-model="form.sourceTaskNo" class="input" placeholder="例如 WO-20260715-002" />
+              <input v-model="form.sourceTaskNo" readonly class="input" placeholder="例如 WO-20260715-002" />
             </label>
             <label class="form-field">
               <span>产品名称</span>
-              <input v-model="form.productName" class="input" placeholder="例如 S300静音商务鼠标" />
+              <input v-model="form.productName" readonly class="input" placeholder="例如 S300静音商务鼠标" />
             </label>
             <label class="form-field">
               <span>需求物料</span>
               <select v-model.number="form.materialId" class="input">
-                <option v-for="material in materials" :key="material.id" :value="material.id">
+                <option v-for="material in availableMaterials" :key="material.id" :value="material.id">
                   {{ material.materialCode }} / {{ material.materialName }}
                 </option>
               </select>

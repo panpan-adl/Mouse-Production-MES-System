@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import LoginParticleCloud from '@/components/LoginParticleCloud.vue'
+import { motionEnabled } from '@/stores/layout'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ArrowRight, Eye, EyeOff, LockKeyhole, UserRound, Factory, ShieldCheck, Layers3, Workflow, ScanLine } from 'lucide-vue-next'
+import { ArrowRight, Eye, EyeOff, LockKeyhole, UserRound, Factory, ShieldCheck } from 'lucide-vue-next'
 const auth=useAuthStore(),router=useRouter()
 const userCode=ref(''),password=ref(''),showPassword=ref(false),loading=ref(false),error=ref('')
 const demo=import.meta.env.VITE_DEMO_MODE==='1'
@@ -12,25 +14,33 @@ async function login(){
   if(!/^\d{6}$/.test(userCode.value.trim())){error.value='请输入6位数字工号';return}
   if(!password.value){error.value='请输入登录密码';return}
   loading.value=true
-  try{if(await auth.login(userCode.value.trim(),password.value))await router.push(auth.redirectPath);else error.value='工号或密码错误，请重新输入'}catch{error.value='暂时无法登录，请稍后重试'}finally{loading.value=false}
+  try {
+    await auth.login(userCode.value.trim(), password.value)
+    await router.push(auth.redirectPath)
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : ''
+    if (/用户编码或密码错误/.test(message)) error.value = '工号或密码错误，请重新输入'
+    else if (/timeout/i.test(message)) error.value = '登录请求超时，请稍后重试'
+    else if (/Network Error|status code 50[234]|ECONNREFUSED/i.test(message)) error.value = '暂时无法连接登录服务，请稍后重试'
+    else if (/禁用|停用|联系管理员/.test(message)) error.value = message
+    else error.value = '暂时无法登录，请稍后重试'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 <template>
-  <div class="login-page">
+  <div class="login-page notion-login" :class="{'motion-paused':!motionEnabled}">
     <section class="login-story">
+      <div class="login-particle-stage" aria-hidden="true"><LoginParticleCloud :active="motionEnabled"/></div>
       <a href="/login" class="login-brand"><span class="login-brand-icon"><Factory :size="23" /></span><span>MOUSE MES<small>制造执行管理平台</small></span></a>
-      <div class="story-copy"><div class="story-eyebrow"><span></span> CONNECT YOUR FACTORY</div><h1>让生产的每一步，<br/>都清晰可见<span>。</span></h1><p>从一份生产计划，到每一道工序的执行。<br/>连接人、设备与物料，构建有序、高效的生产现场。</p></div>
-      <div class="factory-visual" aria-hidden="true">
-        <div class="visual-topline"><span>MANUFACTURING WORKFLOW</span><span>01 — 03</span></div>
-        <svg class="factory-lines" viewBox="0 0 600 150" fill="none"><path d="M80 75H520" stroke="#3d6288" stroke-dasharray="5 7"/><path d="M80 75V30H520V75M80 75V120H520V75" stroke="#294563"/><circle cx="300" cy="30" r="4" fill="#4496df"/><circle cx="460" cy="120" r="4" fill="#4aafab"/></svg>
-        <div class="workflow-stages"><div class="workflow-stage"><span class="stage-number">01</span><Layers3/><strong>计划排产</strong><small>PLAN & SCHEDULE</small></div><div class="workflow-stage stage-focus"><span class="stage-number">02</span><Workflow/><strong>生产执行</strong><small>EXECUTE & CONTROL</small></div><div class="workflow-stage"><span class="stage-number">03</span><ScanLine/><strong>质量追溯</strong><small>QUALITY & TRACE</small></div></div>
-        <div class="visual-bottomline"><span class="visual-dot"></span><span>全流程协同 · 全要素连接 · 全生命周期追溯</span></div>
-      </div>
+      <div class="story-copy"><div class="story-eyebrow"><span></span> YOUR EVERYDAY WORKSPACE</div><h1>让生产井然有序，<br/>让协作轻松发生<span>。</span></h1><p>从一份生产计划，到每一道工序的执行。<br/>连接人、设备与物料，构建有序、高效的生产现场。</p></div>
+      <div class="login-workflow"><span>01 · 生产计划</span><span>02 · 工序执行</span><span>03 · 质量追溯</span></div>
       <div class="story-footer"><span>为每一次制造，建立可靠连接。</span><span>MOUSE / MES</span></div>
     </section>
     <section class="login-access">
       <div class="login-top-note"><ShieldCheck :size="15"/><span>企业工作空间</span><span v-if="demo" class="login-demo">演示环境</span></div>
-      <div class="login-card"><div class="login-greeting">WELCOME BACK</div><h2>欢迎回来</h2><p class="login-description">登录您的账号，开始今天的生产协作。</p>
+      <div class="login-card"><div class="login-greeting"><span class="login-status-light"></span> ENTER YOUR WORKSPACE</div><h2>欢迎回来</h2><p class="login-description">登录您的账号，开始今天的生产协作。</p>
         <form @submit.prevent="login" class="login-fields">
           <label for="login-user-code">员工工号</label><div class="login-input"><UserRound :size="18"/><input id="login-user-code" v-model="userCode" autocomplete="username" inputmode="numeric" maxlength="6" placeholder="请输入6位员工工号" required /></div>
           <div class="password-label"><label for="login-password">登录密码</label><span>使用您的企业账号密码</span></div><div class="login-input"><LockKeyhole :size="18"/><input id="login-password" v-model="password" :type="showPassword?'text':'password'" autocomplete="current-password" placeholder="请输入登录密码" required /><button type="button" :aria-label="showPassword?'隐藏密码':'显示密码'" @click="showPassword=!showPassword"><EyeOff v-if="showPassword" :size="17"/><Eye v-else :size="17"/></button></div>
@@ -39,59 +49,57 @@ async function login(){
         </form>
         <p class="login-help"><ShieldCheck :size="14"/>账号由管理员统一分配，如需帮助请联系管理员。</p>
       </div>
+      <button class="login-motion-control" :aria-pressed="motionEnabled" @click="motionEnabled=!motionEnabled">{{motionEnabled?'暂停背景动效':'开启背景动效'}}</button>
       <footer class="login-access-footer"><span>Mouse MES · 制造执行管理系统</span><span>连接生产，协同未来</span></footer>
     </section>
   </div>
 </template>
 <style scoped>
-.login-page{min-height:100svh;display:grid;grid-template-columns:1.05fr 1fr;background:#fff;font-family:'Inter','Segoe UI','Microsoft YaHei',sans-serif}
-.login-story{background:#132439;position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:100svh;padding:44px 8%;color:white;background-image:radial-gradient(ellipse at 85% 70%,#21436a50,transparent 65%)}
-.login-story::before{content:'';position:absolute;inset:0;background-image:linear-gradient(#ffffff04 1px,transparent 1px);pointer-events:none}
-.login-brand{display:flex;align-items:center;gap:12px;font-size:17px;font-weight:650;letter-spacing:.09em;z-index:1;width:fit-content}
-.login-brand-icon{height:43px;width:43px;display:grid;place-items:center;border:1px solid #5473945c;border-radius:12px;background:#253c55}
-.login-brand small{display:block;font-size:10px;font-weight:400;color:#7890a8;letter-spacing:.18em;margin-top:5px}
-.story-copy{margin:auto 0 28px;padding-top:70px;position:relative;z-index:1}
-.story-eyebrow{font-size:9px;letter-spacing:.22em;color:#80a8ce;display:flex;align-items:center;gap:10px;margin-bottom:24px}
-.story-eyebrow span{width:22px;height:1px;background:#4d9be4}
-.story-copy h1{font-size:clamp(30px,3.15vw,53px);line-height:1.55;letter-spacing:-.055em;font-weight:600;color:#edf3fb}
-.story-copy h1>span{color:#5caaed}
-.story-copy p{font-size:12px;line-height:2.15;color:#8ea3bb;margin-top:23px;letter-spacing:.025em}
-.factory-visual{position:relative;margin:24px 0 auto;padding:20px 0 0;z-index:1}
-.visual-topline{display:flex;justify-content:space-between;color:#587590;font-size:8px;letter-spacing:.18em;border-top:1px solid #2d4056;padding-top:20px;margin-bottom:30px}
-.factory-lines{position:absolute;width:100%;height:170px;top:45px;left:0}
-.workflow-stages{display:flex;justify-content:space-around;gap:20px;position:relative}
-.workflow-stage{width:122px;padding:15px;border:1px solid #354e68;border-radius:12px;background:#192d43;display:flex;flex-direction:column;align-items:flex-start;gap:9px;position:relative;box-shadow:0 8px 20px #07142220}
-.workflow-stage svg{color:#719abb;width:23px;height:23px;margin:6px 0}
-.workflow-stage strong{font-size:12px;font-weight:500;color:#b9cde0}
-.workflow-stage small{font-size:6px;color:#69829d;letter-spacing:.08em;white-space:nowrap}
-.stage-number{position:absolute;right:11px;top:10px;font-size:8px;color:#526d87}
-.stage-focus{border-color:#467aac;background:#203c59;transform:translateY(-9px)}
-.stage-focus svg{color:#6cbbff}.stage-focus strong{color:#e0eeff}
-.visual-bottomline{display:flex;align-items:center;gap:8px;margin:30px 0;font-size:8px;letter-spacing:.05em;color:#657d96}
-.visual-dot{width:4px;height:4px;border-radius:50%;background:#4b959c}
-.story-footer{display:flex;justify-content:space-between;font-size:9px;color:#567089;margin-top:40px;letter-spacing:.05em}
-.login-access{display:flex;flex-direction:column;padding:43px 9% 28px;background:#fbfcfe;position:relative}
-.login-top-note{display:flex;align-items:center;gap:7px;justify-content:flex-end;color:#9aa8b8;font-size:10px}
-.login-demo{font-size:9px;margin-left:10px;padding:4px 9px;border:1px solid #f0dfbd;background:#fff9eb;color:#af8950;border-radius:5px}
-.login-card{width:100%;max-width:370px;margin:auto;align-self:center;padding:65px 0}
-.login-greeting{font-size:9px;letter-spacing:.2em;font-weight:600;color:#7a9bbd;margin-bottom:15px}
-.login-card h2{font-size:32px;letter-spacing:-.045em;font-weight:650;color:#20344c;margin-bottom:12px}
-.login-description{font-size:12px;color:#8a99ac;line-height:1.8}
-.login-fields{margin-top:39px}
-.login-fields label{display:block;font-size:11px;font-weight:600;color:#435770;margin-bottom:10px}
-.login-input{display:flex;align-items:center;gap:12px;background:white;border:1px solid #dee5ef;border-radius:10px;height:49px;padding:0 15px;transition:border .15s,box-shadow .15s;color:#a1b1c3}
-.login-input:focus-within{border-color:#6da8e9;box-shadow:0 0 0 4px #2376df0b}
-.login-input input{border:0;outline:0;min-width:0;width:100%;height:100%;font-size:12px;background:transparent;color:#283d56}
-.login-input input::placeholder{color:#abb7c5}.login-input button{padding:5px;color:#95a6bb}.login-input button:hover{color:#347bd1}
-.password-label{display:flex;justify-content:space-between;align-items:center;margin-top:24px}.password-label span{font-size:9px;color:#a1adbc;margin-bottom:10px}
-.login-error{color:#bf4456;background:#fff0f2;border:1px solid #f5d8df;padding:10px;border-radius:8px;font-size:11px;margin-top:15px}
-.login-submit{margin-top:29px;display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 18px;height:49px;border-radius:9px;color:#fff;background:#2878da;font-size:12px;box-shadow:0 5px 12px #1f6bcb20}
-.login-submit:hover{background:#206bca;box-shadow:0 6px 16px #1f6bcb30}.login-submit:disabled{opacity:.6}
-.login-help{display:flex;gap:6px;align-items:center;color:#a3aebc;font-size:9px;margin-top:24px;line-height:1.8}
-.login-access-footer{display:flex;justify-content:space-between;color:#a8b2c0;font-size:9px;gap:15px}
-.login-spinner{width:15px;height:15px;border:2px solid #ffffff50;border-top-color:white;border-radius:50%;animation:rotate .7s linear infinite}
+.login-page{min-height:100svh;display:grid;grid-template-columns:1.12fr 1fr;background:#faf9f6;color:#37352f;font-family:'Inter','Segoe UI','Microsoft YaHei',sans-serif;color-scheme:light}
+.login-story{position:relative;isolation:isolate;overflow:hidden;min-height:100svh;padding:40px 9%;display:flex;flex-direction:column;background:#f1efe8;border-right:1px solid #e7e3da}
+.login-particle-stage{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.login-brand{display:flex;align-items:center;gap:12px;width:fit-content;font-size:16px;font-weight:600;letter-spacing:.04em}
+.login-brand-icon{display:grid;place-items:center;width:38px;height:38px;background:#b77945;color:#fff;border-radius:7px}
+.login-brand small{display:block;font-size:10px;font-weight:400;color:#91897d;margin-top:4px;letter-spacing:.08em}
+.story-copy{position:relative;margin:65px 0 0;max-width:480px}
+.story-eyebrow{display:flex;align-items:center;gap:10px;font-size:9px;color:#9c8c72;letter-spacing:.16em;margin-bottom:20px}
+.story-eyebrow span{width:20px;height:1px;background:#b59a72}
+.story-copy h1{font-size:clamp(28px,3vw,45px);line-height:1.6;font-weight:550;letter-spacing:-.04em;color:#454139}
+.story-copy h1>span{color:#b77945}
+.story-copy p{font-size:12px;line-height:2.1;color:#898174;margin-top:20px}
+.login-workflow{display:flex;gap:9px;flex-wrap:wrap;position:relative;margin:auto 0 26px;padding-top:250px}
+.login-workflow span{padding:9px 12px;border:1px solid #ded8cb;border-radius:6px;background:#faf9f1e8;font-size:10px;color:#837763}
+.story-footer{display:flex;justify-content:space-between;gap:16px;font-size:9px;color:#a49b8d;position:relative}
+.login-access{position:relative;display:flex;flex-direction:column;padding:40px 10% 28px;min-width:0}
+.login-top-note{display:flex;justify-content:flex-end;align-items:center;gap:7px;color:#979187;font-size:10px}
+.login-demo{padding:4px 8px;background:#faf0d9;color:#9d8047;border-radius:4px;margin-left:8px}
+.login-card{width:100%;max-width:380px;margin:auto;align-self:center;padding:42px 0}
+.login-greeting{display:flex;align-items:center;gap:7px;font-size:9px;letter-spacing:.14em;color:#9b9487;margin-bottom:18px}
+.login-status-light{width:5px;height:5px;border-radius:50%;background:#94a38b}
+.login-card h2{font-size:32px;font-weight:600;letter-spacing:-.04em;margin-bottom:12px;color:#37352f}
+.login-description{font-size:12px;color:#969086;line-height:1.8}
+.login-fields{margin-top:34px}
+.login-fields label{display:block;font-size:12px;font-weight:500;color:#625c52;margin-bottom:10px}
+.login-input{display:flex;align-items:center;gap:11px;border:1px solid #e1ddd4;border-radius:6px;background:#fff;height:48px;padding:0 14px;color:#aaa194;transition:border-color .2s,box-shadow .2s}
+.login-input:focus-within{border-color:#a89a82;box-shadow:0 0 0 3px #a89a8214}
+.login-input input{width:100%;min-width:0;height:100%;background:transparent;border:0;outline:none;box-shadow:none;font-size:12px;color:#49433a}
+.login-input input::placeholder{color:#b1aa9f}
+.login-input button{padding:5px;color:#a3998b;border-radius:4px}
+.login-input button:hover{color:#625544;background:#f5f2eb}
+.password-label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:24px}
+.password-label span{font-size:9px;color:#aaa194;margin-bottom:10px}
+.login-submit{margin-top:28px;display:flex;align-items:center;justify-content:space-between;width:100%;height:48px;padding:0 16px;border:1px solid #45433e;border-radius:6px;background:#45433e;color:#fff;font-size:12px}
+.login-submit:hover{background:#302e29}.login-submit:disabled{opacity:.6}
+.login-help{display:flex;align-items:flex-start;gap:6px;margin-top:24px;padding-top:20px;border-top:1px solid #e9e5dc;font-size:10px;line-height:1.8;color:#a39a8c}
+.login-help svg{flex-shrink:0;margin-top:2px}
+.login-error{margin-top:15px;padding:10px;border:1px solid #efd5cf;background:#f8eae7;color:#a96057;border-radius:5px;font-size:11px}
+.login-motion-control{align-self:flex-end;padding:6px 10px;margin:0 0 24px;border:1px solid #e4ded2;border-radius:5px;background:transparent;font-size:10px;color:#a09685}
+.login-motion-control:hover{background:#efebe2;color:#736753}
+.login-access-footer{display:flex;justify-content:space-between;gap:12px;font-size:9px;color:#b0a89c}
+.login-spinner{width:15px;height:15px;border:2px solid #ffffff50;border-top-color:#fff;border-radius:50%;animation:rotate .7s linear infinite}
+.notion-login :focus-visible{outline:2px solid #a89a82;outline-offset:3px}
 @keyframes rotate{to{transform:rotate(360deg)}}
-@media(min-width:1700px){.login-story{padding:55px 10%}.story-copy{padding-top:90px}}
-@media(max-width:1000px){.login-story{padding:32px 7%}.login-access{padding:32px 8%}.workflow-stages{gap:12px}.workflow-stage{padding:12px;width:106px}.story-copy h1{font-size:32px}.workflow-stage small{font-size:5px}}
-@media(max-width:760px){.login-page{grid-template-columns:1fr}.login-story{min-height:auto;padding:24px;background:#14263c}.story-copy{padding:0;margin:30px 0 12px}.story-copy h1{font-size:28px;line-height:1.5}.story-copy p,.factory-visual,.story-footer,.story-eyebrow{display:none}.login-brand{font-size:14px}.login-access{min-height:62svh;padding:25px}.login-card{padding:34px 0;max-width:390px}.login-top-note{position:absolute;right:25px;top:25px}.login-card h2{font-size:26px}.login-greeting{margin-top:15px}.login-fields{margin-top:25px}.login-help{font-size:9px}.login-access-footer{margin-top:12px}}
+@media(min-width:1700px){.login-story{padding:50px 11%}.story-copy{margin-top:85px}}
+@media(max-width:1000px){.login-story{padding:32px 7%}.login-access{padding:32px 8%}.story-copy h1{font-size:31px}.story-copy{margin-top:65px}.login-workflow{gap:6px}.login-workflow span{padding:8px;font-size:9px}}
+@media(max-width:760px){.login-page{grid-template-columns:1fr}.login-story{min-height:430px;padding:24px;border-right:0;border-bottom:1px solid #e7e3da}.story-copy{margin-top:26px}.story-copy h1{font-size:27px}.story-copy p{font-size:11px;margin-top:12px}.story-eyebrow{font-size:8px;margin-bottom:12px}.story-footer{display:none}.login-workflow{padding-top:110px;margin-bottom:0;gap:7px}.login-access{padding:24px;min-height:560px}.login-card{padding:30px 0}.login-card h2{font-size:27px}.login-fields{margin-top:26px}.login-access-footer{font-size:8px}.login-motion-control{margin-bottom:20px}}
 </style>

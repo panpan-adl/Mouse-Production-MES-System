@@ -1,12 +1,12 @@
 <script setup lang="ts">
+import request from '@/utils/request'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, Search, Edit, Trash2, RotateCcw, X, Check } from 'lucide-vue-next'
 import { ref, computed, onMounted } from 'vue'
 import { 
-  getUserList, 
+  getAllUsersIncludingDeleted, 
   createUser, 
   updateUser, 
-  deleteUser,
   employeeLeave, 
   restoreUser,
   getUsersByRoleId,
@@ -21,6 +21,7 @@ const users = ref<User[]>([])
 const searchKeyword = ref('')
 const selectedRole = ref('')
 const selectedDept = ref('')
+const employment=ref('active')
 const showAddModal = ref(false)
 const showEditModal = ref(false)
 const showConfirmModal = ref(false)
@@ -42,7 +43,7 @@ const newUser = ref<CreateUserParams>({
 const editUser = ref<UpdateUserParams>({})
 const editUserId = ref(0)
 
-const roles = [
+const roles = ref([
   { value: '', label: '全部职务' },
   { value: '1', label: '生产经理', deptId: 2 },
   { value: '2', label: '车间主任', deptId: 2 },
@@ -55,7 +56,7 @@ const roles = [
   { value: '9', label: 'CEO', deptId: 1 },
   { value: '10', label: 'CFO', deptId: 8 },
   { value: '11', label: '人力经理', deptId: 9 }
-]
+])
 
 const departments = ref<Department[]>([])
 
@@ -69,7 +70,7 @@ const depts = computed(() => [
 
 const selectableDepts = computed(() => depts.value.filter((dept) => dept.value))
 
-const selectableRoles = computed(() => roles.filter((role) => role.value))
+const selectableRoles = computed(() => roles.value.filter((role) => role.value))
 
 const newUserRoleOptions = computed(() => getRolesByDept(newUser.value.deptId))
 
@@ -88,7 +89,7 @@ const canSubmitEditUser = computed(() => {
 })
 
 const filteredUsers = computed(() => {
-  let result = users.value
+  let result = users.value.filter(u=>employment.value==='all'||(employment.value==='active'?u.status===1&&u.deleted!==1:u.status===0||u.deleted===1))
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase()
     result = result.filter(u => 
@@ -100,8 +101,9 @@ const filteredUsers = computed(() => {
 })
 
 async function loadUsers() {
+  try{const data=await request.get<Record<string,any>[]>('/roles/manage');roles.value=[{value:'',label:'全部职务'},...data.filter(r=>r.status===1).map(r=>({value:String(r.id),label:r.role_name,deptId:({1:2,2:2,3:2,4:3,5:4,6:5,7:6,8:7,9:1,10:8,11:9} as Record<number,number>)[r.base_role_id]||2}))]}catch(e){console.error(e)}
   try {
-    const data = await getUserList()
+    const data = await getAllUsersIncludingDeleted()
     users.value = data
   } catch (error) {
     console.error('Failed to load users:', error)
@@ -286,18 +288,7 @@ async function handleUpdateUser() {
   }
 }
 
-async function handleDeleteUser(user: User) {
-  if (!window.confirm(`确认删除员工「${user.realName || user.username}」吗？删除后该账号将从员工列表隐藏。`)) {
-    return
-  }
-  try {
-    await deleteUser(user.id)
-    await loadUsers()
-  } catch (error) {
-    console.error('Failed to delete user:', error)
-    alert('删除用户失败')
-  }
-}
+
 
 function handleLeave(userId: number) {
   confirmUserId.value = userId
@@ -327,7 +318,7 @@ async function handleConfirm() {
 }
 
 function getRoleName(roleId: number) {
-  const role = roles.find(r => r.value === String(roleId))
+  const role = roles.value.find(r => r.value === String(roleId))
   return role ? role.label : '未知'
 }
 
@@ -353,7 +344,7 @@ onMounted(async () => {
 
 <template>
   <MainLayout>
-    <div class="animate-fadeIn">
+    <div class="animate-fadeIn"><label class="block mb-4">员工状态<select v-model="employment" class="input w-auto ml-3"><option value="active">在职员工</option><option value="left">离职员工</option><option value="all">全部员工</option></select></label>
       <div class="flex items-center justify-between mb-6">
         <div>
           <h1 class="text-2xl font-bold text-gray-800">员工管理</h1>
@@ -444,7 +435,7 @@ onMounted(async () => {
                       class="text-orange-600 hover:text-orange-700 text-sm font-medium"
                       @click="handleLeave(user.id)"
                     >
-                      离职
+                      办理离职
                     </button>
                     <button 
                       v-else
@@ -453,12 +444,7 @@ onMounted(async () => {
                     >
                       <RotateCcw class="w-4 h-4 inline" />
                     </button>
-                    <button 
-                      class="text-red-600 hover:text-red-700 text-sm font-medium"
-                      @click="handleDeleteUser(user)"
-                    >
-                      <Trash2 class="w-4 h-4 inline" />
-                    </button>
+                    
                   </div>
                 </td>
               </tr>

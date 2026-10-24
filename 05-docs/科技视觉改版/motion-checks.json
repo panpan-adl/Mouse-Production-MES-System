@@ -1,0 +1,11 @@
+{
+  "moving": true,
+  "paused": true,
+  "cssPaused": true,
+  "persisted": true,
+  "resumed": true,
+  "headerControl": true,
+  "reducedStatic": true,
+  "darkTiles": true,
+  "errors": []
+}

@@ -2167,5 +2167,98 @@
     "unique": "code",
     "where": "1=1",
     "extra": {}
+  },
+  {
+    "key": "maintenance-plans",
+    "label": "周期保养计划",
+    "table": "mm_maintenance_plan",
+    "fields": [
+      {
+        "name": "name",
+        "label": "计划名称",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "equipment_id",
+        "label": "设备",
+        "type": "number",
+        "ref": "equipment",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "owner_id",
+        "label": "负责人",
+        "type": "number",
+        "ref": "users",
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "anchor_at",
+        "label": "首次执行时间",
+        "type": "datetime-local",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "frequency",
+        "label": "每隔",
+        "type": "positive",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "cycle_unit",
+        "label": "周期单位",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": {
+          "DAY": "天",
+          "WEEK": "周",
+          "MONTH": "月",
+          "YEAR": "年"
+        }
+      },
+      {
+        "name": "remind_days",
+        "label": "提前提醒天数",
+        "type": "number",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "content",
+        "label": "保养内容",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": null
+      },
+      {
+        "name": "enabled",
+        "label": "状态",
+        "type": "text",
+        "ref": null,
+        "required": true,
+        "options": {
+          "1": "启用",
+          "0": "停用"
+        }
+      }
+    ],
+    "roles": [
+      8
+    ],
+    "unique": null,
+    "where": "1=1",
+    "extra": {}
   }
 ]

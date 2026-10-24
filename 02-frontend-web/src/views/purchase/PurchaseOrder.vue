@@ -17,7 +17,7 @@ import {
 } from '@/api/mes'
 import { useAuthStore } from '@/stores/auth'
 
-type ArrivalFilter = '' | 'NOT_RECEIVED' | 'RECEIVED'
+type ArrivalFilter = '' | 'NOT_RECEIVED' | 'PARTIAL_RECEIVED' | 'RECEIVED'
 type FormMode = 'create' | 'edit'
 
 interface ReceiveLine {
@@ -50,7 +50,7 @@ const editingOrderId = ref<number>()
 const receivingOrder = ref<PurchaseOrder | null>(null)
 const detailOrder = ref<PurchaseOrder | null>(null)
 const detailItem = ref<PurchaseOrderItem | null>(null)
-const isWarehouseManager = computed(() => authStore.currentUser?.roleId === 5)
+const isWarehouseManager = computed(() => authStore.effectiveRoleId === 5)
 
 const emptyItem = (): PurchaseOrderItem => ({
   materialId: materials.value[0]?.id || 0,
@@ -65,7 +65,7 @@ const form = reactive<PurchaseOrder>({
   supplierId: 0,
   orderDate: new Date().toISOString().slice(0, 10),
   expectedDate: '',
-  status: 'NOT_RECEIVED',
+  status: 'DRAFT',
   remark: '',
   createdBy: 1,
   items: [emptyItem()],
@@ -197,11 +197,11 @@ function orderItems(order?: PurchaseOrder | null) {
 }
 
 function arrivalStatus(order: PurchaseOrder): ArrivalFilter {
-  return order.status === 'RECEIVED' ? 'RECEIVED' : 'NOT_RECEIVED'
+  const lines=order.items||[];const received=lines.reduce((n,l)=>n+Number(l.receivedQuantity||0),0);const ordered=lines.reduce((n,l)=>n+Number(l.quantity||0),0);return ordered>0&&received>=ordered?'RECEIVED':received>0?'PARTIAL_RECEIVED':'NOT_RECEIVED'
 }
 
 function arrivalText(order: PurchaseOrder) {
-  return arrivalStatus(order) === 'RECEIVED' ? '已到货' : '未到货'
+  return arrivalStatus(order)==='RECEIVED'?'全部收货':arrivalStatus(order)==='PARTIAL_RECEIVED'?'部分收货':'未收货'
 }
 
 function arrivalClass(order: PurchaseOrder) {
@@ -221,7 +221,7 @@ function hasDetails(order: PurchaseOrder) {
 }
 
 function canReceive(order: PurchaseOrder) {
-  return arrivalStatus(order) === 'NOT_RECEIVED' && hasDetails(order) && totalRemaining(order) > 0
+  return arrivalStatus(order) !== 'RECEIVED' && ['APPROVED','PARTIAL_RECEIVED'].includes(order.status||'') && hasDetails(order) && totalRemaining(order) > 0
 }
 
 function needsStatusSync(order: PurchaseOrder) {
@@ -235,7 +235,7 @@ function resetForm() {
     supplierId: suppliers.value[0]?.id || 0,
     orderDate: new Date().toISOString().slice(0, 10),
     expectedDate: '',
-    status: 'NOT_RECEIVED',
+    status: 'DRAFT',
     remark: '',
     createdBy: authStore.currentUser?.id || 1,
     items: [emptyItem()],
@@ -278,7 +278,7 @@ function openEdit(order: PurchaseOrder) {
     supplierId: order.supplierId,
     orderDate: toDateInput(order.orderDate),
     expectedDate: toDateInput(order.expectedDate),
-    status: 'NOT_RECEIVED',
+    status: 'DRAFT',
     remark: order.remark || '',
     createdBy: order.createdBy || 1,
     items: orderItems(order).length
@@ -336,6 +336,7 @@ function validateForm() {
   return true
 }
 
+async function transition(order:PurchaseOrder,kind:'submit'|'approve') {if(!order.id||saving.value)return;saving.value=true;try{await purchaseOrderApi[kind](order.id);await loadOrders();message.value=kind==='submit'?'采购单已提交审批':'采购单已审批，可办理来料检验及收货'}catch(e:any){message.value=e.message}finally{saving.value=false}}
 async function saveOrder() {
   if (isWarehouseManager.value) {
     message.value = '仓管员不能保存采购订单，采购订单请由采购员维护。'
@@ -352,7 +353,7 @@ async function saveOrder() {
       orderDate: form.orderDate,
       expectedDate: form.expectedDate,
       totalAmount: form.totalAmount,
-      status: 'NOT_RECEIVED',
+      status: 'DRAFT',
       remark: form.remark,
       createdBy: authStore.currentUser?.id || form.createdBy || 1,
       items: form.items,
@@ -374,6 +375,7 @@ async function saveOrder() {
 }
 
 function openReceive(order: PurchaseOrder) {
+  window.location.assign('/purchase/receipts');return;
   if (!hasDetails(order)) {
     message.value = `采购单 ${order.poNo} 在数据库中没有明细，请先补录明细后再确认收货`
     if (!isWarehouseManager.value) {
@@ -434,7 +436,7 @@ async function receiveOrder() {
         remark: item.remark || receiveForm.remark,
       })),
     })
-    message.value = '采购订单已确认收货，数据库状态已更新为已到货'
+    message.value = '本次收货已登记，收货状态按累计数量更新'
     showReceive.value = false
     showDetail.value = false
     await loadOrders()
@@ -589,10 +591,10 @@ function formatMoney(value?: number) {
                   </span>
                 </td>
                 <td class="text-right space-x-2">
-                  <button class="link-btn" @click="openDetail(item)">详情</button>
+                  <button class="link-btn" @click="openDetail(item)">详情</button><span class="text-gray-500">{{({DRAFT:'草稿',SUBMITTED:'待审批',APPROVED:'已审批',PARTIAL_RECEIVED:'已审批',COMPLETED:'已完成',CANCELLED:'已取消'} as Record<string,string>)[item.status||'']||item.status}}</span><button v-if="!isWarehouseManager&&item.status==='DRAFT'" :disabled="saving" class="link-btn" @click="transition(item,'submit')">提交审批</button><button v-if="!isWarehouseManager&&item.status==='SUBMITTED'" :disabled="saving" class="link-btn" @click="transition(item,'approve')">审批</button>
                   <button v-if="canReceive(item)" class="link-btn" @click="openReceive(item)">确认收货</button>
                   <button v-else-if="needsStatusSync(item)" class="link-btn" :disabled="saving" @click="syncReceivedStatus(item)">同步状态</button>
-                  <button v-else-if="!isWarehouseManager && arrivalStatus(item) === 'NOT_RECEIVED'" class="link-btn" @click="openEdit(item)">补录明细</button>
+                  <button v-else-if="!isWarehouseManager && item.status==='DRAFT'" class="link-btn" @click="openEdit(item)">补录明细</button>
                   <button v-if="!isWarehouseManager" class="danger-link" @click="removeOrder(item)">删除</button>
                 </td>
               </tr>

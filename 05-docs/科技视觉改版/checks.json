@@ -1,0 +1,43 @@
+{
+  "checks": [
+    {
+      "dashboardHorizontalOverflow": false
+    },
+    {
+      "url": "/mes",
+      "rendered": true,
+      "horizontalOverflow": false
+    },
+    {
+      "url": "/system/logs",
+      "rendered": true,
+      "horizontalOverflow": false
+    },
+    {
+      "url": "/foundation/materials",
+      "rendered": true,
+      "horizontalOverflow": false
+    },
+    {
+      "url": "/fulfillment",
+      "rendered": true,
+      "horizontalOverflow": false
+    },
+    {
+      "collapsedContentMargin": "76px"
+    },
+    {
+      "logFiltersAndDetails": true
+    },
+    {
+      "mobileHorizontalOverflow": false
+    },
+    {
+      "mobileLoginOverflow": false
+    },
+    {
+      "mobileDashboardOverflow": false
+    }
+  ],
+  "errors": []
+}

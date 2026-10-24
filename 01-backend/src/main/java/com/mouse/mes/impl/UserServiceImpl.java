@@ -14,6 +14,8 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserMapper userMapper;
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate db;
+    private void validateRole(Long role){if(role==null||db.queryForObject("SELECT COUNT(*) FROM t_role WHERE id=? AND status=1",Long.class,role)!=1)throw new IllegalArgumentException("请选择启用的岗位");}
 
     @Override
     public List<User> findAll() {
@@ -36,7 +38,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public User create(User user) {
+        db.queryForList("SELECT id FROM mm_guard WHERE id=1 FOR UPDATE");
+        validateRole(user.getRoleId());
+        if(user.getUserCode()==null||user.getUserCode().isBlank()){
+            long next=db.queryForObject("SELECT COALESCE(MAX(CAST(user_code AS UNSIGNED)),100000)+1 FROM t_user WHERE user_code REGEXP '^[0-9]{6}$'",Long.class);
+            if(next>999999)throw new IllegalArgumentException("员工编号已用尽");user.setUserCode(String.format("%06d",next));
+        }
+        if(user.getRealName()==null||user.getRealName().isBlank()||user.getUsername()==null||user.getUsername().isBlank()||user.getPassword()==null||user.getPassword().length()<6)throw new IllegalArgumentException("请填写姓名、登录名和至少6位密码");
         user.setCreateTime(new Date());
         user.setUpdateTime(new Date());
         user.setDeleted(0);
@@ -49,6 +59,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User update(User user) {
+        if(user.getRoleId()!=null)validateRole(user.getRoleId());
         user.setUpdateTime(new Date());
         userMapper.update(user);
         return userMapper.findById(user.getId());

@@ -11,6 +11,7 @@ export interface User {
   phone: string
   email: string
   gender: number
+  permissionRoleId?: number
   roleId: number
   roleName: string
   deptId: number
@@ -55,11 +56,12 @@ function savePersistedState(currentUser: User | null) {
 export const useAuthStore = defineStore('auth', () => {
   const { currentUser: savedUser } = loadPersistedState()
   const currentUser = ref<User | null>(savedUser)
+  const effectiveRoleId=computed(()=>currentUser.value?.permissionRoleId||currentUser.value?.roleId||0)
   const notifications = ref<Notification[]>([])
   const menuPaths=ref<string[]|null>(null)
   const settings=ref<Record<string,string>>({APP_NAME:'Mouse MES',DEFAULT_DURATION_MINUTES:'60'})
   async function refreshSettings(){const rows=await request.get<{code:string;value:string}[]>('/mes/settings');settings.value=Object.fromEntries(rows.map(r=>[r.code,r.value]));if(settings.value.APP_NAME)document.title=settings.value.APP_NAME}
-  async function refreshMenuAccess(){const rows=await request.get<{path:string}[]>('/mes/menu-access');menuPaths.value=rows.map(r=>r.path)}
+  async function refreshMenuAccess(){if(currentUser.value)currentUser.value.permissionRoleId=await request.get<number>('/mes/access-role');const rows=await request.get<{path:string}[]>('/mes/menu-access');menuPaths.value=rows.map(r=>r.path)}
   function hasMenu(path:string):boolean {
     if(currentUser.value?.roleId===9||!menuPaths.value?.length||['/','/dashboard','/login','/notifications','/user/profile'].includes(path))return true
     return menuPaths.value.some(p=>path===p||path.startsWith(p+'/'))
@@ -75,7 +77,7 @@ export const useAuthStore = defineStore('auth', () => {
   })
 
   const redirectPath = computed(() => {
-    const roleId = currentUser.value?.roleId
+    const roleId = effectiveRoleId.value
     switch (roleId) {
       case 9:
         return '/admin'
@@ -110,14 +112,9 @@ export const useAuthStore = defineStore('auth', () => {
   }, { deep: true })
 
   async function login(userCode: string, password: string): Promise<boolean> {
-    try {
-      const user = await apiLogin({ userCode, password })
-      currentUser.value = user as User
-      return true
-    } catch (error) {
-      console.error('Login failed:', error)
-      return false
-    }
+    const user = await apiLogin({ userCode, password })
+    currentUser.value = user as User
+    return true
   }
 
   function logout() {
@@ -142,6 +139,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
   return {
     currentUser,
+    effectiveRoleId,
     notifications,
     menuPaths,
     settings,

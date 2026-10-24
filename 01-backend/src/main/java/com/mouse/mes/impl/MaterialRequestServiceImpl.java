@@ -15,10 +15,12 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class MaterialRequestServiceImpl implements MaterialRequestService {
 
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate db;
     private static final String STATUS_ENOUGH = "ENOUGH";
     private static final String STATUS_SHORTAGE = "SHORTAGE";
     private static final String STATUS_PURCHASE_REQUESTED = "PURCHASE_REQUESTED";
@@ -58,7 +60,14 @@ public class MaterialRequestServiceImpl implements MaterialRequestService {
     @Override
     @Transactional
     public MaterialRequest create(MaterialRequest materialRequest) {
+        db.queryForList("SELECT id FROM mm_guard WHERE id=1 FOR UPDATE");
         validate(materialRequest);
+        if(materialRequest.getSourceTaskId()==null)throw new IllegalArgumentException("请选择来源生产任务");
+        var tasks=db.queryForList("SELECT t.task_no,t.product_name,t.task_status FROM t_production_task t WHERE id=?",materialRequest.getSourceTaskId());
+        if(tasks.isEmpty()||((Number)tasks.get(0).get("task_status")).intValue()>=4)throw new IllegalArgumentException("来源任务不存在或已结束");
+        materialRequest.setSourceTaskNo(tasks.get(0).get("task_no").toString());materialRequest.setProductName(Objects.toString(tasks.get(0).get("product_name"),""));
+        if(db.queryForObject("SELECT COUNT(*) FROM t_material_request WHERE source_task_id=? AND material_id=? AND COALESCE(warehouse_id,0)=? AND is_deleted=0 AND request_status IN ('PENDING_CHECK','ENOUGH','SHORTAGE','PURCHASE_REQUESTED')",Long.class,materialRequest.getSourceTaskId(),materialRequest.getMaterialId(),materialRequest.getWarehouseId()==null?0:materialRequest.getWarehouseId())>0)throw new IllegalArgumentException("该任务物料已有未处理请求，请查看原请求，勿重复登记");
+        if(db.queryForObject("SELECT COUNT(*) FROM mm_task_context WHERE task_id=?",Long.class,materialRequest.getSourceTaskId())>0&&db.queryForObject("SELECT COUNT(*) FROM mm_task_context c JOIN mm_work_material m ON m.work_order_id=c.work_order_id WHERE c.task_id=? AND m.material_id=?",Long.class,materialRequest.getSourceTaskId(),materialRequest.getMaterialId())==0)throw new IllegalArgumentException("请选择该工单BOM中的物料");
         materialRequest.setRequestNo(generateRequestNo());
         materialRequest.setCreatedAt(new Date());
         materialRequest.setUpdatedAt(new Date());
@@ -82,6 +91,7 @@ public class MaterialRequestServiceImpl implements MaterialRequestService {
         if (materialRequest.getRequiredQuantity() != null) existing.setRequiredQuantity(materialRequest.getRequiredQuantity());
         if (materialRequest.getWarehouseId() != null) existing.setWarehouseId(materialRequest.getWarehouseId());
         if (materialRequest.getRequestStatus() != null) existing.setRequestStatus(materialRequest.getRequestStatus());
+        if(materialRequest.getRequiredDate()!=null)existing.setRequiredDate(materialRequest.getRequiredDate());
         if (materialRequest.getRemark() != null) existing.setRemark(materialRequest.getRemark());
         existing.setUpdatedAt(new Date());
         validate(existing);

@@ -259,28 +259,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     @Transactional
     public PurchaseOrder receive(Long id, PurchaseReceiveRequest request) {
-        PurchaseOrder purchaseOrder = requireOrder(id);
-        validateReceiveOrderStatus(purchaseOrder);
-        validateReceiveRequest(request);
-
-        BigDecimal totalReceiveQuantity = BigDecimal.ZERO;
-        StockIn stockIn = createStockIn(purchaseOrder, request);
-        stockInMapper.insert(stockIn);
-
-        for (PurchaseReceiveRequest.Item receiveItem : request.getItems()) {
-            PurchaseOrderItem orderItem = purchaseOrderItemMapper.findById(receiveItem.getPurchaseOrderItemId());
-            validateReceiveItem(purchaseOrder, orderItem, receiveItem);
-            BigDecimal nextReceivedQuantity = safe(orderItem.getReceivedQuantity()).add(receiveItem.getReceiveQuantity());
-            purchaseOrderItemMapper.updateReceivedQuantity(orderItem.getId(), nextReceivedQuantity);
-            createStockInItem(stockIn.getId(), orderItem, receiveItem);
-            totalReceiveQuantity = totalReceiveQuantity.add(receiveItem.getReceiveQuantity());
-        }
-
-        stockIn.setTotalQuantity(totalReceiveQuantity);
-        stockIn.setUpdatedAt(new Date());
-        stockInMapper.update(stockIn);
-        updateReceiveStatus(purchaseOrder.getId());
-        return findById(id);
+        throw new IllegalArgumentException("请在采购收货页面按批次登记、检验放行并过账，避免数量与库存不同步");
     }
 
     /**

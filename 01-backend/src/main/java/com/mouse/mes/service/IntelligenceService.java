@@ -36,8 +36,8 @@ public class IntelligenceService {
                 if(key.isBlank()||base.isBlank()||model.isBlank())throw new IllegalArgumentException("远程模型尚未配置，请在服务器设置接口、模型及密钥");
                 reserve(actor);
                 String prompt="只返回JSON对象。将中文MES只读问题解析为条件，不计算数量，不输出SQL。允许字段kind(INVENTORY/SHORTAGE/TRACE)、material(物料名称或编码)、warehouse(仓库名称或编码)、product(产品名称)、type(1原料2半成品3成品)、from和to(yyyy-MM-dd，含首尾)、document(完整工单/订单/计划编号)、clarification(条件不明确时的追问)。今天是"+LocalDate.now()+"，已有条件="+json.writeValueAsString(filters)+"。用户只看/改查等是对已有条件的修改。";
-                var payload=Map.of("model",model,"messages",List.of(Map.of("role","system","content",prompt),Map.of("role","user","content",question)),"response_format",Map.of("type","json_object"),"max_completion_tokens",512);
-                URI endpoint=URI.create(base.replaceAll("/+$","")+"/chat/completions");if(!Set.of("http","https").contains(endpoint.getScheme()))throw new IllegalArgumentException("模型地址必须为HTTP(S)");
+                var payload=new LinkedHashMap<String,Object>(Map.of("model",model,"messages",List.of(Map.of("role","system","content",prompt),Map.of("role","user","content",question)),"response_format",Map.of("type","json_object"),"max_tokens",512));
+                URI endpoint=URI.create(base.replaceAll("/+$","")+"/chat/completions");if("api.deepseek.com".equals(endpoint.getHost()))payload.put("thinking",Map.of("type","disabled"));if(!Set.of("http","https").contains(endpoint.getScheme()))throw new IllegalArgumentException("模型地址必须为HTTP(S)");
                 var response=http.send(HttpRequest.newBuilder(endpoint).timeout(Duration.ofSeconds(10)).header("Authorization","Bearer "+key).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(payload))).build(),HttpResponse.BodyHandlers.ofString());
                 if(response.statusCode()!=200)throw new IllegalArgumentException("模型接口调用失败，HTTP "+response.statusCode()+"；本次未生成查询答案");
                 JsonNode root=json.readTree(response.body());input=root.path("usage").path("prompt_tokens").asInt();output=root.path("usage").path("completion_tokens").asInt();
@@ -58,7 +58,7 @@ public class IntelligenceService {
         }catch(java.net.http.HttpTimeoutException ex){throw new IllegalArgumentException("模型接口超时，本次未生成答案，请稍后重试");}
         finally {db.update("INSERT INTO mm_query_audit(id,user_id,session_id,question,mode,status,filters,input_tokens,output_tokens,elapsed_ms) VALUES(?,?,?,?,?,?,?,?,?,?)",trace,actor,session,question,mode,status,json.writeValueAsString(filters),input,output,(System.nanoTime()-start)/1000000);}
     }
-    private void reserve(long actor){tx.executeWithoutResult(s->{db.update("INSERT IGNORE INTO mm_ai_budget(user_id,day,calls) VALUES(?,CURDATE(),0)",actor);int n=db.update("UPDATE mm_ai_budget SET calls=calls+1 WHERE user_id=? AND day=CURDATE() AND calls<20",actor);if(n==0)throw new IllegalArgumentException("已达到每人每天20次模型调用上限，仍可使用人工条件查询");});}
+    void reserve(long actor){tx.executeWithoutResult(s->{db.update("INSERT IGNORE INTO mm_ai_budget(user_id,day,calls) VALUES(?,CURDATE(),0)",actor);int n=db.update("UPDATE mm_ai_budget SET calls=calls+1 WHERE user_id=? AND day=CURDATE() AND calls<20",actor);if(n==0)throw new IllegalArgumentException("已达到每人每天20次模型调用上限，仍可使用人工条件查询");});}
     private void resolve(Map<String,String> f,String field,String table,String code,String name,List<String> clarify){
         String q=f.get(field);if(q==null)return;List<Map<String,Object>> rows;
         if(q.matches("\\d+"))rows=db.queryForList("SELECT id,"+name+" name FROM "+table+" WHERE id=?",Long.parseLong(q));

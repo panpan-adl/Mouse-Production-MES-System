@@ -80,7 +80,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         validateCreate(maintenance);
         Equipment equipment = equipmentMapper.findById(maintenance.getEquipmentId());
         validateEquipmentCanMaintain(equipment);
-        if (maintenanceMapper.findUnfinishedByEquipmentId(maintenance.getEquipmentId()) != null) {
+        if (!Integer.valueOf(1).equals(maintenance.getMaintenanceType()) && maintenanceMapper.findUnfinishedByEquipmentId(maintenance.getEquipmentId()) != null) {
             throw new IllegalArgumentException("该设备已有未完成维修单，不能重复创建");
         }
         if (maintenanceMapper.findByMaintenanceNo(maintenance.getMaintenanceNo()) != null) {
@@ -91,7 +91,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         maintenance.setCreateTime(new Date());
         maintenance.setUpdateTime(new Date());
         maintenanceMapper.insert(maintenance);
-        updateEquipmentStatus(equipment, EquipmentStatus.REPAIR_REQUESTED);
+        if (!Integer.valueOf(1).equals(maintenance.getMaintenanceType())) updateEquipmentStatus(equipment, EquipmentStatus.REPAIR_REQUESTED);
         return maintenanceMapper.findById(maintenance.getId());
     }
 
@@ -225,6 +225,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     /**
      * 校验被指派员工是当前在职的设备维护员，不能仅相信前端传入的姓名。
      */
+    @Autowired private com.mouse.mes.service.RoleAccessService roleAccess;
     private User requireActiveMaintainer(Long userId) {
         if (userId == null) {
             throw new IllegalArgumentException("请选择维修人员");
@@ -233,7 +234,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         if (user == null || user.getStatus() == null || user.getStatus() == 0) {
             throw new IllegalArgumentException("维修人员不存在或已停用");
         }
-        if (user.getRoleId() == null || user.getRoleId().longValue() != EQUIPMENT_MAINTAINER_ROLE_ID) {
+        if (user.getRoleId() == null || roleAccess.effective(user.getRoleId()) != EQUIPMENT_MAINTAINER_ROLE_ID) {
             throw new IllegalArgumentException("只能指派设备维护员处理维修单");
         }
         return user;

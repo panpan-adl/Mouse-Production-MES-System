@@ -12,6 +12,7 @@ import java.util.List;
 @Service
 public class RoleServiceImpl implements RoleService {
 
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate db;
     @Autowired
     private RoleMapper roleMapper;
 
@@ -33,7 +34,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public Role create(Role role) {
         if (role.getRoleCode() == null || role.getRoleCode().isEmpty()) {
-            throw new IllegalArgumentException("角色编码不能为空");
+            role.setRoleCode("ROLE-"+java.util.UUID.randomUUID().toString().substring(0,12));
         }
         if (role.getRoleName() == null || role.getRoleName().isEmpty()) {
             throw new IllegalArgumentException("角色名称不能为空");
@@ -50,6 +51,8 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public Role update(Role role) {
+        if(role.getId()<=11&&Integer.valueOf(0).equals(role.getStatus()))throw new IllegalArgumentException("内置岗位不能停用");
+        if(role.getRoleName()!=null&&role.getRoleName().isBlank())throw new IllegalArgumentException("岗位名称不能为空");
         role.setUpdateTime(new Date());
         roleMapper.update(role);
         return roleMapper.findById(role.getId());
@@ -57,6 +60,8 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public void delete(Integer id) {
+        if(id<=11)throw new IllegalArgumentException("内置岗位不能删除");
+        if(db.queryForObject("SELECT COUNT(*) FROM t_user WHERE role_id=? AND deleted=0",Long.class,id)>0)throw new IllegalArgumentException("岗位仍有关联员工，请先调整岗位");
         roleMapper.delete(id);
     }
 }

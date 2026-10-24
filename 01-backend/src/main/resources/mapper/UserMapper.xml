@@ -13,7 +13,7 @@
     <select id="findByUserCode" parameterType="String" resultType="com.mouse.mes.entity.User">
         SELECT * FROM t_user WHERE user_code = #{userCode} AND deleted = 0
     </select>
-    <insert id="insert" parameterType="com.mouse.mes.entity.User">
+    <insert id="insert" parameterType="com.mouse.mes.entity.User" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO t_user (user_code, username, password, real_name, phone, email, gender, avatar, role_id, dept_id, status, entry_date, leave_date, create_time, update_time, deleted)
         VALUES (#{userCode}, #{username}, #{password}, #{realName}, #{phone}, #{email}, #{gender}, #{avatar}, #{roleId}, #{deptId}, #{status}, #{entryDate}, #{leaveDate}, #{createTime}, #{updateTime}, #{deleted})
     </insert>
@@ -66,10 +66,10 @@
         SELECT * FROM t_user WHERE deleted = 1
     </select>
     <update id="softDeleteById" parameterType="map">
-        UPDATE t_user SET deleted = 1, leave_date = #{leaveDate}, update_time = NOW() WHERE id = #{id}
+        UPDATE t_user SET deleted = 1, status = 0, leave_date = #{leaveDate}, update_time = NOW() WHERE id = #{id}
     </update>
     <update id="restoreUser" parameterType="Long">
-        UPDATE t_user SET deleted = 0, leave_date = NULL, update_time = NOW() WHERE id = #{id}
+        UPDATE t_user SET deleted = 0, status = 1, leave_date = NULL, update_time = NOW() WHERE id = #{id}
     </update>
     <update id="updateAvatar" parameterType="map">
         UPDATE t_user SET avatar = #{avatar}, update_time = NOW() WHERE id = #{id}

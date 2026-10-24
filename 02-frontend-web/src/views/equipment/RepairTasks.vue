@@ -134,7 +134,7 @@ function getErrorMessage(error: unknown) {
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">设备维修任务</h1>
+          <h1 class="text-2xl font-bold text-gray-900">维修执行与记录</h1>
           <p class="mt-1 text-gray-500">接收车间主任指派给你的设备维修任务，开始维修并填报维修结果。</p>
         </div>
         <button class="btn-secondary" :disabled="loading" @click="loadData">

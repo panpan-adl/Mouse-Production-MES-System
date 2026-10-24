@@ -85,6 +85,7 @@ export interface PurchaseReceiveRequest {
 }
 
 export interface MaterialRequest {
+  requiredDate?: string
   id?: number
   requestNo?: string
   sourceTaskId?: number

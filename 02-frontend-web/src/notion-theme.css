@@ -1,0 +1,69 @@
+/* Quiet, paper-like workspace. Business status colors retain their meaning. */
+:root{--mes-paper:#faf9f6;--mes-ink:#37352f;--mes-muted:#919089;--mes-line:#e9e7e2;--mes-nav:#f4f3ef;--mes-radius:10px;--mes-shadow:none;--mes-blue:#526b83}
+.notion-workspace{background:var(--mes-paper);color:var(--mes-ink);color-scheme:light}
+.notion-workspace .workspace-content{width:100%;max-width:1480px;margin:0 auto;padding:42px 48px 32px;animation:none}
+.notion-workspace .workspace-header{height:60px;background:#faf9f6;border-color:var(--mes-line);backdrop-filter:none;box-shadow:none;padding:0 28px}
+.notion-workspace .header-breadcrumb,.notion-workspace .header-date{color:#93918b}
+.notion-workspace .header-breadcrumb strong{color:#57554f;font-weight:500}
+.notion-workspace .header-menu-toggle{background:transparent;border-color:transparent;border-radius:5px;padding:6px;color:#85837d}
+.notion-workspace .mes-sidebar{background:#f4f3ef;border-right:1px solid #e9e7e2;box-shadow:none;color:#57554f}
+.notion-workspace .sidebar-brand{height:72px;border:0}
+.notion-workspace .sidebar-brand .text-white{color:#494740}
+.notion-workspace .sidebar-brand .bg-white\/20{background:#b77945;border-radius:6px;box-shadow:none;width:30px;height:30px}
+.notion-workspace .sidebar-brand .bg-white\/20 svg{color:white}
+.notion-workspace .brand-caption{color:#96938b;letter-spacing:.04em;font-size:10px}
+.notion-workspace .sidebar-identity{background:transparent;border:0;border-bottom:1px solid #e4e2dc;border-radius:0;margin:0 12px 12px;padding:8px 4px 18px}
+.notion-workspace .sidebar-identity .bg-blue-100,.notion-workspace .workspace-header .bg-blue-100{background:#e9e6df;border:0;color:#81786a;border-radius:8px}
+.notion-workspace .sidebar-identity .text-gray-800{color:#57554f}
+.notion-workspace .sidebar-identity .text-gray-500{color:#96938b}
+.notion-workspace .mes-sidebar nav{scrollbar-color:#d6d3cc transparent;padding-top:0}
+.notion-workspace .mes-sidebar nav button{min-height:36px;padding-top:8px;padding-bottom:8px;border-radius:5px;font-size:12px;font-weight:400;color:#66645f}
+.notion-workspace .mes-sidebar nav button svg{width:16px;height:16px;color:#8d8a82}
+.notion-workspace .mes-sidebar nav button:hover{background:#ebe9e3;color:#37352f}
+.notion-workspace .mes-sidebar nav button.bg-blue-50{background:#e7e5df;color:#37352f;box-shadow:none;font-weight:600}
+.notion-workspace .mes-sidebar nav .ml-4{border-color:#dedbd4}
+.notion-workspace .sidebar-bottom{border-color:#e4e2dc}
+.notion-workspace .sidebar-bottom button{color:#858078}
+.notion-workspace .sidebar-bottom button:hover{background:#ebe9e3;color:#37352f}
+.notion-workspace .sidebar-bottom button.text-red-600{color:#a36760}
+.notion-workspace .workspace-content h1{color:#37352f;text-shadow:none;font-size:28px;font-weight:600;letter-spacing:-.035em}
+.notion-workspace .workspace-content h2,.notion-workspace .workspace-content h3{color:#494740}
+.notion-workspace .workspace-content :is(.text-gray-800,.text-gray-900,.text-slate-800){color:#37352f}
+.notion-workspace .workspace-content :is(.text-gray-600,.text-gray-700,.text-slate-600){color:#6f6c65}
+.notion-workspace .workspace-content :is(.text-gray-500,.text-gray-400,.text-slate-400){color:#96938b}
+.notion-workspace .workspace-content :is(.bg-white.border.rounded-xl,.bg-white.rounded-xl.shadow-sm,.panel,.kpi-card),.notion-workspace .panorama-page .insight-row>.text-slate-100{background:#fff;border:1px solid #e9e7e2;border-radius:10px;box-shadow:none;color:#57554f}
+.notion-workspace .workspace-content .bg-white.border.rounded-xl:hover{border-color:#d4d0c7}
+.notion-workspace .workspace-content :is(.bg-gray-50,.bg-slate-50){background:#f6f5f1}
+.notion-workspace .workspace-content :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea){background:#fff;border-color:#dedbd4;color:#494740;border-radius:5px;box-shadow:none;color-scheme:light}
+.notion-workspace .workspace-content :is(input,select,textarea):focus{border-color:#9b968b;box-shadow:0 0 0 2px #aca69a1c}
+.notion-workspace :focus-visible{outline:2px solid #9b968b;outline-offset:3px}
+.notion-workspace .workspace-content :is(button.bg-blue-600,a.bg-blue-600){background:#45433e;border-color:#45433e;color:#fff;box-shadow:none;border-radius:5px}
+.notion-workspace .workspace-content :is(button.bg-blue-600,a.bg-blue-600):hover{background:#302e29;box-shadow:none}
+.notion-workspace .workspace-content button.border{border-color:#e2dfd8;border-radius:5px}
+.notion-workspace .workspace-content button.border:not(.bg-blue-600):hover{background:#f0eee8;border-color:#d4d0c7}
+.notion-workspace .workspace-content .text-blue-600{color:#58718b}
+.notion-workspace .workspace-content :is(.bg-blue-50,.bg-blue-100){background:#e8eef5;color:#526e8e}
+.notion-workspace .workspace-content :is(.bg-green-50,.bg-green-100){background:#eaf1e9;color:#53745c}
+.notion-workspace .workspace-content :is(.bg-red-50,.bg-red-100){background:#f8eae7;color:#a96057}
+.notion-workspace .workspace-content :is(.bg-yellow-100,.bg-amber-50){background:#faf0d9;color:#9d8047}
+.notion-workspace .workspace-content div.overflow-x-auto.border.rounded-lg{border-color:#e9e7e2;border-radius:9px;box-shadow:none}
+.notion-workspace .workspace-content table{font-size:13px}
+.notion-workspace .workspace-content table th{background:#f6f5f1;color:#858178;border-color:#e9e7e2;font-size:11px;letter-spacing:.04em;font-weight:500}
+.notion-workspace .workspace-content table td{color:#57554f;border-color:#f0eee9;padding-top:16px;padding-bottom:16px}
+.notion-workspace .workspace-content table tbody tr+tr td{border-top-color:#f0eee9}
+.notion-workspace .workspace-content table tbody tr:hover{background:#faf9f6}
+.notion-workspace .workspace-content [class*=border-gray],.notion-workspace .workspace-content [class*=border-slate]{border-color:#e9e7e2}
+.notion-workspace .panorama-page :is(.status-row,.flow-node,.alert-row){background:#f7f6f2;border-color:#e9e7e2;border-radius:7px}
+.notion-workspace .panorama-page :is(.kpi-label,.eyebrow,.dashboard-caption){color:#918b80}
+.notion-workspace .panorama-page .kpi-value strong{color:#37352f;font-weight:600}
+.notion-workspace .panorama-page .kpi-card::before{display:none}
+.notion-workspace .panorama-page .kpi-card:nth-child(3n+1){border-top:3px solid #dce7ee}
+.notion-workspace .panorama-page .kpi-card:nth-child(3n+2){border-top:3px solid #ede2cd}
+.notion-workspace .panorama-page .kpi-card:nth-child(3n){border-top:3px solid #dce8db}
+.notion-workspace .panorama-page :is(.time-box,.icon-button){background:#fff;border-color:#e9e7e2;color:#77736a}
+.notion-workspace .environment-notice{background:#fff5d8;border-color:#efdfac;border-radius:8px;margin:22px 48px 0;color:#92723d}
+.notion-workspace .workspace-footer{color:#aaa59b;font-size:10px;padding:20px 48px}
+.notion-workspace .agent-entry{background:#fff;border-color:#e4e0d8;color:#736b5e;box-shadow:0 2px 8px #37352f08;border-radius:8px;backdrop-filter:none}
+@media(min-width:1700px){.notion-workspace .workspace-content{padding-left:64px;padding-right:64px}}
+@media(max-width:1100px){.notion-workspace .workspace-content{padding:30px 24px}.notion-workspace .environment-notice{margin:18px 24px 0}}
+@media(max-width:700px){.notion-workspace .workspace-content{padding:24px 14px}.notion-workspace .workspace-header{padding:0 12px}.notion-workspace .workspace-content h1{font-size:23px}.notion-workspace .environment-notice{margin:14px 14px 0}.notion-workspace .workspace-footer{padding:18px 14px}.notion-workspace .sidebar-small .sidebar-identity{padding:6px;border:0;margin:12px 11px}.notion-workspace .mes-sidebar.sidebar-large{box-shadow:12px 0 40px #37352f18}}

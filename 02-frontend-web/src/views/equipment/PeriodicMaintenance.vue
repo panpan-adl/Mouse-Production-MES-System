@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import MaintenancePlans from '@/components/MaintenancePlans.vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { CalendarClock, CheckCircle, Plus, RefreshCw, X } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
@@ -206,7 +207,7 @@ function checkMaintenanceTimers() {
   })
   if (!dueMaintenance?.id) return
   remindedMaintenanceIds.add(dueMaintenance.id)
-  reminderMessage.value = `${dueMaintenance.maintenanceNo}（${dueMaintenance.equipmentName || `设备-${dueMaintenance.equipmentId}`}）已到计划时间，新一轮维护保养已开始，请及时处理。`
+  reminderMessage.value = `${dueMaintenance.maintenanceNo}（${dueMaintenance.equipmentName || `设备-${dueMaintenance.equipmentId}`}）已到计划时间，已到期，请手动开始并填报实际保养结果。`
 }
 
 function getErrorMessage(error: unknown) {
@@ -216,7 +217,7 @@ function getErrorMessage(error: unknown) {
 
 <template>
   <MainLayout>
-    <div class="space-y-6">
+    <div class="space-y-6"><MaintenancePlans />
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-bold text-gray-900">定期维护保养</h1>
@@ -229,7 +230,7 @@ function getErrorMessage(error: unknown) {
           </button>
           <button class="btn-primary" @click="openCreate">
             <Plus class="h-4 w-4" />
-            新增保养计划
+            登记单次保养
           </button>
         </div>
       </div>
@@ -290,7 +291,7 @@ function getErrorMessage(error: unknown) {
         <div class="mb-5 flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-500">定期维护保养</p>
-            <h2 class="text-xl font-bold text-gray-900">新增保养计划</h2>
+            <h2 class="text-xl font-bold text-gray-900">登记单次保养</h2>
           </div>
           <button type="button" class="icon-btn" @click="showCreateForm = false"><X class="h-5 w-5" /></button>
         </div>

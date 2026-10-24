@@ -69,7 +69,7 @@ public class FulfillmentService {
     public List<Map<String,Object>> purchaseItems(long id){return db.queryForList("SELECT i.*,m.material_name,m.material_code,m.unit FROM t_purchase_order_item i JOIN t_material m ON m.id=i.material_id WHERE i.po_id=?",id);}
     public List<Map<String,Object>> inspectionSources(String kind){return inspectionSources(kind,"FINAL");}
     public List<Map<String,Object>> inspectionSources(String kind,String phase){require(Set.of("FIRST","LAST","PATROL","FINAL").contains(phase),"检验阶段无效");return switch(kind){
-        case "INCOMING"->db.queryForList("SELECT p.id,p.po_no name,(SELECT COALESCE(SUM(quantity),0) FROM t_purchase_order_item WHERE po_id=p.id) quantity FROM t_purchase_order p WHERE p.status='APPROVED' AND p.is_deleted=0");
+        case "INCOMING"->db.queryForList("SELECT p.id,p.po_no name,(SELECT COALESCE(SUM(quantity),0) FROM t_purchase_order_item WHERE po_id=p.id) quantity FROM t_purchase_order p WHERE p.status IN ('APPROVED','PARTIAL_RECEIVED') AND p.is_deleted=0");
         case "PROCESS"->db.queryForList("SELECT t.id,t.task_no name,t.quantity,t.product_id,c.operation_id FROM t_production_task t JOIN mm_task_context c ON c.task_id=t.id WHERE "+(Set.of("FIRST","PATROL").contains(phase)?"t.task_status IN(1,2,3)":"t.task_status=3"));
         case "SHIPPING"->db.queryForList("SELECT o.id,o.order_no name,o.quantity,p.product_id FROM t_order o JOIN t_production_plan p ON p.order_id=o.id JOIN mm_work_order w ON w.plan_id=p.id WHERE o.order_status=2 AND o.deleted=0 AND p.plan_status=2 AND EXISTS(SELECT 1 FROM mm_stock_posting s WHERE s.kind='RECEIPT' AND s.source_id=w.id)");
         default->throw new IllegalArgumentException("检验类型无效");};}
