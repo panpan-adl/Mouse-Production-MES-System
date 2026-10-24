@@ -1,0 +1,139 @@
+<view class="container">
+  <view class="header">
+    <text class="title">生产计划</text>
+    <view class="view-switch">
+      <view 
+        class="switch-item {{ viewMode === 'list' ? 'active' : '' }}" 
+        bindtap="switchView" 
+        data-mode="list"
+      >
+        📋
+      </view>
+      <view 
+        class="switch-item {{ viewMode === 'gantt' ? 'active' : '' }}" 
+        bindtap="switchView" 
+        data-mode="gantt"
+      >
+        📊
+      </view>
+    </view>
+  </view>
+
+  <view class="search-section">
+    <view class="search-box">
+      <text class="search-icon">🔍</text>
+      <input 
+        class="search-input" 
+        placeholder="搜索计划号、产品名称" 
+        value="{{ searchKeyword }}"
+        bindinput="onSearchInput"
+        confirm-type="search"
+      />
+      <text class="search-clear" wx:if="{{ searchKeyword }}" bindtap="clearSearch">×</text>
+    </view>
+  </view>
+
+  <view class="filter-bar">
+    <scroll-view scroll-x class="filter-scroll">
+      <view class="filter-inner">
+        <view 
+          class="filter-item {{ statusFilter === item.value ? 'active' : '' }}" 
+          wx:for="{{ statusOptions }}" 
+          wx:key="value"
+          bindtap="onStatusChange"
+          data-value="{{ item.value }}"
+        >
+          {{ item.label }}
+          <text class="filter-count" wx:if="{{ item.count > 0 }}">{{ item.count }}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="plan-list" wx:if="{{ viewMode === 'list' && !loading && plans.length > 0 }}">
+    <view class="plan-card" wx:for="{{ plans }}" wx:key="id" bindtap="goToDetail" data-id="{{ item.id }}">
+      <view class="plan-header">
+        <view class="plan-left">
+          <text class="plan-no">{{ item.planNo }}</text>
+          <view class="plan-tags">
+            <view class="plan-status" style="color: {{ item.displayStatusColor }}; background: {{ item.displayStatusBgColor }}">
+              {{ item.displayStatusText }}
+            </view>
+            <view class="priority-tag" wx:if="{{ item.isPriority }}">🔥 高优先级</view>
+          </view>
+        </view>
+        <view class="plan-progress-ring" style="background: conic-gradient({{ item.displayProgressColor }} {{ item.displayProgress * 3.6 }}deg, #f0f0f0 0deg)">
+          <text class="ring-value">{{ item.displayProgress }}%</text>
+        </view>
+      </view>
+
+      <view class="plan-info">
+        <view class="info-row">
+          <text class="info-icon">📦</text>
+          <text class="info-label">产品:</text>
+          <text class="info-value">{{ item.displayProductName }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-icon">📊</text>
+          <text class="info-label">数量:</text>
+          <text class="info-value">{{ item.displayCompletedQty }} / {{ item.displayPlanQty }} 件</text>
+          <text class="info-percent" style="color: {{ item.displayProgressColor }}">{{ item.displayProgress }}%</text>
+        </view>
+        <view class="info-row">
+          <text class="info-icon">⏰</text>
+          <text class="info-label">周期:</text>
+          <text class="info-value">{{ item.displayStartDate }} ~ {{ item.displayEndDate }}</text>
+        </view>
+      </view>
+
+      <view class="progress-bar-section">
+        <view class="progress-bar-bg">
+          <view class="progress-bar-fill" style="width: {{ item.displayProgress }}%; background: {{ item.displayProgressColor }}"></view>
+        </view>
+      </view>
+
+      <view class="plan-footer">
+        <text class="plan-time">更新于 {{ item.displayUpdateTime }}</text>
+        <view class="plan-actions">
+          <text class="action-btn delete" wx:if="{{ item.canDelete }}" catchtap="deletePlan" data-id="{{ item.id }}">删除</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="gantt-view" wx:if="{{ viewMode === 'gantt' && !loading && plans.length > 0 }}">
+    <view class="gantt-header">
+      <view class="gantt-label-col">任务</view>
+      <view class="gantt-timeline">
+        <text class="timeline-label">进度</text>
+      </view>
+    </view>
+    <view class="gantt-body">
+      <view class="gantt-row" wx:for="{{ plans }}" wx:key="id" bindtap="goToDetail" data-id="{{ item.id }}">
+        <view class="gantt-label">
+          <text class="gantt-title">{{ item.displayProductName }}</text>
+          <text class="gantt-sub">{{ item.planNo }}</text>
+        </view>
+        <view class="gantt-bar-container">
+          <view class="gantt-bar-bg">
+            <view class="gantt-bar-fill" style="width: {{ item.ganttWidth }}; background: {{ item.ganttBgColor }}"></view>
+          </view>
+          <text class="gantt-percent" style="color: {{ item.displayProgressColor }}">{{ item.displayProgress }}%</text>
+        </view>
+        <view class="gantt-status" style="color: {{ item.displayStatusColor }}">
+          {{ item.displayStatusText }}
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{ !loading && plans.length === 0 }}">
+    <view class="empty-icon">📋</view>
+    <text class="empty-text">{{ searchKeyword ? '未找到匹配的计划' : '暂无生产计划' }}</text>
+  </view>
+
+  <view class="loading" wx:if="{{ loading }}">
+    <view class="loading-icon"></view>
+    <text>加载中...</text>
+  </view>
+</view>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.LocationMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.Location">
+        SELECT * FROM t_location WHERE is_deleted = 0
+    </select>
+    <select id="findById" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.Location">
+        SELECT * FROM t_location WHERE id = #{id} AND is_deleted = 0
+    </select>
+    <select id="findByWarehouseId" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.Location">
+        SELECT * FROM t_location WHERE warehouse_id = #{warehouseId} AND is_deleted = 0
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.Location" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_location (warehouse_id, location_code, location_name, location_type, status, created_at, updated_at, is_deleted)
+        VALUES (#{warehouseId}, #{locationCode}, #{locationName}, #{locationType}, #{status}, #{createdAt}, #{updatedAt}, #{isDeleted})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.Location">
+        UPDATE t_location SET
+        warehouse_id = #{warehouseId},
+        location_code = #{locationCode},
+        location_name = #{locationName},
+        location_type = #{locationType},
+        status = #{status},
+        updated_at = #{updatedAt},
+        is_deleted = #{isDeleted}
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="java.lang.Long">
+        UPDATE t_location SET is_deleted = 1 WHERE id = #{id}
+    </delete>
+</mapper>

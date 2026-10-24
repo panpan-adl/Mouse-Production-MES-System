@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.DictMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.Dict">
+        SELECT * FROM t_dict WHERE status = 1
+    </select>
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.Dict">
+        SELECT * FROM t_dict WHERE id = #{id} AND status = 1
+    </select>
+    <select id="findByDictType" parameterType="String" resultType="com.mouse.mes.entity.Dict">
+        SELECT * FROM t_dict WHERE dict_type = #{dictType} AND status = 1
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.Dict">
+        INSERT INTO t_dict (dict_name, dict_type, status, remark, create_time, update_time)
+        VALUES (#{dictName}, #{dictType}, #{status}, #{remark}, #{createTime}, #{updateTime})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.Dict">
+        UPDATE t_dict SET
+        dict_name = #{dictName},
+        dict_type = #{dictType},
+        status = #{status},
+        remark = #{remark},
+        update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="Long">
+        UPDATE t_dict SET status = 0 WHERE id = #{id}
+    </delete>
+</mapper>

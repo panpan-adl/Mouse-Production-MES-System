@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.PurchaseOrderItemMapper">
+    <select id="findByPoId" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.PurchaseOrderItem">
+        SELECT * FROM t_purchase_order_item WHERE po_id = #{poId}
+    </select>
+    <select id="findById" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.PurchaseOrderItem">
+        SELECT * FROM t_purchase_order_item WHERE id = #{id}
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.PurchaseOrderItem" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_purchase_order_item (po_id, material_id, quantity, unit_price, amount, received_quantity, remark)
+        VALUES (#{poId}, #{materialId}, #{quantity}, #{unitPrice}, #{amount}, #{receivedQuantity}, #{remark})
+    </insert>
+    <update id="updateReceivedQuantity">
+        UPDATE t_purchase_order_item SET received_quantity = #{receivedQuantity} WHERE id = #{id}
+    </update>
+    <delete id="deleteByPoId" parameterType="java.lang.Long">
+        DELETE FROM t_purchase_order_item WHERE po_id = #{poId}
+    </delete>
+</mapper>

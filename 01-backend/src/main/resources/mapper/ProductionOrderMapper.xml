@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.ProductionOrderMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.ProductionOrder">
+        SELECT * FROM t_production_order WHERE is_deleted = 0
+    </select>
+    <select id="findById" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.ProductionOrder">
+        SELECT * FROM t_production_order WHERE id = #{id} AND is_deleted = 0
+    </select>
+    <select id="findByPoNo" parameterType="java.lang.String" resultType="com.mouse.mes.entity.ProductionOrder">
+        SELECT * FROM t_production_order WHERE po_no = #{poNo} AND is_deleted = 0
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.ProductionOrder">
+        <selectKey keyProperty="id" order="AFTER" resultType="Long">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO t_production_order (po_no, product_id, planned_quantity, actual_quantity, planned_start_date, planned_end_date, actual_start_date, actual_end_date, status, department_id, created_by, created_at, updated_at, is_deleted)
+        VALUES (#{poNo}, #{productId}, #{plannedQuantity}, #{actualQuantity}, #{plannedStartDate}, #{plannedEndDate}, #{actualStartDate}, #{actualEndDate}, #{status}, #{departmentId}, #{createdBy}, #{createdAt}, #{updatedAt}, #{isDeleted})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.ProductionOrder">
+        UPDATE t_production_order SET
+        po_no = #{poNo},
+        product_id = #{productId},
+        planned_quantity = #{plannedQuantity},
+        actual_quantity = #{actualQuantity},
+        planned_start_date = #{plannedStartDate},
+        planned_end_date = #{plannedEndDate},
+        actual_start_date = #{actualStartDate},
+        actual_end_date = #{actualEndDate},
+        status = #{status},
+        department_id = #{departmentId},
+        created_by = #{createdBy},
+        updated_at = #{updatedAt},
+        is_deleted = #{isDeleted}
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="java.lang.Long">
+        UPDATE t_production_order SET is_deleted = 1 WHERE id = #{id}
+    </delete>
+</mapper>

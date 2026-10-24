@@ -1,0 +1,39 @@
+<view class="container">
+  <view class="form-card">
+    <view class="form-item">
+      <text class="form-label">选择任务</text>
+      <picker mode="selector" range="{{ taskOptions }}" bindchange="onTaskChange">
+        <view class="form-picker">
+          {{ getSelectedTaskText() }}
+          <text class="picker-arrow">></text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">报工数量</text>
+      <input class="form-input" type="number" placeholder="请输入报工数量" value="{{ form.reportQuantity }}" bindinput="onInputChange" data-field="reportQuantity" />
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">报工日期</text>
+      <picker mode="date" value="{{ form.reportDate }}" bindchange="onInputChange" data-field="reportDate">
+        <view class="form-picker">
+          {{ form.reportDate || '请选择日期' }}
+          <text class="picker-arrow">></text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">备注</text>
+      <textarea class="form-textarea" placeholder="请输入备注信息" value="{{ form.remark }}" bindinput="onInputChange" data-field="remark" />
+    </view>
+  </view>
+
+  <view class="form-actions">
+    <button class="submit-btn {{ submitting ? 'disabled' : '' }}" bindtap="onSubmit" disabled="{{ submitting }}">
+      {{ submitting ? '提交中...' : '提交报工' }}
+    </button>
+  </view>
+</view>

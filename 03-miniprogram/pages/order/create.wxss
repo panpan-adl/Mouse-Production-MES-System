@@ -1,0 +1,190 @@
+.container {
+  padding: 0;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+.form-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 24rpx;
+}
+
+.form-item:last-child {
+  margin-bottom: 0;
+}
+
+.form-label {
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+}
+
+.form-input {
+  padding: 16rpx;
+  background: #f8fafc;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.form-picker {
+  padding: 16rpx;
+  background: #f8fafc;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.picker-arrow {
+  color: #999;
+}
+
+.form-textarea {
+  padding: 16rpx;
+  background: #f8fafc;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #333;
+  height: 160rpx;
+}
+
+.priority-group {
+  display: flex;
+  gap: 16rpx;
+}
+
+.priority-item {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx;
+  background: #f8fafc;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #666;
+  border: 2rpx solid transparent;
+}
+
+.priority-item.active {
+  background: #fff;
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.form-actions {
+  margin-top: 30rpx;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 24rpx 0;
+  background: #1890ff;
+  color: #fff;
+  border-radius: 8rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.submit-btn.disabled {
+  background: #ccc;
+}
+
+.barcode-btn {
+  width: 100%;
+  padding: 24rpx 0;
+  background: #ff9800;
+  color: #fff;
+  border-radius: 8rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  margin-top: 16rpx;
+}
+
+.barcode-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.barcode-content {
+  width: 600rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 40rpx;
+}
+
+.barcode-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+
+.barcode-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.barcode-close {
+  font-size: 48rpx;
+  color: #999;
+  line-height: 1;
+}
+
+.barcode-canvas-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 20rpx;
+  background: #f5f7fa;
+  border-radius: 12rpx;
+}
+
+.barcode-canvas {
+  width: 700rpx;
+  height: 280rpx;
+}
+
+.barcode-info {
+  text-align: center;
+  margin-top: 20rpx;
+}
+
+.barcode-order-no {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.barcode-actions {
+  margin-top: 30rpx;
+}
+
+.save-btn {
+  width: 100%;
+  padding: 24rpx 0;
+  background: #1890ff;
+  color: #fff;
+  border-radius: 8rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+}

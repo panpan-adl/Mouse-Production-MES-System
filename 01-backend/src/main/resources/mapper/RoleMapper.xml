@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.RoleMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.Role">
+        SELECT * FROM t_role WHERE status = 1
+    </select>
+    <select id="findById" parameterType="Integer" resultType="com.mouse.mes.entity.Role">
+        SELECT * FROM t_role WHERE id = #{id} AND status = 1
+    </select>
+    <select id="findByRoleCode" parameterType="String" resultType="com.mouse.mes.entity.Role">
+        SELECT * FROM t_role WHERE role_code = #{roleCode} AND status = 1
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.Role">
+        INSERT INTO t_role (role_code, role_name, role_desc, sort, status, create_time, update_time)
+        VALUES (#{roleCode}, #{roleName}, #{roleDesc}, #{sort}, #{status}, NOW(), NOW())
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.Role">
+        UPDATE t_role SET
+        <if test="roleCode != null">role_code = #{roleCode},</if>
+        <if test="roleName != null">role_name = #{roleName},</if>
+        <if test="roleDesc != null">role_desc = #{roleDesc},</if>
+        <if test="sort != null">sort = #{sort},</if>
+        <if test="status != null">status = #{status},</if>
+        update_time = NOW()
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="Integer">
+        UPDATE t_role SET status = 0 WHERE id = #{id}
+    </delete>
+</mapper>

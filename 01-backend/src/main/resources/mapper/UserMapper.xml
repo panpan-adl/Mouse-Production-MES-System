@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.UserMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.User">
+        SELECT * FROM t_user WHERE deleted = 0
+    </select>
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.User">
+        SELECT * FROM t_user WHERE id = #{id} AND deleted = 0
+    </select>
+    <select id="findByUsername" parameterType="String" resultType="com.mouse.mes.entity.User">
+        SELECT * FROM t_user WHERE username = #{username} AND deleted = 0
+    </select>
+    <select id="findByUserCode" parameterType="String" resultType="com.mouse.mes.entity.User">
+        SELECT * FROM t_user WHERE user_code = #{userCode} AND deleted = 0
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.User">
+        INSERT INTO t_user (user_code, username, password, real_name, phone, email, gender, avatar, role_id, dept_id, status, entry_date, leave_date, create_time, update_time, deleted)
+        VALUES (#{userCode}, #{username}, #{password}, #{realName}, #{phone}, #{email}, #{gender}, #{avatar}, #{roleId}, #{deptId}, #{status}, #{entryDate}, #{leaveDate}, #{createTime}, #{updateTime}, #{deleted})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.User">
+        UPDATE t_user SET
+        <if test="userCode != null">user_code = #{userCode},</if>
+        <if test="username != null">username = #{username},</if>
+        <if test="password != null">password = #{password},</if>
+        <if test="realName != null">real_name = #{realName},</if>
+        <if test="phone != null">phone = #{phone},</if>
+        <if test="email != null">email = #{email},</if>
+        <if test="gender != null">gender = #{gender},</if>
+        <if test="avatar != null">avatar = #{avatar},</if>
+        <if test="roleId != null">role_id = #{roleId},</if>
+        <if test="deptId != null">dept_id = #{deptId},</if>
+        <if test="status != null">status = #{status},</if>
+        <if test="entryDate != null">entry_date = #{entryDate},</if>
+        <if test="leaveDate != null">leave_date = #{leaveDate},</if>
+        <if test="lastLoginTime != null">last_login_time = #{lastLoginTime},</if>
+        <if test="lastLoginIp != null">last_login_ip = #{lastLoginIp},</if>
+        <if test="deleted != null">deleted = #{deleted},</if>
+        update_time = NOW()
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="Long">
+        UPDATE t_user SET deleted = 1 WHERE id = #{id}
+    </delete>
+    <select id="findByRoleId" parameterType="Long" resultType="com.mouse.mes.entity.User">
+        SELECT * FROM t_user WHERE role_id = #{roleId} AND deleted = 0
+    </select>
+    <select id="findByRoleCode" parameterType="String" resultType="com.mouse.mes.entity.User">
+        SELECT u.*
+        FROM t_user u
+        INNER JOIN t_role r ON u.role_id = r.id
+        WHERE r.role_code = #{roleCode} AND u.deleted = 0
+    </select>
+    <select id="findByDeptId" parameterType="Long" resultType="com.mouse.mes.entity.User">
+        SELECT * FROM t_user WHERE dept_id = #{deptId} AND deleted = 0
+    </select>
+    <select id="findByDeptCode" parameterType="String" resultType="com.mouse.mes.entity.User">
+        SELECT u.*
+        FROM t_user u
+        INNER JOIN t_department d ON u.dept_id = d.id
+        WHERE d.dept_code = #{deptCode} AND u.deleted = 0
+    </select>
+    <select id="findAllIncludingDeleted" resultType="com.mouse.mes.entity.User">
+        SELECT * FROM t_user
+    </select>
+    <select id="findDeletedUsers" resultType="com.mouse.mes.entity.User">
+        SELECT * FROM t_user WHERE deleted = 1
+    </select>
+    <update id="softDeleteById" parameterType="map">
+        UPDATE t_user SET deleted = 1, leave_date = #{leaveDate}, update_time = NOW() WHERE id = #{id}
+    </update>
+    <update id="restoreUser" parameterType="Long">
+        UPDATE t_user SET deleted = 0, leave_date = NULL, update_time = NOW() WHERE id = #{id}
+    </update>
+    <update id="updateAvatar" parameterType="map">
+        UPDATE t_user SET avatar = #{avatar}, update_time = NOW() WHERE id = #{id}
+    </update>
+</mapper>

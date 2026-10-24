@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.DepartmentMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.Department">
+        SELECT * FROM t_department WHERE status = 1 ORDER BY sort
+    </select>
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.Department">
+        SELECT * FROM t_department WHERE id = #{id} AND status = 1
+    </select>
+    <select id="findByParentId" parameterType="Long" resultType="com.mouse.mes.entity.Department">
+        SELECT * FROM t_department WHERE parent_id = #{parentId} AND status = 1 ORDER BY sort
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.Department">
+        INSERT INTO t_department (parent_id, dept_name, dept_code, leader_id, leader_name, sort, status, create_time, update_time)
+        VALUES (#{parentId}, #{deptName}, #{deptCode}, #{leaderId}, #{leaderName}, #{sort}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.Department">
+        UPDATE t_department SET
+        parent_id = #{parentId},
+        dept_name = #{deptName},
+        dept_code = #{deptCode},
+        leader_id = #{leaderId},
+        leader_name = #{leaderName},
+        sort = #{sort},
+        status = #{status},
+        update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="Long">
+        UPDATE t_department SET status = 0 WHERE id = #{id}
+    </delete>
+</mapper>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.WorkOrderMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.WorkOrder">
+        SELECT * FROM t_work_order WHERE is_deleted = 0
+    </select>
+    <select id="findById" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.WorkOrder">
+        SELECT * FROM t_work_order WHERE id = #{id} AND is_deleted = 0
+    </select>
+    <select id="findByWoNo" parameterType="java.lang.String" resultType="com.mouse.mes.entity.WorkOrder">
+        SELECT * FROM t_work_order WHERE wo_no = #{woNo} AND is_deleted = 0
+    </select>
+    <select id="findByProductionOrderId" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.WorkOrder">
+        SELECT * FROM t_work_order WHERE production_order_id = #{productionOrderId} AND is_deleted = 0
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.WorkOrder">
+        <selectKey keyProperty="id" order="AFTER" resultType="Long">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO t_work_order (wo_no, production_order_id, product_id, planned_quantity, actual_quantity, planned_start_date, planned_end_date, actual_start_date, actual_end_date, status, department_id, assigned_user_id, assigned_user_name, created_by, created_at, updated_at, is_deleted)
+        VALUES (#{woNo}, #{productionOrderId}, #{productId}, #{plannedQuantity}, #{actualQuantity}, #{plannedStartDate}, #{plannedEndDate}, #{actualStartDate}, #{actualEndDate}, #{status}, #{departmentId}, #{assignedUserId}, #{assignedUserName}, #{createdBy}, #{createdAt}, #{updatedAt}, #{isDeleted})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.WorkOrder">
+        UPDATE t_work_order SET
+        wo_no = #{woNo},
+        production_order_id = #{productionOrderId},
+        product_id = #{productId},
+        planned_quantity = #{plannedQuantity},
+        actual_quantity = #{actualQuantity},
+        planned_start_date = #{plannedStartDate},
+        planned_end_date = #{plannedEndDate},
+        actual_start_date = #{actualStartDate},
+        actual_end_date = #{actualEndDate},
+        status = #{status},
+        department_id = #{departmentId},
+        assigned_user_id = #{assignedUserId},
+        assigned_user_name = #{assignedUserName},
+        created_by = #{createdBy},
+        updated_at = #{updatedAt},
+        is_deleted = #{isDeleted}
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="java.lang.Long">
+        UPDATE t_work_order SET is_deleted = 1 WHERE id = #{id}
+    </delete>
+    <select id="findByStatus" parameterType="java.lang.String" resultType="com.mouse.mes.entity.WorkOrder">
+        SELECT * FROM t_work_order WHERE status = #{status} AND is_deleted = 0 ORDER BY created_at DESC
+    </select>
+    <select id="findByAssignedUserId" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.WorkOrder">
+        SELECT * FROM t_work_order WHERE assigned_user_id = #{assignedUserId} AND is_deleted = 0 ORDER BY created_at DESC
+    </select>
+</mapper>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.MaintenanceMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.Maintenance">
+        SELECT * FROM t_maintenance ORDER BY create_time DESC
+    </select>
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.Maintenance">
+        SELECT * FROM t_maintenance WHERE id = #{id}
+    </select>
+    <select id="findByMaintenanceNo" parameterType="String" resultType="com.mouse.mes.entity.Maintenance">
+        SELECT * FROM t_maintenance WHERE maintenance_no = #{maintenanceNo}
+    </select>
+    <select id="findByEquipmentId" parameterType="Long" resultType="com.mouse.mes.entity.Maintenance">
+        SELECT * FROM t_maintenance WHERE equipment_id = #{equipmentId} ORDER BY create_time DESC
+    </select>
+    <select id="findUnfinishedByEquipmentId" parameterType="Long" resultType="com.mouse.mes.entity.Maintenance">
+        SELECT * FROM t_maintenance
+        WHERE equipment_id = #{equipmentId}
+          AND status IN ('PENDING', 'PROCESSING')
+        ORDER BY create_time DESC
+        LIMIT 1
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.Maintenance" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_maintenance (maintenance_no, equipment_id, equipment_name, maintenance_type, fault_desc, maintenance_content, maintenance_user_id, maintenance_user_name, start_time, end_time, cost, result, status, remark, create_time, update_time)
+        VALUES (#{maintenanceNo}, #{equipmentId}, #{equipmentName}, #{maintenanceType}, #{faultDesc}, #{maintenanceContent}, #{maintenanceUserId}, #{maintenanceUserName}, #{startTime}, #{endTime}, #{cost}, #{result}, #{status}, #{remark}, #{createTime}, #{updateTime})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.Maintenance">
+        UPDATE t_maintenance SET
+        maintenance_no = #{maintenanceNo},
+        equipment_id = #{equipmentId},
+        equipment_name = #{equipmentName},
+        maintenance_type = #{maintenanceType},
+        fault_desc = #{faultDesc},
+        maintenance_content = #{maintenanceContent},
+        maintenance_user_id = #{maintenanceUserId},
+        maintenance_user_name = #{maintenanceUserName},
+        start_time = #{startTime},
+        end_time = #{endTime},
+        cost = #{cost},
+        result = #{result},
+        status = #{status},
+        remark = #{remark},
+        update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="Long">
+        DELETE FROM t_maintenance WHERE id = #{id}
+    </delete>
+</mapper>

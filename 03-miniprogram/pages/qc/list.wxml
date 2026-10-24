@@ -1,0 +1,39 @@
+<view class="page">
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <input class="search-input" placeholder="搜索质检单号..." value="{{searchText}}" bindinput="searchInput"/>
+    </view>
+  </view>
+
+  <view class="content">
+    <view class="stats-row">
+      <view class="stat-item">
+        <text class="stat-value">{{inspections.length}}</text>
+        <text class="stat-label">质检单</text>
+      </view>
+    </view>
+
+    <view class="list" wx:if="!loading">
+      <view class="list-item" wx:for="{{inspections}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+        <view class="item-left">
+          <text class="item-title">{{item.inspectionNo}}</text>
+          <text class="item-subtitle">{{getTypeText(item.inspectionType)}}</text>
+        </view>
+        <view class="item-right">
+          <text class="result-tag {{getResultColor(item.result)}}">{{getResultText(item.result)}}</text>
+        </view>
+      </view>
+      <view class="empty" wx:if="{{inspections.length === 0}}">
+        <text>暂无质检单</text>
+      </view>
+    </view>
+
+    <view class="loading" wx:if="loading">
+      <text>加载中...</text>
+    </view>
+  </view>
+
+  <view class="bottom-btn">
+    <button class="action-btn primary" bindtap="addInspection">新增质检单</button>
+  </view>
+</view>

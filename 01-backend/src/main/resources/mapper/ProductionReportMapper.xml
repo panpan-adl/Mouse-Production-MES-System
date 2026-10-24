@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.ProductionReportMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.ProductionReport">
+        SELECT * FROM t_production_report ORDER BY report_time DESC
+    </select>
+
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.ProductionReport">
+        SELECT * FROM t_production_report WHERE id = #{id}
+    </select>
+
+    <select id="findByTaskId" parameterType="Long" resultType="com.mouse.mes.entity.ProductionReport">
+        SELECT * FROM t_production_report WHERE task_id = #{taskId} ORDER BY report_time DESC
+    </select>
+
+    <insert id="insert" parameterType="com.mouse.mes.entity.ProductionReport">
+        <selectKey keyProperty="id" order="AFTER" resultType="Long">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO t_production_report (
+            task_id, report_user_id, report_user_name, report_quantity,
+            qualified_quantity, defect_quantity, report_time, remark
+        ) VALUES (
+            #{taskId}, #{reportUserId}, #{reportUserName}, #{reportQuantity},
+            #{qualifiedQuantity}, #{defectQuantity}, #{reportTime}, #{remark}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.mouse.mes.entity.ProductionReport">
+        UPDATE t_production_report SET
+            report_user_id = #{reportUserId},
+            report_user_name = #{reportUserName},
+            report_quantity = #{reportQuantity},
+            qualified_quantity = #{qualifiedQuantity},
+            defect_quantity = #{defectQuantity},
+            remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <select id="findByReportUserId" parameterType="Long" resultType="com.mouse.mes.entity.ProductionReport">
+        SELECT * FROM t_production_report WHERE report_user_id = #{reportUserId} ORDER BY report_time DESC
+    </select>
+
+    <select id="getTaskSummary" parameterType="Long" resultType="com.mouse.mes.entity.ProductionReport">
+        SELECT
+            task_id,
+            COALESCE(SUM(report_quantity), 0) as reportQuantity,
+            COALESCE(SUM(qualified_quantity), 0) as qualifiedQuantity,
+            COALESCE(SUM(defect_quantity), 0) as defectQuantity
+        FROM t_production_report
+        WHERE task_id = #{taskId}
+        GROUP BY task_id
+    </select>
+</mapper>

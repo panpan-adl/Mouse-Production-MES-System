@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.SalesOrderMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.SalesOrder">
+        SELECT * FROM t_sales_order WHERE is_deleted = 0
+    </select>
+    <select id="findById" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.SalesOrder">
+        SELECT * FROM t_sales_order WHERE id = #{id} AND is_deleted = 0
+    </select>
+    <select id="findBySoNo" parameterType="java.lang.String" resultType="com.mouse.mes.entity.SalesOrder">
+        SELECT * FROM t_sales_order WHERE so_no = #{soNo} AND is_deleted = 0
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.SalesOrder">
+        INSERT INTO t_sales_order (so_no, customer_id, customer_name, customer_phone, product_id, product_name, quantity, unit_price, order_date, delivery_date, total_amount, priority, status, material_status, remark, created_by, created_at, updated_at, is_deleted)
+        VALUES (#{soNo}, #{customerId}, #{customerName}, #{customerPhone}, #{productId}, #{productName}, #{quantity}, #{unitPrice}, #{orderDate}, #{deliveryDate}, #{totalAmount}, #{priority}, #{status}, #{materialStatus}, #{remark}, #{createdBy}, #{createdAt}, #{updatedAt}, #{isDeleted})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.SalesOrder">
+        UPDATE t_sales_order SET
+        so_no = #{soNo},
+        customer_id = #{customerId},
+        customer_name = #{customerName},
+        customer_phone = #{customerPhone},
+        product_id = #{productId},
+        product_name = #{productName},
+        quantity = #{quantity},
+        unit_price = #{unitPrice},
+        order_date = #{orderDate},
+        delivery_date = #{deliveryDate},
+        total_amount = #{totalAmount},
+        priority = #{priority},
+        status = #{status},
+        material_status = #{materialStatus},
+        remark = #{remark},
+        created_by = #{createdBy},
+        updated_at = #{updatedAt},
+        is_deleted = #{isDeleted}
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="java.lang.Long">
+        UPDATE t_sales_order SET is_deleted = 1 WHERE id = #{id}
+    </delete>
+</mapper>

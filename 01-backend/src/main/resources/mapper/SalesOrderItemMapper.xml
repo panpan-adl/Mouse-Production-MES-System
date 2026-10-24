@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.SalesOrderItemMapper">
+    <select id="findBySoId" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.SalesOrderItem">
+        SELECT * FROM t_sales_order_item WHERE so_id = #{soId}
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.SalesOrderItem">
+        INSERT INTO t_sales_order_item (so_id, product_id, quantity, unit_price, amount, remark)
+        VALUES (#{soId}, #{productId}, #{quantity}, #{unitPrice}, #{amount}, #{remark})
+    </insert>
+    <delete id="deleteBySoId" parameterType="java.lang.Long">
+        DELETE FROM t_sales_order_item WHERE so_id = #{soId}
+    </delete>
+</mapper>

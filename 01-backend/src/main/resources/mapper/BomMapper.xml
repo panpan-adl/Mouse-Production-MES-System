@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.BomMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.Bom">
+        SELECT * FROM t_bom
+    </select>
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.Bom">
+        SELECT * FROM t_bom WHERE id = #{id}
+    </select>
+    <select id="findByProductId" parameterType="Long" resultType="com.mouse.mes.entity.Bom">
+        SELECT * FROM t_bom WHERE product_id = #{productId}
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.Bom">
+        INSERT INTO t_bom (product_id, material_id, material_name, quantity, unit, remark)
+        VALUES (#{productId}, #{materialId}, #{materialName}, #{quantity}, #{unit}, #{remark})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.Bom">
+        UPDATE t_bom SET
+        product_id = #{productId},
+        material_id = #{materialId},
+        material_name = #{materialName},
+        quantity = #{quantity},
+        unit = #{unit},
+        remark = #{remark}
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="Long">
+        DELETE FROM t_bom WHERE id = #{id}
+    </delete>
+</mapper>

@@ -1,0 +1,12 @@
+{
+  "databasePassword": "",
+  "javaHome": "D:\\software\\jdk17",
+  "mavenHome": "D:\\software\\IntelliJ IDEA 2025.3.6\\plugins\\maven\\lib\\maven3",
+  "mavenRepository": "C:\\Users\\Administrator\\.m2\\repository",
+  "nodeHome": "D:\\software\\VUE",
+  "mysqlHome": "D:\\software\\Mysql",
+  "mysqlConfig": "D:\\software\\Mysql\\my.ini",
+  "redisExe": "D:\\Redis-x64-5.0.14.1\\redis-server.exe",
+  "redisCli": "D:\\Redis-x64-5.0.14.1\\redis-cli.exe",
+  "minioExe": "D:\\software\\minio\\minio.exe"
+}

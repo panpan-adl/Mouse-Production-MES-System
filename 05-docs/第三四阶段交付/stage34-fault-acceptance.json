@@ -1,0 +1,13 @@
+{
+  "passed": 6,
+  "checks": [
+    "Missing QC template records actionable failure attempt 1",
+    "Missing QC template records actionable failure attempt 2",
+    "Missing QC template records actionable failure attempt 3",
+    "Three failed executions exhaust retry allowance",
+    "Correcting template configuration allows successful event recovery",
+    "Recovery retains exactly one QC todo"
+  ],
+  "failure_injection": "isolated database only",
+  "date": "2026-10-23T23:22:03.070847"
+}

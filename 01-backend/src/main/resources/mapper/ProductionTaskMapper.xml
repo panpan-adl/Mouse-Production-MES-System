@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.ProductionTaskMapper">
+    <sql id="ProductionTaskColumns">
+        id,
+        task_no,
+        plan_id,
+        CASE
+            WHEN task_type REGEXP '^[0-9]+$' THEN CAST(task_type AS SIGNED)
+            WHEN task_type = 'ASSEMBLY' THEN 1
+            WHEN task_type = 'PROCESSING' THEN 2
+            WHEN task_type = 'PACKAGING' THEN 3
+            WHEN task_type = 'REWORK' THEN 4
+            ELSE 1
+        END AS task_type,
+        product_id,
+        product_name,
+        CAST(quantity AS SIGNED) AS quantity,
+        assigned_user_id,
+        assigned_user_name,
+        task_status,
+        start_time,
+        end_time,
+        remark,
+        create_time,
+        update_time
+    </sql>
+
+    <select id="findAll" resultType="com.mouse.mes.entity.ProductionTask">
+        SELECT
+        <include refid="ProductionTaskColumns"/>
+        FROM t_production_task ORDER BY task_status, create_time DESC
+    </select>
+
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.ProductionTask">
+        SELECT
+        <include refid="ProductionTaskColumns"/>
+        FROM t_production_task WHERE id = #{id}
+    </select>
+
+    <select id="findByTaskNo" parameterType="String" resultType="com.mouse.mes.entity.ProductionTask">
+        SELECT
+        <include refid="ProductionTaskColumns"/>
+        FROM t_production_task WHERE task_no = #{taskNo}
+    </select>
+
+    <select id="findByPlanId" parameterType="Long" resultType="com.mouse.mes.entity.ProductionTask">
+        SELECT
+        <include refid="ProductionTaskColumns"/>
+        FROM t_production_task WHERE plan_id = #{planId} ORDER BY task_status, create_time DESC
+    </select>
+
+    <insert id="insert" parameterType="com.mouse.mes.entity.ProductionTask">
+        <selectKey keyProperty="id" order="AFTER" resultType="Long">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO t_production_task (task_no, plan_id, task_type, product_id, product_name, quantity, assigned_user_id, assigned_user_name, task_status, start_time, end_time, remark, create_time, update_time)
+        VALUES (#{taskNo}, #{planId}, #{taskType}, #{productId}, #{productName}, #{quantity}, #{assignedUserId}, #{assignedUserName}, #{taskStatus}, #{startTime}, #{endTime}, #{remark}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="update" parameterType="com.mouse.mes.entity.ProductionTask">
+        UPDATE t_production_task SET
+        task_no = #{taskNo},
+        plan_id = #{planId},
+        task_type = #{taskType},
+        product_id = #{productId},
+        product_name = #{productName},
+        quantity = #{quantity},
+        assigned_user_id = #{assignedUserId},
+        assigned_user_name = #{assignedUserName},
+        task_status = #{taskStatus},
+        start_time = #{startTime},
+        end_time = #{endTime},
+        remark = #{remark},
+        update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="Long">
+        DELETE FROM t_production_task WHERE id = #{id}
+    </delete>
+
+    <update id="claim">
+        UPDATE t_production_task
+        SET assigned_user_id = #{userId},
+            assigned_user_name = #{userName},
+            task_status = 1,
+            update_time = #{updateTime}
+        WHERE id = #{id}
+          AND task_status = 0
+          AND (assigned_user_id IS NULL OR assigned_user_id = 0)
+    </update>
+
+    <update id="start">
+        UPDATE t_production_task
+        SET task_status = 2,
+            start_time = #{startTime},
+            update_time = #{updateTime}
+        WHERE id = #{id}
+          AND task_status = 1
+          AND assigned_user_id = #{userId}
+    </update>
+</mapper>

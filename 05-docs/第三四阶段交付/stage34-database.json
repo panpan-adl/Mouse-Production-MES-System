@@ -1,0 +1,14 @@
+{
+  "database": "mouse_mes",
+  "backup": "D:\\competition\\MouseMES\\.runtime\\backups\\mouse_mes_stage34_20261023_232234.sql",
+  "preserved_counts": {
+    "t_order": "4",
+    "t_production_plan": "4",
+    "t_production_task": "0",
+    "t_production_report": "2",
+    "t_inventory": "0",
+    "t_inventory_transaction": "0",
+    "mm_work_order": "0"
+  },
+  "applied_twice": true
+}

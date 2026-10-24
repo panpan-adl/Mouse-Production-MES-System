@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.LoginLogMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.LoginLog">
+        SELECT * FROM t_login_log ORDER BY login_time DESC
+    </select>
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.LoginLog">
+        SELECT * FROM t_login_log WHERE id = #{id}
+    </select>
+    <select id="findByUserId" parameterType="Long" resultType="com.mouse.mes.entity.LoginLog">
+        SELECT * FROM t_login_log WHERE user_id = #{userId} ORDER BY login_time DESC
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.LoginLog">
+        INSERT INTO t_login_log (user_id, user_code, username, login_type, login_ip, login_location, browser, os, status, msg, login_time)
+        VALUES (#{userId}, #{userCode}, #{username}, #{loginType}, #{loginIp}, #{loginLocation}, #{browser}, #{os}, #{status}, #{msg}, #{loginTime})
+    </insert>
+</mapper>

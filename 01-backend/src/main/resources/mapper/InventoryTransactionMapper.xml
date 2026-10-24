@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.InventoryTransactionMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.InventoryTransaction">
+        SELECT * FROM t_inventory_transaction ORDER BY created_at DESC
+    </select>
+    <select id="findById" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.InventoryTransaction">
+        SELECT * FROM t_inventory_transaction WHERE id = #{id}
+    </select>
+    <select id="findByMaterialId" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.InventoryTransaction">
+        SELECT * FROM t_inventory_transaction WHERE material_id = #{materialId} ORDER BY created_at DESC
+    </select>
+    <select id="findBySourceOrder" parameterType="java.lang.String" resultType="com.mouse.mes.entity.InventoryTransaction">
+        SELECT * FROM t_inventory_transaction WHERE source_order_no = #{sourceOrderNo} ORDER BY created_at DESC
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.InventoryTransaction" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_inventory_transaction (
+            transaction_no, transaction_type, business_type, source_order_id, source_order_no,
+            warehouse_id, location_id, material_id, lot_id, quantity, before_quantity, after_quantity,
+            created_by, created_at, remark
+        )
+        VALUES (
+            #{transactionNo}, #{transactionType}, #{businessType}, #{sourceOrderId}, #{sourceOrderNo},
+            #{warehouseId}, #{locationId}, #{materialId}, #{lotId}, #{quantity}, #{beforeQuantity}, #{afterQuantity},
+            #{createdBy}, #{createdAt}, #{remark}
+        )
+    </insert>
+</mapper>

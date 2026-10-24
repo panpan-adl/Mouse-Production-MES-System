@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.FinanceMapper">
+    <select id="sumSalesIncome" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(total_amount), 0)
+        FROM t_sales_order
+        WHERE is_deleted = 0
+          AND (status IS NULL OR status &lt;&gt; 'CANCELLED')
+        <if test="startTime != null">
+            AND order_date &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND order_date &lt; #{endTime}
+        </if>
+    </select>
+
+    <select id="sumPurchaseExpense" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(total_amount), 0)
+        FROM t_purchase_order
+        WHERE is_deleted = 0
+          AND (status IS NULL OR status &lt;&gt; 'CANCELLED')
+        <if test="startTime != null">
+            AND order_date &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND order_date &lt; #{endTime}
+        </if>
+    </select>
+
+    <select id="sumMaintenanceExpense" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(cost), 0)
+        FROM t_maintenance
+        WHERE status = 'FINISHED'
+        <if test="startTime != null">
+            AND COALESCE(end_time, create_time) &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND COALESCE(end_time, create_time) &lt; #{endTime}
+        </if>
+    </select>
+
+    <select id="sumInventoryQuantity" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(quantity), 0)
+        FROM t_inventory
+        WHERE is_deleted = 0
+    </select>
+
+    <select id="sumInventoryAmount" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(i.quantity * COALESCE(pc.avg_price, 0)), 0)
+        FROM t_inventory i
+        LEFT JOIN (
+            SELECT
+                poi.material_id,
+                SUM(COALESCE(poi.amount, poi.quantity * poi.unit_price)) / NULLIF(SUM(poi.quantity), 0) AS avg_price
+            FROM t_purchase_order_item poi
+            INNER JOIN t_purchase_order po ON poi.po_id = po.id
+            WHERE po.is_deleted = 0
+              AND (po.status IS NULL OR po.status &lt;&gt; 'CANCELLED')
+            GROUP BY poi.material_id
+        ) pc ON i.material_id = pc.material_id
+        WHERE i.is_deleted = 0
+    </select>
+
+    <select id="countLowStockMaterial" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM (
+            SELECT
+                i.material_id,
+                SUM(i.quantity) AS total_quantity,
+                MAX(m.safety_stock) AS safety_stock
+            FROM t_inventory i
+            INNER JOIN t_material m ON i.material_id = m.id
+            WHERE i.is_deleted = 0
+              AND m.status = 1
+              AND m.safety_stock IS NOT NULL
+            GROUP BY i.material_id
+            HAVING SUM(i.quantity) &lt; MAX(m.safety_stock)
+        ) low_stock
+    </select>
+
+    <select id="sumQcDefectiveQuantity" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(defective_quantity), 0)
+        FROM t_qc_inspection
+        WHERE is_deleted = 0
+    </select>
+
+    <select id="sumQcScrapQuantity" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(defective_quantity), 0)
+        FROM t_qc_inspection
+        WHERE is_deleted = 0
+          AND result = 'SCRAP'
+    </select>
+
+    <select id="sumQcReworkQuantity" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(defective_quantity), 0)
+        FROM t_qc_inspection
+        WHERE is_deleted = 0
+          AND result = 'REWORK'
+    </select>
+
+    <select id="sumPurchaseAmountByMonth" resultType="com.mouse.mes.dto.FinanceGroupStat">
+        SELECT
+            DATE_FORMAT(order_date, '%Y-%m') AS group_key,
+            DATE_FORMAT(order_date, '%Y-%m') AS group_name,
+            COALESCE(SUM(total_amount), 0) AS amount
+        FROM t_purchase_order
+        WHERE is_deleted = 0
+          AND order_date IS NOT NULL
+          AND (status IS NULL OR status &lt;&gt; 'CANCELLED')
+        GROUP BY DATE_FORMAT(order_date, '%Y-%m')
+        ORDER BY group_key
+    </select>
+
+    <select id="sumPurchaseAmountBySupplier" resultType="com.mouse.mes.dto.FinanceGroupStat">
+        SELECT
+            CAST(po.supplier_id AS CHAR) AS group_key,
+            COALESCE(s.supplier_name, CONCAT('Supplier-', po.supplier_id)) AS group_name,
+            COALESCE(SUM(po.total_amount), 0) AS amount
+        FROM t_purchase_order po
+        LEFT JOIN t_supplier s ON po.supplier_id = s.id
+        WHERE po.is_deleted = 0
+          AND (po.status IS NULL OR po.status &lt;&gt; 'CANCELLED')
+        GROUP BY po.supplier_id, s.supplier_name
+        ORDER BY amount DESC
+    </select>
+
+    <select id="sumPurchaseAmountByMaterial" resultType="com.mouse.mes.dto.FinanceGroupStat">
+        SELECT
+            CAST(poi.material_id AS CHAR) AS group_key,
+            COALESCE(m.material_name, CONCAT('Material-', poi.material_id)) AS group_name,
+            COALESCE(SUM(COALESCE(poi.amount, poi.quantity * poi.unit_price)), 0) AS amount
+        FROM t_purchase_order_item poi
+        INNER JOIN t_purchase_order po ON poi.po_id = po.id
+        LEFT JOIN t_material m ON poi.material_id = m.id
+        WHERE po.is_deleted = 0
+          AND (po.status IS NULL OR po.status &lt;&gt; 'CANCELLED')
+        GROUP BY poi.material_id, m.material_name
+        ORDER BY amount DESC
+    </select>
+
+    <select id="findMonthlyTrend" resultType="com.mouse.mes.dto.FinanceTrendStat">
+        SELECT
+            months.month AS month,
+            COALESCE(s.sales_income, 0) AS sales_income,
+            COALESCE(p.purchase_expense, 0) AS purchase_expense,
+            COALESCE(m.maintenance_expense, 0) AS maintenance_expense,
+            COALESCE(s.sales_income, 0) - COALESCE(p.purchase_expense, 0) - COALESCE(m.maintenance_expense, 0) AS profit
+        FROM (
+            SELECT DATE_FORMAT(order_date, '%Y-%m') AS month
+            FROM t_sales_order
+            WHERE is_deleted = 0
+              AND order_date IS NOT NULL
+              AND (status IS NULL OR status &lt;&gt; 'CANCELLED')
+            UNION
+            SELECT DATE_FORMAT(order_date, '%Y-%m') AS month
+            FROM t_purchase_order
+            WHERE is_deleted = 0
+              AND order_date IS NOT NULL
+              AND (status IS NULL OR status &lt;&gt; 'CANCELLED')
+            UNION
+            SELECT DATE_FORMAT(COALESCE(end_time, create_time), '%Y-%m') AS month
+            FROM t_maintenance
+            WHERE status = 'FINISHED'
+              AND COALESCE(end_time, create_time) IS NOT NULL
+        ) months
+        LEFT JOIN (
+            SELECT DATE_FORMAT(order_date, '%Y-%m') AS month, COALESCE(SUM(total_amount), 0) AS sales_income
+            FROM t_sales_order
+            WHERE is_deleted = 0
+              AND order_date IS NOT NULL
+              AND (status IS NULL OR status &lt;&gt; 'CANCELLED')
+            GROUP BY DATE_FORMAT(order_date, '%Y-%m')
+        ) s ON months.month = s.month
+        LEFT JOIN (
+            SELECT DATE_FORMAT(order_date, '%Y-%m') AS month, COALESCE(SUM(total_amount), 0) AS purchase_expense
+            FROM t_purchase_order
+            WHERE is_deleted = 0
+              AND order_date IS NOT NULL
+              AND (status IS NULL OR status &lt;&gt; 'CANCELLED')
+            GROUP BY DATE_FORMAT(order_date, '%Y-%m')
+        ) p ON months.month = p.month
+        LEFT JOIN (
+            SELECT DATE_FORMAT(COALESCE(end_time, create_time), '%Y-%m') AS month, COALESCE(SUM(cost), 0) AS maintenance_expense
+            FROM t_maintenance
+            WHERE status = 'FINISHED'
+              AND COALESCE(end_time, create_time) IS NOT NULL
+            GROUP BY DATE_FORMAT(COALESCE(end_time, create_time), '%Y-%m')
+        ) m ON months.month = m.month
+        ORDER BY months.month
+    </select>
+
+    <select id="sumSalesIncomeByCustomer" resultType="com.mouse.mes.dto.FinanceGroupStat">
+        SELECT
+            CAST(so.customer_id AS CHAR) AS group_key,
+            COALESCE(c.customer_name, CONCAT('Customer-', so.customer_id)) AS group_name,
+            COALESCE(SUM(so.total_amount), 0) AS amount
+        FROM t_sales_order so
+        LEFT JOIN t_customer c ON so.customer_id = c.id
+        WHERE so.is_deleted = 0
+          AND (so.status IS NULL OR so.status &lt;&gt; 'CANCELLED')
+          AND so.customer_id IS NOT NULL
+        GROUP BY so.customer_id, c.customer_name
+        ORDER BY amount DESC
+    </select>
+
+    <select id="sumMaintenanceCostByEquipment" resultType="com.mouse.mes.dto.FinanceGroupStat">
+        SELECT
+            CAST(m.equipment_id AS CHAR) AS group_key,
+            COALESCE(m.equipment_name, COALESCE(e.equipment_name, CONCAT('Equipment-', m.equipment_id))) AS group_name,
+            COALESCE(SUM(m.cost), 0) AS amount
+        FROM t_maintenance m
+        LEFT JOIN t_equipment e ON m.equipment_id = e.id
+        WHERE m.status = 'FINISHED'
+          AND m.equipment_id IS NOT NULL
+        GROUP BY m.equipment_id, m.equipment_name, e.equipment_name
+        ORDER BY amount DESC
+    </select>
+</mapper>

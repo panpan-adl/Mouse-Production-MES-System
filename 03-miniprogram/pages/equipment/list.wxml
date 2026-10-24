@@ -1,0 +1,39 @@
+<view class="page">
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <input class="search-input" placeholder="搜索设备名称..." value="{{searchText}}" bindinput="searchInput"/>
+    </view>
+  </view>
+
+  <view class="content">
+    <view class="stats-row">
+      <view class="stat-item">
+        <text class="stat-value">{{equipments.length}}</text>
+        <text class="stat-label">设备</text>
+      </view>
+    </view>
+
+    <view class="list" wx:if="!loading">
+      <view class="list-item" wx:for="{{equipments}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+        <view class="item-left">
+          <text class="item-title">{{item.equipmentName}}</text>
+          <text class="item-subtitle">{{item.equipmentCode}}</text>
+        </view>
+        <view class="item-right">
+          <text class="status-tag {{getStatusColor(item.status)}}">{{getStatusText(item.status)}}</text>
+        </view>
+      </view>
+      <view class="empty" wx:if="{{equipments.length === 0}}">
+        <text>暂无设备</text>
+      </view>
+    </view>
+
+    <view class="loading" wx:if="loading">
+      <text>加载中...</text>
+    </view>
+  </view>
+
+  <view class="bottom-btn">
+    <button class="action-btn primary" bindtap="addEquipment">新增设备</button>
+  </view>
+</view>

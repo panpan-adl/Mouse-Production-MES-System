@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.QualityStandardMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.QualityStandard">
+        SELECT * FROM t_quality_standard WHERE status = 1
+    </select>
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.QualityStandard">
+        SELECT * FROM t_quality_standard WHERE id = #{id} AND status = 1
+    </select>
+    <select id="findByProductId" parameterType="Long" resultType="com.mouse.mes.entity.QualityStandard">
+        SELECT * FROM t_quality_standard WHERE product_id = #{productId} AND status = 1
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.QualityStandard">
+        INSERT INTO t_quality_standard (product_id, product_name, standard_name, standard_content, qualified_threshold, status, create_time, update_time)
+        VALUES (#{productId}, #{productName}, #{standardName}, #{standardContent}, #{qualifiedThreshold}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.QualityStandard">
+        UPDATE t_quality_standard SET
+        product_id = #{productId},
+        product_name = #{productName},
+        standard_name = #{standardName},
+        standard_content = #{standardContent},
+        qualified_threshold = #{qualifiedThreshold},
+        status = #{status},
+        update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="Long">
+        UPDATE t_quality_standard SET status = 0 WHERE id = #{id}
+    </delete>
+</mapper>

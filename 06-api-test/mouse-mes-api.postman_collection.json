@@ -1,0 +1,337 @@
+{
+  "info": {
+    "_postman_id": "mouse-mes-api-collection",
+    "name": "鼠标制造MES系统 API测试",
+    "description": "鼠标制造MES系统后端接口测试集合\n\n基础URL: http://localhost:8080\n\n用户编码规则:\n- 109XXX: CEO\n- 101XXX: 生产经理\n- 102XXX: 车间主任\n- 103XXX: 操作工\n- 104XXX: 质检员\n- 105XXX: 仓管员\n- 106XXX: 采购专员\n- 107XXX: 销售专员\n- 108XXX: 设备维护员\n- 110XXX: CFO财务总监\n\n测试账号:\n- 109001 / 123456 (CEO)\n- 101001 / 123456 (生产经理)\n- 102001 / 123456 (车间主任)\n- 103001 / 123456 (操作工)\n- 104001 / 123456 (质检员)\n- 105001 / 123456 (仓管员)\n- 106001 / 123456 (采购专员)\n- 107001 / 123456 (销售专员)\n- 108001 / 123456 (设备维护员)\n- 110001 / 123456 (CFO财务总监)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "认证模块",
+      "item": [
+        {"name": "登录 - CEO", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"userCode\":\"109001\",\"password\":\"123456\"}"}, "url": {"raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"]}}, "response": [], "event": [{"listen": "test", "script": {"exec": ["var jsonData = JSON.parse(responseBody);", "if (jsonData.code === 200 && jsonData.data && jsonData.data.token) {", "    pm.collectionVariables.set('token', jsonData.data.token);", "    console.log('Token saved successfully');", "}"]}}]},
+        {"name": "登录 - 生产经理", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"userCode\":\"101001\",\"password\":\"123456\"}"}, "url": {"raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"]}}, "response": [], "event": [{"listen": "test", "script": {"exec": ["var jsonData = JSON.parse(responseBody);", "if (jsonData.code === 200 && jsonData.data && jsonData.data.token) {", "    pm.collectionVariables.set('token', jsonData.data.token);", "    console.log('Token saved successfully');", "}"]}}]},
+        {"name": "登录 - 操作工", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"userCode\":\"103001\",\"password\":\"123456\"}"}, "url": {"raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"]}}, "response": [], "event": [{"listen": "test", "script": {"exec": ["var jsonData = JSON.parse(responseBody);", "if (jsonData.code === 200 && jsonData.data && jsonData.data.token) {", "    pm.collectionVariables.set('token', jsonData.data.token);", "    console.log('Token saved successfully');", "}"]}}]},
+        {"name": "登录 - CFO财务总监", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"userCode\":\"110001\",\"password\":\"123456\"}"}, "url": {"raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"]}}, "response": [], "event": [{"listen": "test", "script": {"exec": ["var jsonData = JSON.parse(responseBody);", "if (jsonData.code === 200 && jsonData.data && jsonData.data.token) {", "    pm.collectionVariables.set('token', jsonData.data.token);", "    console.log('Token saved successfully');", "}"]}}]},
+        {"name": "登录 - 错误密码", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"userCode\":\"109001\",\"password\":\"wrongpassword\"}"}, "url": {"raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"]}}, "response": []},
+        {"name": "登录 - 不存在用户", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"userCode\":\"999999\",\"password\":\"123456\"}"}, "url": {"raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "用户模块",
+      "item": [
+        {"name": "获取用户列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/users", "host": ["{{baseUrl}}"], "path": ["api", "users"]}}, "response": []},
+        {"name": "获取用户详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/users/1", "host": ["{{baseUrl}}"], "path": ["api", "users", "1"]}}, "response": []},
+        {"name": "按用户名查询", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/users/username/admin", "host": ["{{baseUrl}}"], "path": ["api", "users", "username", "admin"]}}, "response": []},
+        {"name": "按用户编码查询", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/users/usercode/109001", "host": ["{{baseUrl}}"], "path": ["api", "users", "usercode", "109001"]}}, "response": []},
+        {"name": "创建用户", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"userCode\":\"103003\",\"username\":\"worker3\",\"password\":\"123456\",\"realName\":\"测试用户\",\"phone\":\"13800138999\",\"email\":\"test@mouse.com\",\"gender\":1,\"roleId\":3,\"deptId\":8,\"status\":1}"}, "url": {"raw": "{{baseUrl}}/api/users", "host": ["{{baseUrl}}"], "path": ["api", "users"]}}, "response": []},
+        {"name": "更新用户", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"realName\":\"张三更新\",\"phone\":\"13800138001\",\"email\":\"zhangsan@mouse.com\",\"status\":1}"}, "url": {"raw": "{{baseUrl}}/api/users/1", "host": ["{{baseUrl}}"], "path": ["api", "users", "1"]}}, "response": []},
+        {"name": "删除用户（测试用）", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/users/999", "host": ["{{baseUrl}}"], "path": ["api", "users", "999"]}}, "response": []},
+        {"name": "按角色查询用户", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/users/role/1", "host": ["{{baseUrl}}"], "path": ["api", "users", "role", "1"]}}, "response": []},
+        {"name": "按部门查询用户", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/users/dept/1", "host": ["{{baseUrl}}"], "path": ["api", "users", "dept", "1"]}}, "response": []},
+        {"name": "获取所有用户（包含已删除）", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/users/all", "host": ["{{baseUrl}}"], "path": ["api", "users", "all"]}}, "response": []},
+        {"name": "获取已离职用户列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/users/deleted", "host": ["{{baseUrl}}"], "path": ["api", "users", "deleted"]}}, "response": []},
+        {"name": "员工离职（软删除）", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/users/999/leave", "host": ["{{baseUrl}}"], "path": ["api", "users", "999", "leave"]}}, "response": []},
+        {"name": "恢复离职员工", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/users/999/restore", "host": ["{{baseUrl}}"], "path": ["api", "users", "999", "restore"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "角色模块",
+      "item": [
+        {"name": "获取角色列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/roles", "host": ["{{baseUrl}}"], "path": ["api", "roles"]}}, "response": []},
+        {"name": "获取角色详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/roles/1", "host": ["{{baseUrl}}"], "path": ["api", "roles", "1"]}}, "response": []},
+        {"name": "按角色编码查询", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/roles/rolecode/109", "host": ["{{baseUrl}}"], "path": ["api", "roles", "rolecode", "109"]}}, "response": []},
+        {"name": "创建角色", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"roleCode\":\"111\",\"roleName\":\"测试角色\",\"roleDesc\":\"测试角色描述\",\"sort\":10,\"status\":1}"}, "url": {"raw": "{{baseUrl}}/api/roles", "host": ["{{baseUrl}}"], "path": ["api", "roles"]}}, "response": []},
+        {"name": "更新角色", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"roleName\":\"生产经理更新\",\"roleDesc\":\"更新描述\",\"status\":1}"}, "url": {"raw": "{{baseUrl}}/api/roles/1", "host": ["{{baseUrl}}"], "path": ["api", "roles", "1"]}}, "response": []},
+        {"name": "删除角色（测试用）", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/roles/999", "host": ["{{baseUrl}}"], "path": ["api", "roles", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "部门模块",
+      "item": [
+        {"name": "获取部门列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/departments", "host": ["{{baseUrl}}"], "path": ["api", "departments"]}}, "response": []},
+        {"name": "获取部门详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/departments/1", "host": ["{{baseUrl}}"], "path": ["api", "departments", "1"]}}, "response": []},
+        {"name": "获取子部门", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/departments/parent/0", "host": ["{{baseUrl}}"], "path": ["api", "departments", "parent", "0"]}}, "response": []},
+        {"name": "创建部门", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"deptName\":\"测试部门\",\"parentId\":0,\"sort\":1,\"status\":1}"}, "url": {"raw": "{{baseUrl}}/api/departments", "host": ["{{baseUrl}}"], "path": ["api", "departments"]}}, "response": []},
+        {"name": "更新部门", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"deptName\":\"更新部门\",\"status\":1}"}, "url": {"raw": "{{baseUrl}}/api/departments/1", "host": ["{{baseUrl}}"], "path": ["api", "departments", "1"]}}, "response": []},
+        {"name": "删除部门", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/departments/999", "host": ["{{baseUrl}}"], "path": ["api", "departments", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "产品模块",
+      "item": [
+        {"name": "获取产品列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/products", "host": ["{{baseUrl}}"], "path": ["api", "products"]}}, "response": []},
+        {"name": "获取产品详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/products/1", "host": ["{{baseUrl}}"], "path": ["api", "products", "1"]}}, "response": []},
+        {"name": "按产品编码查询", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/products/productcode/PROD001", "host": ["{{baseUrl}}"], "path": ["api", "products", "productcode", "PROD001"]}}, "response": []},
+        {"name": "创建产品", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"productCode\":\"PROD001\",\"productName\":\"无线鼠标\",\"specification\":\"标准规格\",\"unit\":\"PCS\",\"status\":1}"}, "url": {"raw": "{{baseUrl}}/api/products", "host": ["{{baseUrl}}"], "path": ["api", "products"]}}, "response": []},
+        {"name": "更新产品", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"productName\":\"更新产品\",\"status\":1}"}, "url": {"raw": "{{baseUrl}}/api/products/1", "host": ["{{baseUrl}}"], "path": ["api", "products", "1"]}}, "response": []},
+        {"name": "删除产品", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/products/999", "host": ["{{baseUrl}}"], "path": ["api", "products", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "订单模块",
+      "item": [
+        {"name": "获取订单列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"]}}, "response": []},
+        {"name": "获取订单详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/orders/1", "host": ["{{baseUrl}}"], "path": ["api", "orders", "1"]}}, "response": []},
+        {"name": "创建订单", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"orderNo\":\"ORD202401001\",\"customerName\":\"测试客户\",\"customerPhone\":\"13800138000\",\"productName\":\"无线鼠标\",\"quantity\":100,\"unitPrice\":10.00,\"totalAmount\":1000.00,\"orderDate\":\"2024-01-01\",\"deliveryDate\":\"2024-01-15\",\"createBy\":1}"}, "url": {"raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"]}}, "response": []},
+        {"name": "确认订单", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/orders/1/confirm", "host": ["{{baseUrl}}"], "path": ["api", "orders", "1", "confirm"]}}, "response": []},
+        {"name": "取消订单", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/orders/1/cancel", "host": ["{{baseUrl}}"], "path": ["api", "orders", "1", "cancel"]}}, "response": []},
+        {"name": "按状态查询订单", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/orders/status/0", "host": ["{{baseUrl}}"], "path": ["api", "orders", "status", "0"]}}, "response": []},
+        {"name": "更新订单", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"customerName\":\"更新客户\"}"}, "url": {"raw": "{{baseUrl}}/api/orders/1", "host": ["{{baseUrl}}"], "path": ["api", "orders", "1"]}}, "response": []},
+        {"name": "删除订单", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/orders/999", "host": ["{{baseUrl}}"], "path": ["api", "orders", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "生产计划模块",
+      "item": [
+        {"name": "获取生产计划列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-plans", "host": ["{{baseUrl}}"], "path": ["api", "production-plans"]}}, "response": []},
+        {"name": "获取生产计划详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-plans/1", "host": ["{{baseUrl}}"], "path": ["api", "production-plans", "1"]}}, "response": []},
+        {"name": "创建生产计划", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"planNo\":\"PLAN202401001\",\"productId\":1,\"productName\":\"无线鼠标\",\"planQuantity\":1000,\"createBy\":1}"}, "url": {"raw": "{{baseUrl}}/api/production-plans", "host": ["{{baseUrl}}"], "path": ["api", "production-plans"]}}, "response": []},
+        {"name": "从订单生成计划", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-plans/from-order/1", "host": ["{{baseUrl}}"], "path": ["api", "production-plans", "from-order", "1"]}}, "response": []},
+        {"name": "获取计划进度", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-plans/1/progress", "host": ["{{baseUrl}}"], "path": ["api", "production-plans", "1", "progress"]}}, "response": []},
+        {"name": "按状态查询计划", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-plans/status/0", "host": ["{{baseUrl}}"], "path": ["api", "production-plans", "status", "0"]}}, "response": []},
+        {"name": "按订单查询计划", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-plans/order/1", "host": ["{{baseUrl}}"], "path": ["api", "production-plans", "order", "1"]}}, "response": []},
+        {"name": "更新生产计划", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"planQuantity\":2000}"}, "url": {"raw": "{{baseUrl}}/api/production-plans/1", "host": ["{{baseUrl}}"], "path": ["api", "production-plans", "1"]}}, "response": []},
+        {"name": "删除生产计划", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-plans/999", "host": ["{{baseUrl}}"], "path": ["api", "production-plans", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "生产任务模块",
+      "item": [
+        {"name": "获取生产任务列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-tasks", "host": ["{{baseUrl}}"], "path": ["api", "production-tasks"]}}, "response": []},
+        {"name": "获取生产任务详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-tasks/1", "host": ["{{baseUrl}}"], "path": ["api", "production-tasks", "1"]}}, "response": []},
+        {"name": "创建生产任务", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"taskNo\":\"TASK202401001\",\"planId\":1,\"taskType\":1,\"productId\":1,\"productName\":\"无线鼠标\",\"quantity\":100,\"taskStatus\":0}"}, "url": {"raw": "{{baseUrl}}/api/production-tasks", "host": ["{{baseUrl}}"], "path": ["api", "production-tasks"]}}, "response": []},
+        {"name": "按计划查询任务", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-tasks/plan/1", "host": ["{{baseUrl}}"], "path": ["api", "production-tasks", "plan", "1"]}}, "response": []},
+        {"name": "按任务号查询", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-tasks/taskno/TASK202401001", "host": ["{{baseUrl}}"], "path": ["api", "production-tasks", "taskno", "TASK202401001"]}}, "response": []},
+        {"name": "更新生产任务", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"taskStatus\":1}"}, "url": {"raw": "{{baseUrl}}/api/production-tasks/1", "host": ["{{baseUrl}}"], "path": ["api", "production-tasks", "1"]}}, "response": []},
+        {"name": "删除生产任务", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-tasks/999", "host": ["{{baseUrl}}"], "path": ["api", "production-tasks", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "生产订单模块",
+      "item": [
+        {"name": "获取生产订单列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-order/list", "host": ["{{baseUrl}}"], "path": ["api", "production-order", "list"]}}, "response": []},
+        {"name": "获取生产订单详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-order/1", "host": ["{{baseUrl}}"], "path": ["api", "production-order", "1"]}}, "response": []},
+        {"name": "创建生产订单", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"poNo\":\"PO202401001\",\"productId\":1,\"plannedQuantity\":100,\"status\":\"PLANNED\",\"createdBy\":1}"}, "url": {"raw": "{{baseUrl}}/api/production-order/add", "host": ["{{baseUrl}}"], "path": ["api", "production-order", "add"]}}, "response": []},
+        {"name": "更新生产订单", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"status\":\"IN_PROGRESS\"}"}, "url": {"raw": "{{baseUrl}}/api/production-order/1", "host": ["{{baseUrl}}"], "path": ["api", "production-order", "1"]}}, "response": []},
+        {"name": "按订单号查询", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-order/no/PO202401001", "host": ["{{baseUrl}}"], "path": ["api", "production-order", "no", "PO202401001"]}}, "response": []},
+        {"name": "删除生产订单", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-order/999", "host": ["{{baseUrl}}"], "path": ["api", "production-order", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "工单模块",
+      "item": [
+        {"name": "获取工单列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/work-order/list", "host": ["{{baseUrl}}"], "path": ["api", "work-order", "list"]}}, "response": []},
+        {"name": "获取工单详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/work-order/1", "host": ["{{baseUrl}}"], "path": ["api", "work-order", "1"]}}, "response": []},
+        {"name": "创建工单", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"woNo\":\"WO202401001\",\"productionOrderId\":1,\"productId\":1,\"plannedQuantity\":100,\"createdBy\":1}"}, "url": {"raw": "{{baseUrl}}/api/work-order/add", "host": ["{{baseUrl}}"], "path": ["api", "work-order", "add"]}}, "response": []},
+        {"name": "分配工单", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"userId\":1,\"userName\":\"张三\"}"}, "url": {"raw": "{{baseUrl}}/api/work-order/1/assign", "host": ["{{baseUrl}}"], "path": ["api", "work-order", "1", "assign"]}}, "response": []},
+        {"name": "认领工单", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"userId\":1}"}, "url": {"raw": "{{baseUrl}}/api/work-order/1/claim", "host": ["{{baseUrl}}"], "path": ["api", "work-order", "1", "claim"]}}, "response": []},
+        {"name": "完成工单", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"actualQuantity\":100}"}, "url": {"raw": "{{baseUrl}}/api/work-order/1/complete", "host": ["{{baseUrl}}"], "path": ["api", "work-order", "1", "complete"]}}, "response": []},
+        {"name": "按状态查询工单", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/work-order/status/PLANNED", "host": ["{{baseUrl}}"], "path": ["api", "work-order", "status", "PLANNED"]}}, "response": []},
+        {"name": "按用户查询工单", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/work-order/user/1", "host": ["{{baseUrl}}"], "path": ["api", "work-order", "user", "1"]}}, "response": []},
+        {"name": "按生产订单查询工单", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/work-order/production/1", "host": ["{{baseUrl}}"], "path": ["api", "work-order", "production", "1"]}}, "response": []},
+        {"name": "更新工单", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"woNo\":\"UPDATED_WO\"}"}, "url": {"raw": "{{baseUrl}}/api/work-order/1", "host": ["{{baseUrl}}"], "path": ["api", "work-order", "1"]}}, "response": []},
+        {"name": "删除工单", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/work-order/999", "host": ["{{baseUrl}}"], "path": ["api", "work-order", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "生产报工模块",
+      "item": [
+        {"name": "获取报工列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-reports", "host": ["{{baseUrl}}"], "path": ["api", "production-reports"]}}, "response": []},
+        {"name": "获取报工详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-reports/1", "host": ["{{baseUrl}}"], "path": ["api", "production-reports", "1"]}}, "response": []},
+        {"name": "提交报工", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"taskId\":1,\"reportUserId\":1,\"reportUserName\":\"张三\",\"reportQuantity\":10,\"qualifiedQuantity\":8,\"defectQuantity\":2,\"reportTime\":\"2024-01-01 08:00:00\"}"}, "url": {"raw": "{{baseUrl}}/api/production-reports", "host": ["{{baseUrl}}"], "path": ["api", "production-reports"]}}, "response": []},
+        {"name": "更新报工", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"reportQuantity\":15,\"qualifiedQuantity\":12,\"defectQuantity\":3}"}, "url": {"raw": "{{baseUrl}}/api/production-reports/1", "host": ["{{baseUrl}}"], "path": ["api", "production-reports", "1"]}}, "response": []},
+        {"name": "按任务查询报工", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-reports/task/1", "host": ["{{baseUrl}}"], "path": ["api", "production-reports", "task", "1"]}}, "response": []},
+        {"name": "获取任务报工汇总", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-reports/task/1/summary", "host": ["{{baseUrl}}"], "path": ["api", "production-reports", "task", "1", "summary"]}}, "response": []},
+        {"name": "按用户查询报工", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/production-reports/user/1", "host": ["{{baseUrl}}"], "path": ["api", "production-reports", "user", "1"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "生产看板模块",
+      "item": [
+        {"name": "获取看板汇总", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/dashboard/summary", "host": ["{{baseUrl}}"], "path": ["api", "dashboard", "summary"]}}, "response": []},
+        {"name": "获取最近订单", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/dashboard/recent-orders", "host": ["{{baseUrl}}"], "path": ["api", "dashboard", "recent-orders"]}}, "response": []},
+        {"name": "获取最近计划", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/dashboard/recent-plans", "host": ["{{baseUrl}}"], "path": ["api", "dashboard", "recent-plans"]}}, "response": []},
+        {"name": "获取最近工单", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/dashboard/recent-work-orders", "host": ["{{baseUrl}}"], "path": ["api", "dashboard", "recent-work-orders"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "库存模块",
+      "item": [
+        {"name": "获取库存列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/inventory/list", "host": ["{{baseUrl}}"], "path": ["api", "inventory", "list"]}}, "response": []},
+        {"name": "获取库存详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/inventory/1", "host": ["{{baseUrl}}"], "path": ["api", "inventory", "1"]}}, "response": []},
+        {"name": "创建库存", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"warehouseId\":1,\"locationId\":1,\"materialId\":1,\"quantity\":100}"}, "url": {"raw": "{{baseUrl}}/api/inventory/create", "host": ["{{baseUrl}}"], "path": ["api", "inventory", "create"]}}, "response": []},
+        {"name": "组合查询库存", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/inventory/search?materialId=1&warehouseId=1&locationId=1", "host": ["{{baseUrl}}"], "path": ["api", "inventory", "search"]}}, "response": []},
+        {"name": "低库存预警", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/inventory/low-stock", "host": ["{{baseUrl}}"], "path": ["api", "inventory", "low-stock"]}}, "response": []},
+        {"name": "删除库存", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/inventory/999", "host": ["{{baseUrl}}"], "path": ["api", "inventory", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "入库模块(stock-in)",
+      "item": [
+        {"name": "获取入库单列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/stock-in/list", "host": ["{{baseUrl}}"], "path": ["api", "stock-in", "list"]}}, "response": []},
+        {"name": "获取入库单详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/stock-in/1", "host": ["{{baseUrl}}"], "path": ["api", "stock-in", "1"]}}, "response": []},
+        {"name": "创建入库单", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"stockInNo\":\"SIN202401001\",\"stockInType\":\"PURCHASE\",\"warehouseId\":1,\"sourceOrderNo\":\"PO202401001\",\"status\":\"COMPLETED\",\"createdBy\":1,\"items\":[{\"materialId\":1,\"locationId\":1,\"quantity\":100}]}"}, "url": {"raw": "{{baseUrl}}/api/stock-in/create", "host": ["{{baseUrl}}"], "path": ["api", "stock-in", "create"]}}, "response": []},
+        {"name": "删除入库单", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/stock-in/999", "host": ["{{baseUrl}}"], "path": ["api", "stock-in", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "出库模块(stock-out)",
+      "item": [
+        {"name": "获取出库单列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/stock-out/list", "host": ["{{baseUrl}}"], "path": ["api", "stock-out", "list"]}}, "response": []},
+        {"name": "获取出库单详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/stock-out/1", "host": ["{{baseUrl}}"], "path": ["api", "stock-out", "1"]}}, "response": []},
+        {"name": "创建出库单", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"stockOutNo\":\"SOUT202401001\",\"stockOutType\":\"PRODUCTION_ISSUE\",\"warehouseId\":1,\"sourceOrderNo\":\"WO202401001\",\"status\":\"COMPLETED\",\"createdBy\":1,\"items\":[{\"materialId\":1,\"locationId\":1,\"quantity\":50}]}"}, "url": {"raw": "{{baseUrl}}/api/stock-out/create", "host": ["{{baseUrl}}"], "path": ["api", "stock-out", "create"]}}, "response": []},
+        {"name": "删除出库单", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/stock-out/999", "host": ["{{baseUrl}}"], "path": ["api", "stock-out", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "物料模块",
+      "item": [
+        {"name": "获取物料列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/materials", "host": ["{{baseUrl}}"], "path": ["api", "materials"]}}, "response": []},
+        {"name": "获取物料详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/materials/1", "host": ["{{baseUrl}}"], "path": ["api", "materials", "1"]}}, "response": []},
+        {"name": "按物料编码查询", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/materials/materialcode/MAT001", "host": ["{{baseUrl}}"], "path": ["api", "materials", "materialcode", "MAT001"]}}, "response": []},
+        {"name": "创建物料", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"materialCode\":\"MAT001\",\"materialName\":\"外壳\",\"materialType\":1,\"specification\":\"标准规格\",\"unit\":\"PCS\",\"safetyStock\":10,\"currentStock\":0,\"status\":1}"}, "url": {"raw": "{{baseUrl}}/api/materials", "host": ["{{baseUrl}}"], "path": ["api", "materials"]}}, "response": []},
+        {"name": "更新物料", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"materialName\":\"更新物料\",\"status\":1}"}, "url": {"raw": "{{baseUrl}}/api/materials/1", "host": ["{{baseUrl}}"], "path": ["api", "materials", "1"]}}, "response": []},
+        {"name": "更新库存", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/materials/1/stock/50", "host": ["{{baseUrl}}"], "path": ["api", "materials", "1", "stock", "50"]}}, "response": []},
+        {"name": "删除物料", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/materials/999", "host": ["{{baseUrl}}"], "path": ["api", "materials", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "仓库模块",
+      "item": [
+        {"name": "获取仓库列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/warehouses", "host": ["{{baseUrl}}"], "path": ["api", "warehouses"]}}, "response": []},
+        {"name": "获取仓库详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/warehouses/1", "host": ["{{baseUrl}}"], "path": ["api", "warehouses", "1"]}}, "response": []},
+        {"name": "创建仓库", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"warehouseCode\":\"WH001\",\"warehouseName\":\"主仓库\",\"location\":\"A区\",\"managerId\":1,\"managerName\":\"管理员\",\"status\":1}"}, "url": {"raw": "{{baseUrl}}/api/warehouses", "host": ["{{baseUrl}}"], "path": ["api", "warehouses"]}}, "response": []},
+        {"name": "更新仓库", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"warehouseName\":\"更新仓库\"}"}, "url": {"raw": "{{baseUrl}}/api/warehouses/1", "host": ["{{baseUrl}}"], "path": ["api", "warehouses", "1"]}}, "response": []},
+        {"name": "删除仓库", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/warehouses/999", "host": ["{{baseUrl}}"], "path": ["api", "warehouses", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "库位模块",
+      "item": [
+        {"name": "获取库位列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/locations/list", "host": ["{{baseUrl}}"], "path": ["api", "locations", "list"]}}, "response": []},
+        {"name": "获取库位详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/locations/1", "host": ["{{baseUrl}}"], "path": ["api", "locations", "1"]}}, "response": []},
+        {"name": "按仓库查询库位", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/locations/warehouse/1", "host": ["{{baseUrl}}"], "path": ["api", "locations", "warehouse", "1"]}}, "response": []},
+        {"name": "创建库位", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"warehouseId\":1,\"locationCode\":\"LOC001\",\"locationName\":\"A01库位\",\"locationType\":\"NORMAL\",\"status\":\"1\"}"}, "url": {"raw": "{{baseUrl}}/api/locations/add", "host": ["{{baseUrl}}"], "path": ["api", "locations", "add"]}}, "response": []},
+        {"name": "更新库位", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"locationName\":\"更新库位\"}"}, "url": {"raw": "{{baseUrl}}/api/locations/1", "host": ["{{baseUrl}}"], "path": ["api", "locations", "1"]}}, "response": []},
+        {"name": "删除库位", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/locations/999", "host": ["{{baseUrl}}"], "path": ["api", "locations", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "设备模块",
+      "item": [
+        {"name": "获取设备列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/equipments", "host": ["{{baseUrl}}"], "path": ["api", "equipments"]}}, "response": []},
+        {"name": "获取设备详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/equipments/1", "host": ["{{baseUrl}}"], "path": ["api", "equipments", "1"]}}, "response": []},
+        {"name": "创建设备", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"equipmentCode\":\"EQ001\",\"equipmentName\":\"注塑机\",\"equipmentType\":\"生产设备\",\"model\":\"MX-001\",\"manufacturer\":\"厂家\",\"purchaseDate\":\"2024-01-01\",\"warrantyPeriod\":12,\"location\":\"车间A\",\"status\":\"NORMAL\",\"responsibleId\":1,\"responsibleName\":\"设备管理员\"}"}, "url": {"raw": "{{baseUrl}}/api/equipments", "host": ["{{baseUrl}}"], "path": ["api", "equipments"]}}, "response": []},
+        {"name": "更新设备", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"equipmentName\":\"更新设备\",\"status\":\"FAULT\"}"}, "url": {"raw": "{{baseUrl}}/api/equipments/1", "host": ["{{baseUrl}}"], "path": ["api", "equipments", "1"]}}, "response": []},
+        {"name": "删除设备", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/equipments/999", "host": ["{{baseUrl}}"], "path": ["api", "equipments", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "维修模块",
+      "item": [
+        {"name": "获取维修单列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/maintenances/list", "host": ["{{baseUrl}}"], "path": ["api", "maintenances", "list"]}}, "response": []},
+        {"name": "获取维修单详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/maintenances/1", "host": ["{{baseUrl}}"], "path": ["api", "maintenances", "1"]}}, "response": []},
+        {"name": "创建维修单", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"maintenanceNo\":\"MT202401001\",\"equipmentId\":1,\"maintenanceType\":2,\"faultDesc\":\"设备异常\",\"remark\":\"维修测试\"}"}, "url": {"raw": "{{baseUrl}}/api/maintenances", "host": ["{{baseUrl}}"], "path": ["api", "maintenances"]}}, "response": []},
+        {"name": "开始维修", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/maintenances/1/start", "host": ["{{baseUrl}}"], "path": ["api", "maintenances", "1", "start"]}}, "response": []},
+        {"name": "完成维修", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"maintenanceContent\":\"清洁设备\",\"result\":\"REPAIRED\",\"cost\":88.00,\"scrapEquipment\":false}"}, "url": {"raw": "{{baseUrl}}/api/maintenances/1/finish", "host": ["{{baseUrl}}"], "path": ["api", "maintenances", "1", "finish"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "质检模块",
+      "item": [
+        {"name": "获取质检单列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/qc-inspection/list", "host": ["{{baseUrl}}"], "path": ["api", "qc-inspection", "list"]}}, "response": []},
+        {"name": "获取质检单详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/qc-inspection/1", "host": ["{{baseUrl}}"], "path": ["api", "qc-inspection", "1"]}}, "response": []},
+        {"name": "创建质检单", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"inspectionNo\":\"QC202401001\",\"inspectionType\":\"INCOMING\",\"sourceOrderId\":1,\"sourceOrderNo\":\"PO202401001\",\"result\":\"QUALIFIED\",\"remark\":\"质检测试\",\"items\":[{\"materialId\":1,\"inspectionItem\":\"外观检查\",\"inspectionStandard\":\"符合标准\",\"actualValue\":\"合格\",\"sampleQuantity\":10,\"qualifiedQuantity\":10,\"itemResult\":\"QUALIFIED\"}]}"}, "url": {"raw": "{{baseUrl}}/api/qc-inspection/add", "host": ["{{baseUrl}}"], "path": ["api", "qc-inspection", "add"]}}, "response": []},
+        {"name": "更新质检单", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"result\":\"SCRAP\",\"defectReason\":\"损坏\",\"handleMethod\":\"报废\"}"}, "url": {"raw": "{{baseUrl}}/api/qc-inspection/1", "host": ["{{baseUrl}}"], "path": ["api", "qc-inspection", "1"]}}, "response": []},
+        {"name": "删除质检单", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/qc-inspection/999", "host": ["{{baseUrl}}"], "path": ["api", "qc-inspection", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "采购订单模块",
+      "item": [
+        {"name": "获取采购订单列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/purchase-order/list", "host": ["{{baseUrl}}"], "path": ["api", "purchase-order", "list"]}}, "response": []},
+        {"name": "获取采购订单详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/purchase-order/1", "host": ["{{baseUrl}}"], "path": ["api", "purchase-order", "1"]}}, "response": []},
+        {"name": "创建采购订单", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"poNo\":\"PO202401001\",\"supplierId\":1,\"orderDate\":\"2024-01-01\",\"expectedDate\":\"2024-01-10\",\"status\":\"DRAFT\",\"createdBy\":1,\"items\":[{\"materialId\":1,\"quantity\":100,\"unitPrice\":10.00,\"amount\":1000.00}]}"}, "url": {"raw": "{{baseUrl}}/api/purchase-order/create", "host": ["{{baseUrl}}"], "path": ["api", "purchase-order", "create"]}}, "response": []},
+        {"name": "提交采购订单", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/purchase-order/1/submit", "host": ["{{baseUrl}}"], "path": ["api", "purchase-order", "1", "submit"]}}, "response": []},
+        {"name": "审核采购订单", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/purchase-order/1/approve", "host": ["{{baseUrl}}"], "path": ["api", "purchase-order", "1", "approve"]}}, "response": []},
+        {"name": "采购到货", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"warehouseId\":1,\"createdBy\":1,\"items\":[{\"purchaseOrderItemId\":1,\"receiveQuantity\":50}]}"}, "url": {"raw": "{{baseUrl}}/api/purchase-order/1/receive", "host": ["{{baseUrl}}"], "path": ["api", "purchase-order", "1", "receive"]}}, "response": []},
+        {"name": "更新采购订单", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"remark\":\"更新采购订单\"}"}, "url": {"raw": "{{baseUrl}}/api/purchase-order/1", "host": ["{{baseUrl}}"], "path": ["api", "purchase-order", "1"]}}, "response": []},
+        {"name": "删除采购订单", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/purchase-order/999", "host": ["{{baseUrl}}"], "path": ["api", "purchase-order", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "供应商模块",
+      "item": [
+        {"name": "获取供应商列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/suppliers", "host": ["{{baseUrl}}"], "path": ["api", "suppliers"]}}, "response": []},
+        {"name": "获取供应商详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/suppliers/1", "host": ["{{baseUrl}}"], "path": ["api", "suppliers", "1"]}}, "response": []},
+        {"name": "组合查询供应商", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/suppliers/search?supplierCode=SUP001&supplierName=测试&status=1", "host": ["{{baseUrl}}"], "path": ["api", "suppliers", "search"]}}, "response": []},
+        {"name": "创建供应商", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"supplierCode\":\"SUP001\",\"supplierName\":\"测试供应商\",\"contactPerson\":\"联系人\",\"contactPhone\":\"13800000000\",\"address\":\"地址\",\"status\":1,\"bankName\":\"银行\",\"bankAccount\":\"6222000000000001\"}"}, "url": {"raw": "{{baseUrl}}/api/suppliers/create", "host": ["{{baseUrl}}"], "path": ["api", "suppliers", "create"]}}, "response": []},
+        {"name": "更新供应商", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"contactPerson\":\"更新联系人\"}"}, "url": {"raw": "{{baseUrl}}/api/suppliers/1", "host": ["{{baseUrl}}"], "path": ["api", "suppliers", "1"]}}, "response": []},
+        {"name": "禁用供应商", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/suppliers/1/disable", "host": ["{{baseUrl}}"], "path": ["api", "suppliers", "1", "disable"]}}, "response": []},
+        {"name": "启用供应商", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/suppliers/1/enable", "host": ["{{baseUrl}}"], "path": ["api", "suppliers", "1", "enable"]}}, "response": []},
+        {"name": "删除供应商", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/suppliers/999", "host": ["{{baseUrl}}"], "path": ["api", "suppliers", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "销售订单模块",
+      "item": [
+        {"name": "获取销售订单列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/sales-order/list", "host": ["{{baseUrl}}"], "path": ["api", "sales-order", "list"]}}, "response": []},
+        {"name": "获取销售订单详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/sales-order/1", "host": ["{{baseUrl}}"], "path": ["api", "sales-order", "1"]}}, "response": []},
+        {"name": "按订单号查询", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/sales-order/no/SO202401001", "host": ["{{baseUrl}}"], "path": ["api", "sales-order", "no", "SO202401001"]}}, "response": []},
+        {"name": "创建销售订单", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"soNo\":\"SO202401001\",\"customerId\":1,\"orderDate\":\"2024-01-01\",\"deliveryDate\":\"2024-01-15\",\"totalAmount\":1000.00,\"status\":\"PENDING\",\"createdBy\":1}"}, "url": {"raw": "{{baseUrl}}/api/sales-order/add", "host": ["{{baseUrl}}"], "path": ["api", "sales-order", "add"]}}, "response": []},
+        {"name": "更新销售订单", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"remark\":\"更新销售订单\"}"}, "url": {"raw": "{{baseUrl}}/api/sales-order/1", "host": ["{{baseUrl}}"], "path": ["api", "sales-order", "1"]}}, "response": []},
+        {"name": "删除销售订单", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/sales-order/999", "host": ["{{baseUrl}}"], "path": ["api", "sales-order", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "客户模块",
+      "item": [
+        {"name": "获取客户列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/customer/list", "host": ["{{baseUrl}}"], "path": ["api", "customer", "list"]}}, "response": []},
+        {"name": "获取客户详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/customer/1", "host": ["{{baseUrl}}"], "path": ["api", "customer", "1"]}}, "response": []},
+        {"name": "按客户编码查询", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/customer/code/CUS001", "host": ["{{baseUrl}}"], "path": ["api", "customer", "code", "CUS001"]}}, "response": []},
+        {"name": "创建客户", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"customerCode\":\"CUS001\",\"customerName\":\"测试客户\",\"contactPerson\":\"联系人\",\"contactPhone\":\"13800000000\",\"address\":\"地址\",\"status\":\"ACTIVE\"}"}, "url": {"raw": "{{baseUrl}}/api/customer/add", "host": ["{{baseUrl}}"], "path": ["api", "customer", "add"]}}, "response": []},
+        {"name": "更新客户", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"contactPerson\":\"更新联系人\"}"}, "url": {"raw": "{{baseUrl}}/api/customer/1", "host": ["{{baseUrl}}"], "path": ["api", "customer", "1"]}}, "response": []},
+        {"name": "删除客户", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/customer/999", "host": ["{{baseUrl}}"], "path": ["api", "customer", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "财务模块",
+      "item": [
+        {"name": "获取财务看板", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/finance/dashboard", "host": ["{{baseUrl}}"], "path": ["api", "finance", "dashboard"]}}, "response": []},
+        {"name": "获取收入统计", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/finance/revenue?year=2024&month=1", "host": ["{{baseUrl}}"], "path": ["api", "finance", "revenue"]}}, "response": []},
+        {"name": "获取支出统计", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/finance/expense?year=2024&month=1", "host": ["{{baseUrl}}"], "path": ["api", "finance", "expense"]}}, "response": []},
+        {"name": "获取利润统计", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/finance/profit?year=2024&month=1", "host": ["{{baseUrl}}"], "path": ["api", "finance", "profit"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "BOM模块",
+      "item": [
+        {"name": "获取BOM列表", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/boms", "host": ["{{baseUrl}}"], "path": ["api", "boms"]}}, "response": []},
+        {"name": "获取BOM详情", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/boms/1", "host": ["{{baseUrl}}"], "path": ["api", "boms", "1"]}}, "response": []},
+        {"name": "按产品查询BOM", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/boms/product/1", "host": ["{{baseUrl}}"], "path": ["api", "boms", "product", "1"]}}, "response": []},
+        {"name": "创建BOM", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"bomNo\":\"BOM001\",\"productId\":1,\"version\":\"1.0\",\"status\":1}"}, "url": {"raw": "{{baseUrl}}/api/boms", "host": ["{{baseUrl}}"], "path": ["api", "boms"]}}, "response": []},
+        {"name": "更新BOM", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "raw", "raw": "{\"version\":\"2.0\"}"}, "url": {"raw": "{{baseUrl}}/api/boms/1", "host": ["{{baseUrl}}"], "path": ["api", "boms", "1"]}}, "response": []},
+        {"name": "删除BOM", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/boms/999", "host": ["{{baseUrl}}"], "path": ["api", "boms", "999"]}}, "response": []}
+      ]
+    },
+    {
+      "name": "登出（最后执行）",
+      "item": [
+        {"name": "登出", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "auth", "logout"]}}, "response": []}
+      ]
+    }
+  ]
+}

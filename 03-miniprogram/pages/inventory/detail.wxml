@@ -1,0 +1,41 @@
+<view class="page">
+  <view class="loading" wx:if="loading">
+    <text>加载中...</text>
+  </view>
+
+  <view class="content" wx:else>
+    <view class="card">
+      <view class="card-header">
+        <text class="card-title">库存信息</text>
+      </view>
+      <view class="form-item">
+        <text class="form-label">物料名称</text>
+        <text class="form-value">{{material.materialName || '未知'}}</text>
+      </view>
+      <view class="form-item">
+        <text class="form-label">仓库名称</text>
+        <text class="form-value">{{warehouse.warehouseName || '未知'}}</text>
+      </view>
+      <view class="form-item">
+        <text class="form-label">库位</text>
+        <text class="form-value">{{inventory.locationId || '-'}}</text>
+      </view>
+      <view class="form-item">
+        <text class="form-label">批次</text>
+        <text class="form-value">{{inventory.lotId || '-'}}</text>
+      </view>
+      <view class="form-item">
+        <text class="form-label">库存数量</text>
+        <text class="form-value highlight">{{inventory.quantity || 0}} 件</text>
+      </view>
+      <view class="form-item">
+        <text class="form-label">最后更新时间</text>
+        <text class="form-value">{{inventory.lastUpdateTime || '-'}}</text>
+      </view>
+    </view>
+
+    <view class="bottom-btn">
+      <button class="action-btn" bindtap="goBack">返回</button>
+    </view>
+  </view>
+</view>

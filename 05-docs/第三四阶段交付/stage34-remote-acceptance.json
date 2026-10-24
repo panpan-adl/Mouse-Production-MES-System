@@ -1,0 +1,14 @@
+{
+  "passed": 6,
+  "checks": [
+    "Remote adapter records provider token usage with structured tool execution",
+    "Explicit error without local fallback: 查询非法字段库存",
+    "Explicit error without local fallback: 查询坏格式库存",
+    "Explicit error without local fallback: 查询不可用库存",
+    "Explicit error without local fallback: 查询超时库存",
+    "Daily call cap rejects the twenty-first remote request"
+  ],
+  "provider": "local protocol stub",
+  "live_model_verified": false,
+  "date": "2026-10-23T23:22:20.622648"
+}

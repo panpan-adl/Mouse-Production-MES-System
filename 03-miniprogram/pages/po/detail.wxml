@@ -1,0 +1,64 @@
+<view class="container">
+  <view class="order-card" wx:if="{{ !loading && order }}">
+    <view class="order-header">
+      <text class="order-no">{{ order.poNo }}</text>
+      <view class="order-status" style="color: {{ getStatusColor(order.status) }}">
+        {{ getStatusText(order.status) }}
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="section-title">基本信息</view>
+      <view class="detail-row">
+        <text class="label">关联订单</text>
+        <text class="value">{{ order.orderNo || '-' }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">产品名称</text>
+        <text class="value">{{ order.productName || '-' }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">计划数量</text>
+        <text class="value">{{ order.planQuantity || 0 }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">完成数量</text>
+        <text class="value">{{ order.completedQuantity || 0 }}</text>
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="section-title">时间信息</view>
+      <view class="detail-row">
+        <text class="label">创建时间</text>
+        <text class="value">{{ formatDate(order.createdAt) }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">更新时间</text>
+        <text class="value">{{ formatDate(order.updatedAt) }}</text>
+      </view>
+    </view>
+
+    <view class="detail-section" wx:if="{{ workOrders.length > 0 }}">
+      <view class="section-title">关联工单</view>
+      <view class="workorder-list">
+        <view class="workorder-item" wx:for="{{ workOrders }}" wx:key="id" bindtap="goToWorkOrderDetail" data-id="{{ item.id }}">
+          <text class="workorder-no">{{ item.woNo }}</text>
+          <text class="workorder-status" style="color: {{ getWorkOrderStatusColor(item.status) }}">
+            {{ getWorkOrderStatusText(item.status) }}
+          </text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="loading" wx:if="{{ loading }}">
+    <view class="loading-icon"></view>
+    <text>加载中...</text>
+  </view>
+
+  <view class="empty" wx:if="{{ !loading && !order }}">
+    <text>订单不存在</text>
+    <button bindtap="goBack">返回</button>
+  </view>
+</view>

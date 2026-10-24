@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.BomItemMapper">
+    <select id="findByBomId" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.BomItem">
+        SELECT * FROM t_bom_item WHERE bom_id = #{bomId}
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.BomItem">
+        INSERT INTO t_bom_item (bom_id, material_id, quantity, remark)
+        VALUES (#{bomId}, #{materialId}, #{quantity}, #{remark})
+    </insert>
+    <delete id="deleteByBomId" parameterType="java.lang.Long">
+        DELETE FROM t_bom_item WHERE bom_id = #{bomId}
+    </delete>
+</mapper>

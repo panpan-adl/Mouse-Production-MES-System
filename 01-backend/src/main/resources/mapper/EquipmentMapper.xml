@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.EquipmentMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.Equipment">
+        SELECT * FROM t_equipment WHERE is_deleted = 0 ORDER BY create_time DESC
+    </select>
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.Equipment">
+        SELECT * FROM t_equipment WHERE id = #{id} AND is_deleted = 0
+    </select>
+    <select id="findByEquipmentCode" parameterType="String" resultType="com.mouse.mes.entity.Equipment">
+        SELECT * FROM t_equipment WHERE equipment_code = #{equipmentCode} AND is_deleted = 0
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.Equipment" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_equipment (equipment_code, equipment_name, equipment_type, model, manufacturer, purchase_date, warranty_period, location, status, responsible_id, responsible_name, remark, create_time, update_time, is_deleted)
+        VALUES (#{equipmentCode}, #{equipmentName}, #{equipmentType}, #{model}, #{manufacturer}, #{purchaseDate}, #{warrantyPeriod}, #{location}, #{status}, #{responsibleId}, #{responsibleName}, #{remark}, #{createTime}, #{updateTime}, #{isDeleted})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.Equipment">
+        UPDATE t_equipment SET
+        equipment_code = #{equipmentCode},
+        equipment_name = #{equipmentName},
+        equipment_type = #{equipmentType},
+        model = #{model},
+        manufacturer = #{manufacturer},
+        purchase_date = #{purchaseDate},
+        warranty_period = #{warrantyPeriod},
+        location = #{location},
+        status = #{status},
+        responsible_id = #{responsibleId},
+        responsible_name = #{responsibleName},
+        remark = #{remark},
+        update_time = #{updateTime},
+        is_deleted = #{isDeleted}
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="Long">
+        UPDATE t_equipment SET is_deleted = 1, update_time = NOW() WHERE id = #{id}
+    </delete>
+</mapper>

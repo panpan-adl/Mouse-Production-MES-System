@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.MaterialIssueMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.MaterialIssue">
+        SELECT * FROM t_material_issue WHERE is_deleted = 0
+    </select>
+    <select id="findById" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.MaterialIssue">
+        SELECT * FROM t_material_issue WHERE id = #{id} AND is_deleted = 0
+    </select>
+    <select id="findByIssueNo" parameterType="java.lang.String" resultType="com.mouse.mes.entity.MaterialIssue">
+        SELECT * FROM t_material_issue WHERE issue_no = #{issueNo} AND is_deleted = 0
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.MaterialIssue">
+        INSERT INTO t_material_issue (issue_no, work_order_id, warehouse_id, total_quantity, status, remark, created_by, created_at, updated_at, is_deleted)
+        VALUES (#{issueNo}, #{workOrderId}, #{warehouseId}, #{totalQuantity}, #{status}, #{remark}, #{createdBy}, #{createdAt}, #{updatedAt}, #{isDeleted})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.MaterialIssue">
+        UPDATE t_material_issue SET
+        issue_no = #{issueNo},
+        work_order_id = #{workOrderId},
+        warehouse_id = #{warehouseId},
+        total_quantity = #{totalQuantity},
+        status = #{status},
+        remark = #{remark},
+        created_by = #{createdBy},
+        updated_at = #{updatedAt},
+        is_deleted = #{isDeleted}
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="java.lang.Long">
+        UPDATE t_material_issue SET is_deleted = 1 WHERE id = #{id}
+    </delete>
+</mapper>

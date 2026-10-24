@@ -1,0 +1,50 @@
+<view class="container">
+  <view class="header">
+    <text class="title">报工记录</text>
+    <button class="add-btn" bindtap="goToSubmit">+ 新增报工</button>
+  </view>
+
+  <view class="report-list" wx:if="{{ !loading && reports.length > 0 }}">
+    <view class="report-card" wx:for="{{ reports }}" wx:key="id">
+      <view class="report-header">
+        <text class="report-id">报工 #{{ item.id }}</text>
+      </view>
+      <view class="report-info">
+        <view class="info-row">
+          <text class="info-label">任务编号:</text>
+          <text class="info-value">{{ getTaskNo(item.taskId) }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">产品名称:</text>
+          <text class="info-value">{{ getTaskProductName(item.taskId) }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">报工数量:</text>
+          <text class="info-value">{{ item.reportQuantity || 0 }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">报工日期:</text>
+          <text class="info-value">{{ formatDate(item.reportDate) }}</text>
+        </view>
+        <view class="info-row" wx:if="{{ item.remark }}">
+          <text class="info-label">备注:</text>
+          <text class="info-value">{{ item.remark }}</text>
+        </view>
+      </view>
+      <view class="report-footer">
+        <text class="report-time">{{ formatDate(item.createdAt) }}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{ !loading && reports.length === 0 }}">
+    <view class="empty-icon">📊</view>
+    <text class="empty-text">暂无报工记录</text>
+    <button class="empty-btn" bindtap="goToSubmit">新增报工</button>
+  </view>
+
+  <view class="loading" wx:if="{{ loading }}">
+    <view class="loading-icon"></view>
+    <text>加载中...</text>
+  </view>
+</view>

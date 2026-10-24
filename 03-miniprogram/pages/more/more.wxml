@@ -1,0 +1,34 @@
+<view class="container">
+  <view class="user-card" wx:if="{{ userInfo }}">
+    <view class="user-avatar">
+      <text class="avatar-text">{{ avatarText }}</text>
+    </view>
+    <view class="user-info">
+      <text class="user-name">{{ userName }}</text>
+      <text class="user-role">{{ userRole }}</text>
+    </view>
+  </view>
+
+  <view class="login-card" wx:if="{{ !userInfo }}">
+    <view class="login-icon">🔐</view>
+    <text class="login-text">请登录</text>
+    <button class="login-btn" bindtap="goToLogin">立即登录</button>
+  </view>
+
+  <view class="menu-card" wx:if="{{ userInfo }}">
+    <view class="section-title">功能菜单</view>
+    <view class="menu-grid">
+      <view class="menu-item" wx:for="{{ menuList }}" wx:key="name" bindtap="goToPage" data-path="{{ item.path }}">
+        <view class="menu-icon">{{ item.icon }}</view>
+        <text class="menu-name">{{ item.name }}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="action-card" wx:if="{{ userInfo }}">
+    <view class="action-item" bindtap="logout">
+      <text class="action-icon">🚪</text>
+      <text class="action-text">退出登录</text>
+    </view>
+  </view>
+</view>

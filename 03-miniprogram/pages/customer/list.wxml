@@ -1,0 +1,39 @@
+<view class="page">
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <input class="search-input" placeholder="搜索客户..." value="{{searchText}}" bindinput="searchInput"/>
+    </view>
+  </view>
+
+  <view class="content">
+    <view class="stats-row">
+      <view class="stat-item">
+        <text class="stat-value">{{customers.length}}</text>
+        <text class="stat-label">客户</text>
+      </view>
+    </view>
+
+    <view class="list" wx:if="!loading">
+      <view class="list-item" wx:for="{{customers}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+        <view class="item-left">
+          <text class="item-title">{{item.customerName}}</text>
+          <text class="item-subtitle">{{item.customerCode}}</text>
+        </view>
+        <view class="item-right">
+          <text class="status-tag {{getStatusColor(item.status)}}">{{getStatusText(item.status)}}</text>
+        </view>
+      </view>
+      <view class="empty" wx:if="{{customers.length === 0}}">
+        <text>暂无客户</text>
+      </view>
+    </view>
+
+    <view class="loading" wx:if="loading">
+      <text>加载中...</text>
+    </view>
+  </view>
+
+  <view class="bottom-btn">
+    <button class="action-btn primary" bindtap="addCustomer">新增客户</button>
+  </view>
+</view>

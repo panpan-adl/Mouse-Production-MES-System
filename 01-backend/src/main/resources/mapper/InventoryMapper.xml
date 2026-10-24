@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.InventoryMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.Inventory">
+        SELECT * FROM t_inventory WHERE is_deleted = 0
+    </select>
+    <select id="findById" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.Inventory">
+        SELECT * FROM t_inventory WHERE id = #{id} AND is_deleted = 0
+    </select>
+    <select id="findByWarehouseId" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.Inventory">
+        SELECT * FROM t_inventory WHERE warehouse_id = #{warehouseId} AND is_deleted = 0
+    </select>
+    <select id="findByMaterialId" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.Inventory">
+        SELECT * FROM t_inventory WHERE material_id = #{materialId} AND is_deleted = 0
+    </select>
+    <select id="search" resultType="com.mouse.mes.entity.Inventory">
+        SELECT * FROM t_inventory
+        WHERE is_deleted = 0
+        <if test="materialId != null">
+            AND material_id = #{materialId}
+        </if>
+        <if test="warehouseId != null">
+            AND warehouse_id = #{warehouseId}
+        </if>
+        <if test="locationId != null">
+            AND location_id = #{locationId}
+        </if>
+        ORDER BY warehouse_id, location_id, material_id
+    </select>
+    <select id="findOne" resultType="com.mouse.mes.entity.Inventory">
+        SELECT * FROM t_inventory
+        WHERE material_id = #{materialId}
+          AND warehouse_id = #{warehouseId}
+          AND is_deleted = 0
+        <choose>
+            <when test="locationId != null">
+                AND location_id = #{locationId}
+            </when>
+            <otherwise>
+                AND location_id IS NULL
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="lotId != null">
+                AND lot_id = #{lotId}
+            </when>
+            <otherwise>
+                AND lot_id IS NULL
+            </otherwise>
+        </choose>
+        LIMIT 1
+    </select>
+    <select id="findLowStock" resultType="com.mouse.mes.entity.Inventory">
+        SELECT i.* FROM t_inventory i
+        INNER JOIN t_material m ON i.material_id = m.id
+        WHERE i.is_deleted = 0
+          AND m.status = 1
+          AND m.safety_stock IS NOT NULL
+          AND i.quantity &lt; m.safety_stock
+        ORDER BY i.quantity ASC
+    </select>
+    <select id="sumQuantityByMaterialId" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(quantity), 0) FROM t_inventory
+        WHERE material_id = #{materialId} AND is_deleted = 0
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.Inventory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_inventory (warehouse_id, location_id, material_id, lot_id, quantity, last_update_time, is_deleted)
+        VALUES (#{warehouseId}, #{locationId}, #{materialId}, #{lotId}, #{quantity}, #{lastUpdateTime}, #{isDeleted})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.Inventory">
+        UPDATE t_inventory SET
+        warehouse_id = #{warehouseId},
+        location_id = #{locationId},
+        material_id = #{materialId},
+        lot_id = #{lotId},
+        quantity = #{quantity},
+        last_update_time = #{lastUpdateTime},
+        is_deleted = #{isDeleted}
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="java.lang.Long">
+        UPDATE t_inventory SET is_deleted = 1 WHERE id = #{id}
+    </delete>
+</mapper>

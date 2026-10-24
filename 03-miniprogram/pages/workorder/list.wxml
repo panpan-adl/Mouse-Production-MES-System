@@ -1,0 +1,110 @@
+<view class="container">
+  <view class="header">
+    <text class="title">工单管理</text>
+  </view>
+
+  <view class="search-section">
+    <view class="search-box">
+      <text class="search-icon">🔍</text>
+      <input 
+        class="search-input" 
+        placeholder="搜索工单号、产品、工艺、负责人" 
+        value="{{ searchKeyword }}"
+        bindinput="onSearchInput"
+        confirm-type="search"
+      />
+      <text class="search-clear" wx:if="{{ searchKeyword }}" bindtap="clearSearch">×</text>
+    </view>
+  </view>
+
+  <view class="filter-bar">
+    <scroll-view scroll-x class="filter-scroll">
+      <view class="filter-inner">
+        <view 
+          class="filter-item {{ statusFilter === item.value ? 'active' : '' }}" 
+          wx:for="{{ statusOptions }}" 
+          wx:key="value"
+          bindtap="onStatusChange"
+          data-value="{{ item.value }}"
+        >
+          {{ item.label }}
+          <text class="filter-count" wx:if="{{ item.count > 0 }}">{{ item.count }}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="workorder-list" wx:if="{{ !loading && workOrders.length > 0 }}">
+    <view class="workorder-card" wx:for="{{ workOrders }}" wx:key="id" bindtap="goToDetail" data-id="{{ item.id }}">
+      <view class="workorder-header">
+        <view class="workorder-left">
+          <text class="workorder-no">{{ item.woNo }}</text>
+          <view class="workorder-tags">
+            <view class="workorder-status" style="color: {{ item.displayStatusColor }}; background: {{ item.displayStatusBgColor }}">
+              {{ item.displayStatusText }}
+            </view>
+            <view class="process-tag" wx:if="{{ item.hasProcess }}">⚙️ {{ item.displayProcessName }}</view>
+          </view>
+        </view>
+        <view class="workorder-progress" wx:if="{{ item.hasProgress }}">
+          <view class="progress-ring" style="background: conic-gradient({{ item.displayProgressColor }} {{ item.displayProgress * 3.6 }}deg, #f0f0f0 0deg)">
+            <text class="ring-text">{{ item.displayProgress }}%</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="workorder-info">
+        <view class="info-row">
+          <text class="info-icon">📦</text>
+          <text class="info-label">产品:</text>
+          <text class="info-value">{{ item.displayProductName }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-icon">📋</text>
+          <text class="info-label">生产订单:</text>
+          <text class="info-value">{{ item.displayPoNo }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-icon">📊</text>
+          <text class="info-label">数量:</text>
+          <text class="info-value">{{ item.displayActualQty }} / {{ item.displayPlannedQty }} 件</text>
+          <text class="info-percent" style="color: {{ item.displayProgressColor }}">{{ item.displayProgress }}%</text>
+        </view>
+      </view>
+
+      <view class="progress-bar-section">
+        <view class="progress-bar-bg">
+          <view class="progress-bar-fill" style="width: {{ item.displayProgress }}%; background: {{ item.displayProgressColor }}"></view>
+        </view>
+      </view>
+
+      <view class="workorder-footer">
+        <view class="owner-info" wx:if="{{ item.hasOwner }}">
+          <view class="owner-avatar">👤</view>
+          <view class="owner-detail">
+            <text class="owner-name">{{ item.assignedUserName }}</text>
+            <text class="owner-role">负责人</text>
+          </view>
+        </view>
+        <view class="owner-info empty" wx:else>
+          <view class="owner-avatar">❓</view>
+          <view class="owner-detail">
+            <text class="owner-name">待分配</text>
+            <text class="owner-role">点击分配</text>
+          </view>
+        </view>
+        <text class="workorder-time">{{ item.displayCreatedAt }}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{ !loading && workOrders.length === 0 }}">
+    <view class="empty-icon">📋</view>
+    <text class="empty-text">{{ searchKeyword ? '未找到匹配的工单' : '暂无工单' }}</text>
+  </view>
+
+  <view class="loading" wx:if="{{ loading }}">
+    <view class="loading-icon"></view>
+    <text>加载中...</text>
+  </view>
+</view>

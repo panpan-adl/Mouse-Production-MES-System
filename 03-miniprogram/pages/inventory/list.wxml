@@ -1,0 +1,52 @@
+<view class="page">
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <input class="search-input" placeholder="搜索物料..." value="{{searchText}}" bindinput="searchInput" bindconfirm="onSearch"/>
+    </view>
+    <button class="search-btn" bindtap="onSearch">搜索</button>
+  </view>
+
+  <view class="filter-bar">
+    <picker mode="selector" :range="materials.map(m => m.materialName)" bindchange="selectMaterial">
+      <view class="picker-item">{{selectedMaterialId ? getMaterialName(selectedMaterialId) : '选择物料'}}</view>
+    </picker>
+    <picker mode="selector" :range="warehouses.map(w => w.warehouseName)" bindchange="selectWarehouse">
+      <view class="picker-item">{{selectedWarehouseId ? getWarehouseName(selectedWarehouseId) : '选择仓库'}}</view>
+    </picker>
+    <button class="clear-btn" bindtap="clearSearch">重置</button>
+  </view>
+
+  <view class="content">
+    <view class="stats-row">
+      <view class="stat-item">
+        <text class="stat-value">{{inventories.length}}</text>
+        <text class="stat-label">库存记录</text>
+      </view>
+    </view>
+
+    <view class="list" v-if="!loading">
+      <view class="list-item" wx:for="{{inventories}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+        <view class="item-left">
+          <text class="item-title">{{getMaterialName(item.materialId)}}</text>
+          <text class="item-subtitle">仓库: {{getWarehouseName(item.warehouseId)}}</text>
+        </view>
+        <view class="item-right">
+          <text class="item-value">{{item.quantity}}</text>
+          <text class="item-unit">件</text>
+        </view>
+      </view>
+      <view class="empty" wx:if="{{inventories.length === 0}}">
+        <text>暂无库存记录</text>
+      </view>
+    </view>
+
+    <view class="loading" wx:if="loading">
+      <text>加载中...</text>
+    </view>
+  </view>
+
+  <view class="bottom-btn">
+    <button class="action-btn" bindtap="viewTransactions">库存流水</button>
+    <button class="action-btn primary" bindtap="addInventory">新增库存</button>
+  </view>
+</view>

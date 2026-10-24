@@ -1,0 +1,66 @@
+<view class="container">
+  <view class="workorder-card" wx:if="{{ !loading && workOrder }}">
+    <view class="workorder-header">
+      <text class="workorder-no">{{ workOrder.woNo }}</text>
+      <view class="workorder-status" style="color: {{ getStatusColor(workOrder.status) }}">
+        {{ getStatusText(workOrder.status) }}
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="section-title">基本信息</view>
+      <view class="detail-row">
+        <text class="label">生产订单</text>
+        <text class="value">{{ workOrder.poNo || '-' }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">产品名称</text>
+        <text class="value">{{ workOrder.productName || '-' }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">工艺名称</text>
+        <text class="value">{{ workOrder.processName || '-' }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">目标数量</text>
+        <text class="value">{{ workOrder.plannedQuantity || 0 }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">已完成数量</text>
+        <text class="value">{{ workOrder.actualQuantity || 0 }}</text>
+      </view>
+      <view class="detail-row" wx:if="{{ workOrder.assignedUserId }}">
+        <text class="label">负责人</text>
+        <text class="value">{{ workOrder.assignedUserName || '-' }}</text>
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="section-title">时间信息</view>
+      <view class="detail-row">
+        <text class="label">创建时间</text>
+        <text class="value">{{ formatDate(workOrder.createdAt) }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">更新时间</text>
+        <text class="value">{{ formatDate(workOrder.updatedAt) }}</text>
+      </view>
+    </view>
+
+    <view class="actions">
+      <button class="action-btn assign" wx:if="{{ workOrder.status === 'PLANNED' }}" bindtap="assignWorkOrder">分配工单</button>
+      <button class="action-btn claim" wx:if="{{ workOrder.status === 'ASSIGNED' }}" bindtap="claimWorkOrder">领取工单</button>
+      <button class="action-btn complete" wx:if="{{ workOrder.status === 'IN_PROGRESS' }}" bindtap="completeWorkOrder">完成工单</button>
+    </view>
+  </view>
+
+  <view class="loading" wx:if="{{ loading }}">
+    <view class="loading-icon"></view>
+    <text>加载中...</text>
+  </view>
+
+  <view class="empty" wx:if="{{ !loading && !workOrder }}">
+    <text>工单不存在</text>
+    <button bindtap="goBack">返回</button>
+  </view>
+</view>

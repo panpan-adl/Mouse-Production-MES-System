@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>条形码测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .barcode-section {
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        .barcode-img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            padding: 20px;
+            background: white;
+            box-sizing: border-box;
+        }
+        .barcode-label {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .test-tips {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        .test-tips h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .test-tips ul {
+            margin: 10px 0 0 20px;
+            padding: 0;
+        }
+        .test-tips li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+        .success {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ff9800;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📦 条形码测试页面</h1>
+        
+        <div class="barcode-section">
+            <h3>测试条形码 1: 20260715001</h3>
+            <img src="barcode_20260715001.png" alt="条形码 20260715001" class="barcode-img">
+            <div class="barcode-label">20260715001</div>
+            <div class="success">✓ 对应订单号: ORD-20260715001 (已存在于数据库)</div>
+        </div>
+        
+        <div class="barcode-section">
+            <h3>测试条形码 2: 20260715002</h3>
+            <img src="barcode_20260715002.png" alt="条形码 20260715002" class="barcode-img">
+            <div class="barcode-label">20260715002</div>
+            <div class="success">✓ 对应订单号: ORD-20260715002 (已存在于数据库)</div>
+        </div>
+        
+        <div class="barcode-section">
+            <h3>测试条形码 3: 20260715003</h3>
+            <img src="barcode_20260715003.png" alt="条形码 20260715003" class="barcode-img">
+            <div class="barcode-label">20260715003</div>
+            <div class="warning">⚠ 对应订单号: ORD-20260715003 (已取消状态)</div>
+        </div>
+        
+        <div class="barcode-section">
+            <h3>测试条形码 4: 20260715004</h3>
+            <img src="barcode_20260715004.png" alt="条形码 20260715004" class="barcode-img">
+            <div class="barcode-label">20260715004</div>
+            <div class="warning">⚠ 对应订单号: ORD-20260715004 (不存在于数据库，将跳转创建)</div>
+        </div>
+        
+        <div class="barcode-section">
+            <h3>测试条形码 5: 20260715005</h3>
+            <img src="barcode_20260715005.png" alt="条形码 20260715005" class="barcode-img">
+            <div class="barcode-label">20260715005</div>
+            <div class="warning">⚠ 对应订单号: ORD-20260715005 (不存在于数据库，将跳转创建)</div>
+        </div>
+        
+        <div class="test-tips">
+            <h3>🔍 测试步骤</h3>
+            <ul>
+                <li><strong>第一步:</strong> 用手机微信"扫一扫"直接扫描上面的条形码图片</li>
+                <li><strong>第二步:</strong> 如果识别出纯数字 (如 20260715001)，说明条形码图像正确</li>
+                <li><strong>第三步:</strong> 在小程序中点击"扫码录入"按钮扫描条形码</li>
+                <li><strong>第四步:</strong> 订单存在时会弹出"订单已存在"提示，不存在时跳转创建页面</li>
+                <li><strong>第五步:</strong> 打开小程序开发者工具的 Console 面板查看调试日志</li>
+            </ul>
+        </div>
+        
+        <div class="test-tips" style="background-color: #fff3e0;">
+            <h3>📊 订单编号格式说明</h3>
+            <ul>
+                <li>条形码内容: <strong>纯数字 11 位</strong> (如 20260715001)</li>
+                <li>数据库存储: <strong>ORD- + 11位数字</strong> (如 ORD-20260715001)</li>
+                <li>前端拼接: 扫码得到数字 → 自动拼接为 ORD-{数字} → 查询后端</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

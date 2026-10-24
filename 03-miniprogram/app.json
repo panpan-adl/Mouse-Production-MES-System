@@ -1,0 +1,63 @@
+{
+  "entryPagePath": "pages/login/login",
+  "pages": [
+    "pages/login/login",
+    "pages/index/index",
+    "pages/logs/logs",
+    "pages/order/list",
+    "pages/order/detail",
+    "pages/order/create",
+    "pages/plan/list",
+    "pages/plan/detail",
+    "pages/workorder/list",
+    "pages/workorder/detail",
+    "pages/report/list",
+    "pages/profile/index"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "生产管理系统",
+    "navigationBarBackgroundColor": "#ffffff"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#1890ff",
+    "borderStyle": "black",
+    "list":[
+      {
+        "pagePath":"pages/index/index",
+        "text":"首页",
+        "iconPath": "/images/tab_home.png",
+        "selectedIconPath": "/images/tab_home_active.png"
+      },
+      {
+        "pagePath":"pages/order/list",
+        "text":"订单",
+        "iconPath": "/images/tab_order.png",
+        "selectedIconPath": "/images/tab_order_active.png"
+      },
+      {
+        "pagePath":"pages/plan/list",
+        "text":"计划",
+        "iconPath": "/images/tab_plan.png",
+        "selectedIconPath": "/images/tab_plan_active.png"
+      },
+      {
+        "pagePath":"pages/workorder/list",
+        "text":"工单",
+        "iconPath": "/images/tab_workorder.png",
+        "selectedIconPath": "/images/tab_workorder_active.png"
+      },
+      {
+        "pagePath":"pages/profile/index",
+        "text":"我的",
+        "iconPath": "/images/tab_report.png",
+        "selectedIconPath": "/images/tab_report_active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "componentFramework": "glass-easel",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

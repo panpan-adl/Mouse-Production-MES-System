@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.UserRoleMapper">
+    <select id="findByUserId" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.UserRole">
+        SELECT * FROM t_user_role WHERE user_id = #{userId}
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.UserRole">
+        INSERT INTO t_user_role (user_id, role_id, created_at)
+        VALUES (#{userId}, #{roleId}, #{createdAt})
+    </insert>
+    <delete id="deleteByUserId" parameterType="java.lang.Long">
+        DELETE FROM t_user_role WHERE user_id = #{userId}
+    </delete>
+    <delete id="deleteByRoleId" parameterType="java.lang.Long">
+        DELETE FROM t_user_role WHERE role_id = #{roleId}
+    </delete>
+</mapper>

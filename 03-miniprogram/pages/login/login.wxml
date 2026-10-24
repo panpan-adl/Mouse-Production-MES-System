@@ -1,0 +1,39 @@
+<view class="login-container">
+  <view class="login-header">
+    <image class="logo" src="/images/logo.png" mode="aspectFit"></image>
+    <text class="title">鼠标制造系统</text>
+  </view>
+
+  <view class="login-form">
+    <view class="form-item">
+      <text class="label">用户编码</text>
+      <input 
+        class="input" 
+        placeholder="请输入用户编码" 
+        value="{{username}}" 
+        bindinput="onUsernameInput"
+        type="text"
+      />
+    </view>
+
+    <view class="form-item">
+      <text class="label">密码</text>
+      <input 
+        class="input" 
+        placeholder="请输入密码" 
+        value="{{password}}" 
+        bindinput="onPasswordInput"
+        password="true"
+      />
+    </view>
+
+    <button 
+      class="login-btn" 
+      bindtap="onLogin" 
+      loading="{{loading}}"
+      disabled="{{loading}}"
+    >
+      登 录
+    </button>
+  </view>
+</view>

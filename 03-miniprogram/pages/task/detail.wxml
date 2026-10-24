@@ -1,0 +1,74 @@
+<view class="container">
+  <view class="task-card" wx:if="{{ !loading && task }}">
+    <view class="task-header">
+      <text class="task-no">{{ task.taskNo }}</text>
+      <view class="task-status" style="color: {{ getStatusColor(task.status) }}">
+        {{ getStatusText(task.status) }}
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="section-title">基本信息</view>
+      <view class="detail-row">
+        <text class="label">计划编号</text>
+        <text class="value">{{ task.planNo || '-' }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">产品名称</text>
+        <text class="value">{{ task.productName || '-' }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">任务类型</text>
+        <text class="value">{{ task.taskType || '-' }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">目标数量</text>
+        <text class="value">{{ task.targetQuantity || 0 }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">已完成数量</text>
+        <text class="value">{{ task.completedQuantity || 0 }}</text>
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="section-title">时间信息</view>
+      <view class="detail-row">
+        <text class="label">创建时间</text>
+        <text class="value">{{ formatDate(task.createdAt) }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">更新时间</text>
+        <text class="value">{{ formatDate(task.updatedAt) }}</text>
+      </view>
+    </view>
+
+    <view class="detail-section" wx:if="{{ reports.length > 0 }}">
+      <view class="section-title">报工记录</view>
+      <view class="report-list">
+        <view class="report-item" wx:for="{{ reports }}" wx:key="id">
+          <view class="report-header">
+            <text class="report-date">{{ formatDate(item.reportDate) }}</text>
+          </view>
+          <view class="report-info">
+            <text>报工数量: {{ item.reportQuantity }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="actions">
+      <button class="action-btn" bindtap="goToReport">生产报工</button>
+    </view>
+  </view>
+
+  <view class="loading" wx:if="{{ loading }}">
+    <view class="loading-icon"></view>
+    <text>加载中...</text>
+  </view>
+
+  <view class="empty" wx:if="{{ !loading && !task }}">
+    <text>任务不存在</text>
+    <button bindtap="goBack">返回</button>
+  </view>
+</view>

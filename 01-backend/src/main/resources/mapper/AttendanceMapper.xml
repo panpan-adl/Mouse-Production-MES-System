@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.AttendanceMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.Attendance">
+        SELECT * FROM t_attendance ORDER BY attendance_date DESC
+    </select>
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.Attendance">
+        SELECT * FROM t_attendance WHERE id = #{id}
+    </select>
+    <select id="findByUserId" parameterType="Long" resultType="com.mouse.mes.entity.Attendance">
+        SELECT * FROM t_attendance WHERE user_id = #{userId} ORDER BY attendance_date DESC
+    </select>
+    <select id="findByAttendanceDate" parameterType="String" resultType="com.mouse.mes.entity.Attendance">
+        SELECT * FROM t_attendance WHERE attendance_date = #{attendanceDate} ORDER BY user_id
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.Attendance">
+        INSERT INTO t_attendance (user_id, user_name, attendance_date, check_in_time, check_out_time, work_hours, status, remark, create_time)
+        VALUES (#{userId}, #{userName}, #{attendanceDate}, #{checkInTime}, #{checkOutTime}, #{workHours}, #{status}, #{remark}, #{createTime})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.Attendance">
+        UPDATE t_attendance SET
+        user_id = #{userId},
+        user_name = #{userName},
+        attendance_date = #{attendanceDate},
+        check_in_time = #{checkInTime},
+        check_out_time = #{checkOutTime},
+        work_hours = #{workHours},
+        status = #{status},
+        remark = #{remark}
+        WHERE id = #{id}
+    </update>
+</mapper>

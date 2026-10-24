@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.QualityCheckMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.QualityCheck">
+        SELECT * FROM t_quality_check ORDER BY check_date DESC
+    </select>
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.QualityCheck">
+        SELECT * FROM t_quality_check WHERE id = #{id}
+    </select>
+    <select id="findByCheckNo" parameterType="String" resultType="com.mouse.mes.entity.QualityCheck">
+        SELECT * FROM t_quality_check WHERE check_no = #{checkNo}
+    </select>
+    <select id="findByTaskId" parameterType="Long" resultType="com.mouse.mes.entity.QualityCheck">
+        SELECT * FROM t_quality_check WHERE task_id = #{taskId} ORDER BY check_date DESC
+    </select>
+    <select id="findByProductId" parameterType="Long" resultType="com.mouse.mes.entity.QualityCheck">
+        SELECT * FROM t_quality_check WHERE product_id = #{productId} ORDER BY check_date DESC
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.QualityCheck">
+        INSERT INTO t_quality_check (check_no, task_id, product_id, product_name, check_quantity, qualified_quantity, defect_quantity, qualified_rate, check_result, checker_id, checker_name, check_date, defect_desc, handle_result, create_time)
+        VALUES (#{checkNo}, #{taskId}, #{productId}, #{productName}, #{checkQuantity}, #{qualifiedQuantity}, #{defectQuantity}, #{qualifiedRate}, #{checkResult}, #{checkerId}, #{checkerName}, #{checkDate}, #{defectDesc}, #{handleResult}, #{createTime})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.QualityCheck">
+        UPDATE t_quality_check SET
+        check_no = #{checkNo},
+        task_id = #{taskId},
+        product_id = #{productId},
+        product_name = #{productName},
+        check_quantity = #{checkQuantity},
+        qualified_quantity = #{qualifiedQuantity},
+        defect_quantity = #{defectQuantity},
+        qualified_rate = #{qualifiedRate},
+        check_result = #{checkResult},
+        checker_id = #{checkerId},
+        checker_name = #{checkerName},
+        check_date = #{checkDate},
+        defect_desc = #{defectDesc},
+        handle_result = #{handleResult}
+        WHERE id = #{id}
+    </update>
+</mapper>

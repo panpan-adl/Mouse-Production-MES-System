@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.DictItemMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.DictItem">
+        SELECT * FROM t_dict_item WHERE status = 1 ORDER BY sort
+    </select>
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.DictItem">
+        SELECT * FROM t_dict_item WHERE id = #{id} AND status = 1
+    </select>
+    <select id="findByDictType" parameterType="String" resultType="com.mouse.mes.entity.DictItem">
+        SELECT * FROM t_dict_item WHERE dict_type = #{dictType} AND status = 1 ORDER BY sort
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.DictItem">
+        INSERT INTO t_dict_item (dict_type, item_label, item_value, sort, status, remark, create_time, update_time)
+        VALUES (#{dictType}, #{itemLabel}, #{itemValue}, #{sort}, #{status}, #{remark}, #{createTime}, #{updateTime})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.DictItem">
+        UPDATE t_dict_item SET
+        dict_type = #{dictType},
+        item_label = #{itemLabel},
+        item_value = #{itemValue},
+        sort = #{sort},
+        status = #{status},
+        remark = #{remark},
+        update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="Long">
+        UPDATE t_dict_item SET status = 0 WHERE id = #{id}
+    </delete>
+</mapper>

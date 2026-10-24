@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.InventoryInMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.InventoryIn">
+        SELECT * FROM t_inventory_in ORDER BY in_date DESC
+    </select>
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.InventoryIn">
+        SELECT * FROM t_inventory_in WHERE id = #{id}
+    </select>
+    <select id="findByInNo" parameterType="String" resultType="com.mouse.mes.entity.InventoryIn">
+        SELECT * FROM t_inventory_in WHERE in_no = #{inNo}
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.InventoryIn">
+        INSERT INTO t_inventory_in (in_no, in_type, material_id, material_name, quantity, unit_price, total_amount, supplier_id, warehouse_id, in_date, create_by, create_time, remark)
+        VALUES (#{inNo}, #{inType}, #{materialId}, #{materialName}, #{quantity}, #{unitPrice}, #{totalAmount}, #{supplierId}, #{warehouseId}, #{inDate}, #{createBy}, #{createTime}, #{remark})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.InventoryIn">
+        UPDATE t_inventory_in SET
+        in_no = #{inNo},
+        in_type = #{inType},
+        material_id = #{materialId},
+        material_name = #{materialName},
+        quantity = #{quantity},
+        unit_price = #{unitPrice},
+        total_amount = #{totalAmount},
+        supplier_id = #{supplierId},
+        warehouse_id = #{warehouseId},
+        in_date = #{inDate},
+        remark = #{remark}
+        WHERE id = #{id}
+    </update>
+</mapper>

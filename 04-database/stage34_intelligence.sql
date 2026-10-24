@@ -1,0 +1,15 @@
+-- Apply while stock posting is stopped. Baseline and ledger watermark are captured once.
+CREATE TABLE IF NOT EXISTS mm_inventory_anchor(id INT PRIMARY KEY,captured_at DATETIME(6) NOT NULL,ledger_id BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS mm_inventory_baseline(material_id BIGINT NOT NULL,warehouse_id BIGINT NOT NULL,quantity DECIMAL(18,2) NOT NULL,PRIMARY KEY(material_id,warehouse_id));
+START TRANSACTION;
+INSERT IGNORE INTO mm_inventory_baseline SELECT material_id,warehouse_id,SUM(quantity) FROM t_inventory WHERE is_deleted=0 AND NOT EXISTS(SELECT 1 FROM mm_inventory_anchor WHERE id=1) GROUP BY material_id,warehouse_id;
+INSERT IGNORE INTO mm_inventory_anchor SELECT 1,NOW(6),COALESCE(MAX(id),0) FROM t_inventory_transaction;
+COMMIT;
+CREATE TABLE IF NOT EXISTS mm_ai_session(id VARCHAR(36) PRIMARY KEY,user_id BIGINT NOT NULL,filters JSON NOT NULL,revision INT NOT NULL DEFAULT 0,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS mm_query_audit(id VARCHAR(36) PRIMARY KEY,user_id BIGINT NOT NULL,session_id VARCHAR(36),question VARCHAR(1200),mode VARCHAR(20) NOT NULL,status VARCHAR(30) NOT NULL,filters JSON,input_tokens INT NOT NULL DEFAULT 0,output_tokens INT NOT NULL DEFAULT 0,elapsed_ms BIGINT NOT NULL DEFAULT 0,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS mm_ai_budget(user_id BIGINT NOT NULL,day DATE NOT NULL,calls INT NOT NULL DEFAULT 0,PRIMARY KEY(user_id,day));
+CREATE TABLE IF NOT EXISTS mm_auto_rule(code VARCHAR(40) PRIMARY KEY,name VARCHAR(100) NOT NULL,enabled INT NOT NULL DEFAULT 1);
+INSERT IGNORE INTO mm_auto_rule VALUES('REPORT_QC','完整报工后自动创建质检待办',1);
+CREATE TABLE IF NOT EXISTS mm_auto_event(id BIGINT AUTO_INCREMENT PRIMARY KEY,rule_code VARCHAR(40) NOT NULL,task_id BIGINT NOT NULL,status VARCHAR(20) NOT NULL DEFAULT 'PENDING',attempts INT NOT NULL DEFAULT 0,error VARCHAR(500),created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),finished_at DATETIME(6),UNIQUE KEY(rule_code,task_id));
+CREATE TABLE IF NOT EXISTS mm_qc_todo(id BIGINT AUTO_INCREMENT PRIMARY KEY,event_id BIGINT,task_id BIGINT NOT NULL UNIQUE,work_order_id BIGINT NOT NULL,status VARCHAR(20) NOT NULL DEFAULT 'WAITING',inspection_id BIGINT,created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),completed_at DATETIME(6),UNIQUE KEY(event_id));
+CREATE TABLE IF NOT EXISTS mm_replenishment(id BIGINT AUTO_INCREMENT PRIMARY KEY,material_id BIGINT NOT NULL UNIQUE,status VARCHAR(20) NOT NULL DEFAULT 'SUGGESTED',confirmed_by BIGINT,confirmed_at DATETIME);

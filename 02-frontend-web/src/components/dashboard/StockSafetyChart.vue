@@ -1,0 +1,6 @@
+<script setup lang="ts">
+import {computed} from 'vue'
+const props=defineProps<{rows:{id:number;material_name:string;unit:string;safety_stock:number;current_quantity:number}[]}>()
+const scale=computed(()=>Math.max(1,...props.rows.flatMap(r=>[Number(r.current_quantity),Number(r.safety_stock)])))
+</script>
+<template><section class="rounded-xl border border-slate-600/30 bg-slate-900/80 p-4 text-slate-100"><div class="flex justify-between items-center"><h2 class="font-semibold">库存与安全线</h2><router-link class="text-xs text-cyan-300" to="/intelligence">查看库存明细 →</router-link></div><p class="text-xs text-slate-400 my-3">全部仓库当前余额；按安全库存缺口排序，最多20种。蓝色为现存量，橙线为安全库存；不随生产日期/班次筛选变化。</p><div class="space-y-3 max-h-80 overflow-auto"><div v-for="r in rows" :key="r.id"><div class="flex justify-between text-xs mb-1"><span>{{r.material_name}}</span><span>{{r.current_quantity}} / {{r.safety_stock}} {{r.unit}}</span></div><div class="relative h-3 rounded bg-slate-700"><div class="h-3 bg-cyan-500 rounded" :style="{width:Number(r.current_quantity)/scale*100+'%'}"></div><span class="absolute top-0 h-3 border-l-2 border-orange-400" :style="{left:Number(r.safety_stock)/scale*100+'%'}"></span></div></div></div><p v-if="!rows.length" class="text-slate-400 py-8 text-sm">暂无物料记录</p></section></template>

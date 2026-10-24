@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.MaterialIssueItemMapper">
+    <select id="findByIssueId" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.MaterialIssueItem">
+        SELECT * FROM t_material_issue_item WHERE issue_id = #{issueId}
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.MaterialIssueItem">
+        INSERT INTO t_material_issue_item (issue_id, material_id, lot_id, planned_quantity, actual_quantity, location_id, remark)
+        VALUES (#{issueId}, #{materialId}, #{lotId}, #{plannedQuantity}, #{actualQuantity}, #{locationId}, #{remark})
+    </insert>
+    <delete id="deleteByIssueId" parameterType="java.lang.Long">
+        DELETE FROM t_material_issue_item WHERE issue_id = #{issueId}
+    </delete>
+</mapper>

@@ -1,0 +1,214 @@
+.container {
+  padding: 0;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.order-card {
+  background: #fff;
+  padding: 24rpx 30rpx;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20rpx;
+  border-bottom: 2rpx solid #f0f0f0;
+  margin-bottom: 20rpx;
+}
+
+.order-no {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.order-status {
+  font-size: 26rpx;
+  font-weight: 500;
+  padding: 8rpx 20rpx;
+  background: rgba(24, 144, 255, 0.1);
+  border-radius: 20rpx;
+}
+
+.detail-section {
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16rpx;
+  padding-left: 12rpx;
+  border-left: 6rpx solid #1890ff;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.value {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.value.total {
+  color: #f44336;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 30rpx;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 20rpx 0;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+}
+
+.action-btn.confirm {
+  background: #4caf50;
+  color: #fff;
+}
+
+.action-btn.cancel {
+  background: #f44336;
+  color: #fff;
+}
+
+.action-btn.primary {
+  background: #1890ff;
+  color: #fff;
+}
+
+.action-btn.barcode {
+  background: #ff9800;
+  color: #fff;
+}
+
+.barcode-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.barcode-content {
+  width: 600rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 40rpx;
+}
+
+.barcode-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+
+.barcode-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.barcode-close {
+  font-size: 48rpx;
+  color: #999;
+  line-height: 1;
+}
+
+.barcode-canvas-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 20rpx;
+  background: #f5f7fa;
+  border-radius: 12rpx;
+}
+
+.barcode-canvas {
+  width: 600rpx;
+  height: 240rpx;
+}
+
+.barcode-info {
+  text-align: center;
+  margin-top: 20rpx;
+}
+
+.barcode-order-no {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.barcode-actions {
+  margin-top: 30rpx;
+}
+
+.save-btn {
+  width: 100%;
+  padding: 24rpx 0;
+  background: #1890ff;
+  color: #fff;
+  border-radius: 8rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 0;
+}
+
+.loading-icon {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid #f0f0f0;
+  border-top-color: #1890ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20rpx;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 0;
+}

@@ -1,0 +1,63 @@
+<view class="container">
+  <view class="plan-card" wx:if="{{ !loading && plan }}">
+    <view class="plan-header">
+      <text class="plan-no">{{ plan.planNo }}</text>
+      <view class="plan-status" style="color: {{ getStatusColor(plan.planStatus) }}">
+        {{ getStatusText(plan.planStatus) }}
+      </view>
+    </view>
+
+    <view class="progress-section">
+      <view class="progress-header">
+        <text class="progress-title">生产进度</text>
+        <text class="progress-value">{{ progress }}%</text>
+      </view>
+      <view class="progress-bar">
+        <view class="progress-fill" style="width: {{ progress }}%"></view>
+      </view>
+      <view class="progress-detail">
+        <text>已完成: {{ plan.completedQuantity || 0 }} / {{ plan.planQuantity || 0 }}</text>
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="section-title">基本信息</view>
+      <view class="detail-row">
+        <text class="label">产品名称</text>
+        <text class="value">{{ plan.productName || '-' }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">计划数量</text>
+        <text class="value">{{ plan.planQuantity || 0 }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">优先级</text>
+        <text class="value">{{ getPriorityText(plan.priority) }}</text>
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="section-title">时间信息</view>
+      <view class="detail-row">
+        <text class="label">开始时间</text>
+        <text class="value">{{ formatDate(plan.startDate) }}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">结束时间</text>
+        <text class="value">{{ formatDate(plan.endDate) }}</text>
+      </view>
+    </view>
+
+
+  </view>
+
+  <view class="loading" wx:if="{{ loading }}">
+    <view class="loading-icon"></view>
+    <text>加载中...</text>
+  </view>
+
+  <view class="empty" wx:if="{{ !loading && !plan }}">
+    <text>计划不存在</text>
+    <button bindtap="goBack">返回</button>
+  </view>
+</view>

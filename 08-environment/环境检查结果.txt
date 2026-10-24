@@ -1,0 +1,58 @@
+MouseMES 本机运行环境检查与使用说明
+检查日期：2026年10月18日
+
+一、适用范围
+本配置适用于 D:\competition\MouseMES\Mouse-Production-MES-System 当前项目：Spring Boot 3.2.5、Java 17、Vue 3、Vite 5。
+老师图片中的 Java 8、Node 12～16 和 Vue 2 配置对应 RuoYi 旧前端，不能直接用于本项目。
+
+二、已检查的软件
+Java：17.0.10，使用 D:\software\jdk17，后端编译及实际启动成功。
+Maven：3.9.11，复用 IntelliJ IDEA 自带 Maven；启动脚本指定路径及现有依赖仓库。
+MySQL：8.3.0，3306端口，连接成功；mouse_mes数据库有47张表。
+Redis：5.0.14.1，6379端口，PING返回PONG；已完成实际登录会话读写验证。
+Node：25.8.1，使用本机现有版本；已通过当前项目的TypeScript检查和Vite正式构建。
+npm：11.11.0；已按package-lock.json安装155个依赖包，未升级锁定版本。
+MinIO：已安装，RELEASE.2025-04-22T22-12-26Z；当前项目没有MinIO依赖，未启动或接入。
+
+三、已完成的配置
+1. 原有MySQL Windows服务MySQL83指向另一份my.ini，该路径启动存在权限问题。
+   当前项目改用 D:\software\Mysql\my.ini 对应的原数据目录启动MySQL。
+   保留原数据库，没有初始化、清空或导入覆盖；没有改动Windows服务注册配置。
+2. 为MouseMES创建独立Redis配置和持久化目录 .runtime\redis。
+   绑定127.0.0.1，不读取其他Redis实例的旧dump.rdb。
+3. 创建项目专用环境脚本，固定Java、Maven、Node等程序路径。
+   不修改系统全局PATH，也不会影响独立安装的Java 8和Node 14。
+4. 前后端后台启动，后端127.0.0.1:8080，前端127.0.0.1:5173。
+   Redis使用127.0.0.1:6379，前端/api请求代理到后端。
+5. 为临时日志、缓存、进程记录、依赖和构建输出补充忽略规则。
+
+四、实际验证结果
+后端Maven打包：通过（运行环境检查未执行数据库写入类集成测试）。
+前端TypeScript检查与正式构建：通过。
+浏览器入口HTTP检查：通过。
+未登录访问受保护接口：401，符合预期。
+通过前端/api代理进行现有账号登录：通过。
+物料、产品、仓库、生产计划、质检、设备、库存和生产看板查询：8项均通过。
+退出登录及旧Token失效：通过。
+注：查询返回成功不代表已有完整演示业务数据；本次未补录业务数据。
+
+五、日常使用
+启动：双击项目根目录的“启动MouseMES.cmd”。成功后自动打开登录页。
+访问：http://127.0.0.1:5173/login
+停止前后端：双击“停止MouseMES.cmd”。MySQL和Redis会继续运行，方便再次启动。
+再次启动会复用已运行的基础服务，不重复启动相同端口。
+启动默认重新打包后端；源码修改后无需手动寻找Java/Maven路径。
+快速启动已打包版本：
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\08-environment\Start-MouseMES.ps1 -SkipBuild
+
+六、位置与排错
+机器路径配置：08-environment\config.local.json（只含安装路径，不含数据库密码）。
+模板配置：08-environment\config.example.json。
+运行日志：.runtime\logs。
+依赖缓存：.runtime\npm-cache。
+前端发布输出：02-frontend-web\dist。
+后端输出：01-backend\target\mouse-mes-1.0.0.jar。
+数据库连接仍使用后端application.yml中的原配置，未把密码复制进启动脚本。
+如提示端口占用，应先确认占用程序，不要直接结束其他项目进程。
+如原数据库目录不再存在，启动脚本会报错，不会自动创建空库替代原库。
+若迁移到另一台电脑，请按实际安装位置修改config.local.json，并单独迁移数据库。

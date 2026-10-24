@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.QcInspectionItemMapper">
+    <select id="findByInspectionId" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.QcInspectionItem">
+        SELECT * FROM t_qc_inspection_item WHERE inspection_id = #{inspectionId}
+    </select>
+    <select id="findById" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.QcInspectionItem">
+        SELECT * FROM t_qc_inspection_item WHERE id = #{id}
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.QcInspectionItem" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_qc_inspection_item (
+            inspection_id, material_id, lot_id, inspection_item, inspection_standard, actual_value,
+            sample_quantity, qualified_quantity, defective_quantity, item_result,
+            defect_type, defect_reason, handle_method, remark
+        )
+        VALUES (
+            #{inspectionId}, #{materialId}, #{lotId}, #{inspectionItem}, #{inspectionStandard}, #{actualValue},
+            #{sampleQuantity}, #{qualifiedQuantity}, #{defectiveQuantity}, #{itemResult},
+            #{defectType}, #{defectReason}, #{handleMethod}, #{remark}
+        )
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.QcInspectionItem">
+        UPDATE t_qc_inspection_item SET
+        inspection_id = #{inspectionId},
+        material_id = #{materialId},
+        lot_id = #{lotId},
+        inspection_item = #{inspectionItem},
+        inspection_standard = #{inspectionStandard},
+        actual_value = #{actualValue},
+        sample_quantity = #{sampleQuantity},
+        qualified_quantity = #{qualifiedQuantity},
+        defective_quantity = #{defectiveQuantity},
+        item_result = #{itemResult},
+        defect_type = #{defectType},
+        defect_reason = #{defectReason},
+        handle_method = #{handleMethod},
+        remark = #{remark}
+        WHERE id = #{id}
+    </update>
+    <delete id="deleteByInspectionId" parameterType="java.lang.Long">
+        DELETE FROM t_qc_inspection_item WHERE inspection_id = #{inspectionId}
+    </delete>
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM t_qc_inspection_item WHERE id = #{id}
+    </delete>
+</mapper>

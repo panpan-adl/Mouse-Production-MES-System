@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mouse.mes.mapper.WarehouseMapper">
+    <select id="findAll" resultType="com.mouse.mes.entity.Warehouse">
+        SELECT * FROM t_warehouse WHERE status = 1
+    </select>
+    <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.Warehouse">
+        SELECT * FROM t_warehouse WHERE id = #{id} AND status = 1
+    </select>
+    <select id="findByWarehouseCode" parameterType="String" resultType="com.mouse.mes.entity.Warehouse">
+        SELECT * FROM t_warehouse WHERE warehouse_code = #{warehouseCode} AND status = 1
+    </select>
+    <insert id="insert" parameterType="com.mouse.mes.entity.Warehouse" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_warehouse (warehouse_code, warehouse_name, location, manager_id, manager_name, status, remark, create_time, update_time)
+        VALUES (#{warehouseCode}, #{warehouseName}, #{location}, #{managerId}, #{managerName}, #{status}, #{remark}, #{createTime}, #{updateTime})
+    </insert>
+    <update id="update" parameterType="com.mouse.mes.entity.Warehouse">
+        UPDATE t_warehouse SET
+        warehouse_code = #{warehouseCode},
+        warehouse_name = #{warehouseName},
+        location = #{location},
+        manager_id = #{managerId},
+        manager_name = #{managerName},
+        status = #{status},
+        remark = #{remark},
+        update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+    <delete id="delete" parameterType="Long">
+        UPDATE t_warehouse SET status = 0 WHERE id = #{id}
+    </delete>
+</mapper>

@@ -1,0 +1,142 @@
+<view class="container">
+  <view class="header">
+    <button class="add-btn" bindtap="goToCreate">+ 新建订单</button>
+    <button class="scan-btn" bindtap="scanOrder">📷 扫码录入</button>
+    <button class="test-btn" bindtap="showScanTestMenu">🧪 测试</button>
+  </view>
+
+  <view class="search-section">
+    <view class="search-box" bindtap="focusSearch">
+      <text class="search-icon">🔍</text>
+      <input 
+        class="search-input" 
+        placeholder="搜索订单号、客户名称、产品名称" 
+        value="{{ searchKeyword }}"
+        bindinput="onSearchInput"
+        bindconfirm="onSearch"
+        confirm-type="search"
+      />
+      <text class="search-clear" wx:if="{{ searchKeyword }}" bindtap="clearSearch">×</text>
+    </view>
+  </view>
+
+  <view class="filter-bar">
+    <scroll-view scroll-x class="filter-scroll">
+      <view class="filter-inner">
+        <view 
+          class="filter-item {{ statusFilter === item.value ? 'active' : '' }}" 
+          wx:for="{{ statusOptions }}" 
+          wx:key="value"
+          bindtap="onStatusChange"
+          data-value="{{ item.value }}"
+        >
+          {{ item.label }}
+          <text class="filter-count" wx:if="{{ getStatusCount(item.value) > 0 }}">{{ getStatusCount(item.value) }}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="order-list" wx:if="{{ !loading && orders.length > 0 }}">
+    <view class="order-card" wx:for="{{ orders }}" wx:key="id" bindtap="goToDetail" data-id="{{ item.id }}">
+      <view class="order-header">
+        <view class="order-left">
+          <text class="order-no">{{ item.orderNo }}</text>
+          <view class="order-tags">
+            <view class="order-status" style="color: {{ item.displayStatusColor }}; background: {{ item.displayStatusBgColor }}">
+              {{ item.displayStatusText }}
+            </view>
+            <view class="priority-tag" wx:if="{{ item.isPriority }}">🔥 紧急</view>
+          </view>
+        </view>
+        <view class="order-amount">¥{{ item.displayTotalAmount }}</view>
+      </view>
+
+      <view class="progress-section">
+        <view class="progress-track">
+          <view class="progress-step completed">
+            <view class="step-dot"></view>
+            <text class="step-label">创建</text>
+          </view>
+          <view class="progress-line {{ item.progressStep2 ? 'completed' : '' }}"></view>
+          <view class="progress-step {{ item.progressStep2 ? 'completed' : '' }}">
+            <view class="step-dot"></view>
+            <text class="step-label">确认</text>
+          </view>
+          <view class="progress-line {{ item.progressStep3 ? 'completed' : '' }}"></view>
+          <view class="progress-step {{ item.progressStep3 ? 'completed' : '' }}">
+            <view class="step-dot"></view>
+            <text class="step-label">完成</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="order-info">
+        <view class="info-row">
+          <text class="info-icon">👤</text>
+          <text class="info-label">客户:</text>
+          <text class="info-value">{{ item.displayCustomerName }}</text>
+          <text class="info-phone" wx:if="{{ item.customerPhone }}">{{ item.customerPhone }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-icon">📦</text>
+          <text class="info-label">产品:</text>
+          <text class="info-value">{{ item.displayProductName }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-icon">📊</text>
+          <text class="info-label">数量:</text>
+          <text class="info-value">{{ item.displayQuantity }}件</text>
+          <text class="info-price">单价 ¥{{ item.displayUnitPrice }}</text>
+        </view>
+      </view>
+
+      <view class="order-footer">
+        <text class="order-time">创建于 {{ item.displayCreateTime }}</text>
+        <view class="order-actions" wx:if="{{ item.canConfirm }}">
+          <text class="action-btn confirm" catchtap="confirmOrder" data-id="{{ item.id }}">确认</text>
+          <text class="action-btn cancel" catchtap="cancelOrder" data-id="{{ item.id }}">取消</text>
+        </view>
+        <view class="order-actions" wx:elif="{{ item.canDelete }}">
+          <text class="action-btn delete" catchtap="deleteOrder" data-id="{{ item.id }}">删除</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{ !loading && orders.length === 0 }}">
+    <view class="empty-icon">📭</view>
+    <text class="empty-text">{{ searchKeyword ? '未找到匹配的订单' : '暂无订单' }}</text>
+    <button class="empty-btn" bindtap="goToCreate">创建订单</button>
+  </view>
+
+  <view class="loading" wx:if="{{ loading }}">
+    <view class="loading-icon"></view>
+    <text>加载中...</text>
+  </view>
+
+  <view class="scan-test-modal" wx:if="{{ showScanTest }}" bindtap="closeScanTestMenu">
+    <view class="scan-test-content" catchtap="">
+      <view class="scan-test-header">
+        <text class="scan-test-title">模拟扫码测试</text>
+        <text class="scan-test-close" bindtap="closeScanTestMenu">×</text>
+      </view>
+      <view class="scan-test-list">
+        <view 
+          class="scan-test-item" 
+          wx:for="{{ scanTestOptions }}" 
+          wx:key="value"
+          bindtap="simulateScan"
+          data-value="{{ item.value }}"
+        >
+          <text class="scan-test-label">{{ item.label }}</text>
+          <text class="scan-test-arrow">></text>
+        </view>
+      </view>
+      <view class="scan-test-tips">
+        <text class="tips-title">💡 测试说明</text>
+        <text class="tips-content">选择一个选项模拟扫码，验证整个流程是否正常工作。</text>
+      </view>
+    </view>
+  </view>
+</view>

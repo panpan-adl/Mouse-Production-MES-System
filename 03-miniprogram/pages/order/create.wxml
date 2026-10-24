@@ -1,0 +1,108 @@
+<view class="container">
+  <view class="form-card">
+    <view class="form-item">
+      <text class="form-label">订单编号</text>
+      <input class="form-input" value="{{ form.orderNo }}" disabled />
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">客户名称</text>
+      <input class="form-input" placeholder="请输入客户名称" value="{{ form.customerName }}" bindinput="onInputChange" data-field="customerName" />
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">客户电话</text>
+      <input class="form-input" type="number" placeholder="请输入客户电话" value="{{ form.customerPhone }}" bindinput="onInputChange" data-field="customerPhone" />
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">产品名称</text>
+      <input class="form-input" placeholder="请输入产品名称" value="{{ form.productName }}" bindinput="onInputChange" data-field="productName" />
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">产品型号</text>
+      <input class="form-input" placeholder="请输入产品型号" value="{{ form.productModel }}" bindinput="onInputChange" data-field="productModel" />
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">订单数量</text>
+      <input class="form-input" type="number" placeholder="请输入订单数量" value="{{ form.quantity }}" bindinput="onInputChange" data-field="quantity" />
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">单价</text>
+      <input class="form-input" type="digit" placeholder="请输入单价" value="{{ form.unitPrice }}" bindinput="onInputChange" data-field="unitPrice" />
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">总金额</text>
+      <input class="form-input" type="digit" placeholder="自动计算" value="{{ form.totalAmount }}" disabled />
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">下单日期</text>
+      <picker mode="date" value="{{ form.orderDate }}" bindchange="onInputChange" data-field="orderDate">
+        <view class="form-picker">
+          {{ form.orderDate || '请选择日期' }}
+          <text class="picker-arrow">></text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">要求交货期</text>
+      <picker mode="date" value="{{ form.deliveryDate }}" bindchange="onInputChange" data-field="deliveryDate">
+        <view class="form-picker">
+          {{ form.deliveryDate || '请选择日期' }}
+          <text class="picker-arrow">></text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">优先级</text>
+      <view class="priority-group">
+        <view 
+          class="priority-item {{ form.priority === item.value ? 'active' : '' }}" 
+          wx:for="{{ priorityOptions }}" 
+          wx:key="value"
+          bindtap="onPriorityChange"
+          data-value="{{ item.value }}"
+        >
+          {{ item.label }}
+        </view>
+      </view>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">备注</text>
+      <textarea class="form-textarea" placeholder="请输入备注信息" value="{{ form.remark }}" bindinput="onInputChange" data-field="remark" />
+    </view>
+  </view>
+
+  <view class="form-actions">
+    <button class="submit-btn {{ submitting ? 'disabled' : '' }}" bindtap="onSubmit" disabled="{{ submitting }}">
+      {{ submitting ? '提交中...' : '创建订单' }}
+    </button>
+    <button class="barcode-btn" bindtap="generateBarcode">生成条码</button>
+  </view>
+
+  <view class="barcode-modal" wx:if="{{ showBarcodeModal }}" bindtap="closeBarcodeModal">
+    <view class="barcode-content" catchtap="noop">
+      <view class="barcode-header">
+        <text class="barcode-title">订单条码</text>
+        <text class="barcode-close" bindtap="closeBarcodeModal">×</text>
+      </view>
+      <view class="barcode-canvas-wrap">
+        <canvas canvas-id="barcodeCanvas" class="barcode-canvas" width="800" height="300"></canvas>
+      </view>
+      <view class="barcode-info">
+        <text class="barcode-order-no">{{ form.orderNo }}</text>
+      </view>
+      <view class="barcode-actions">
+        <button class="save-btn" bindtap="saveBarcode">保存到相册</button>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,136 @@
+<view class="container">
+  <view class="header">
+    <view class="greeting">
+      <text class="hello">你好，</text>
+      <text class="username">{{ userInfo ? (userInfo.realName || userInfo.username) : '用户' }}</text>
+    </view>
+    <view class="date">{{ currentDate }}</view>
+  </view>
+
+  <view class="stats-section">
+    <view class="progress-ring-card">
+      <view class="ring-wrap">
+        <canvas canvas-id="progressRing" class="progress-ring" width="360" height="360"></canvas>
+        <view class="ring-center">
+          <text class="ring-value">{{ completionRate }}%</text>
+          <text class="ring-label">订单完成率</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="stats-grid">
+      <view class="stat-card" bindtap="goToPage" data-path="/pages/order/list">
+        <view class="stat-icon-wrap order-icon">📦</view>
+        <view class="stat-info">
+          <view class="stat-value-row">
+            <text class="stat-value">{{ orderCount }}</text>
+            <text class="stat-trend" wx:if="{{ orderTrend > 0 }}">↑{{ orderTrend }}%</text>
+            <text class="stat-trend down" wx:elif="{{ orderTrend < 0 }}">↓{{ -orderTrend }}%</text>
+          </view>
+          <view class="stat-label">订单总数</view>
+        </view>
+      </view>
+      <view class="stat-card" bindtap="goToPage" data-path="/pages/plan/list">
+        <view class="stat-icon-wrap plan-icon">✅</view>
+        <view class="stat-info">
+          <view class="stat-value-row">
+            <text class="stat-value">{{ planCount }}</text>
+            <text class="stat-trend" wx:if="{{ planTrend > 0 }}">↑{{ planTrend }}%</text>
+            <text class="stat-trend down" wx:elif="{{ planTrend < 0 }}">↓{{ -planTrend }}%</text>
+          </view>
+          <view class="stat-label">生产计划</view>
+        </view>
+      </view>
+      <view class="stat-card" bindtap="goToPage" data-path="/pages/workorder/list">
+        <view class="stat-icon-wrap task-icon">🔧</view>
+        <view class="stat-info">
+          <view class="stat-value-row">
+            <text class="stat-value">{{ taskCount }}</text>
+            <text class="stat-trend" wx:if="{{ taskTrend > 0 }}">↑{{ taskTrend }}%</text>
+            <text class="stat-trend down" wx:elif="{{ taskTrend < 0 }}">↓{{ -taskTrend }}%</text>
+          </view>
+          <view class="stat-label">生产任务</view>
+        </view>
+      </view>
+      <view class="stat-card" bindtap="goToPage" data-path="/pages/workorder/list">
+        <view class="stat-icon-wrap wo-icon">📋</view>
+        <view class="stat-info">
+          <view class="stat-value-row">
+            <text class="stat-value">{{ workOrderCount }}</text>
+            <text class="stat-trend" wx:if="{{ woTrend > 0 }}">↑{{ woTrend }}%</text>
+            <text class="stat-trend down" wx:elif="{{ woTrend < 0 }}">↓{{ -woTrend }}%</text>
+          </view>
+          <view class="stat-label">工单数量</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  
+
+  <view class="todo-section">
+    <view class="section-header">
+      <text class="section-title">今日待办</text>
+      <text class="todo-count" wx:if="{{ todoList.length > 0 }}">{{ todoList.length }}项</text>
+    </view>
+    <view class="todo-list" wx:if="{{ todoList.length > 0 }}">
+      <view class="todo-item" wx:for="{{ todoList }}" wx:key="id" bindtap="toggleTodo" data-id="{{ item.id }}">
+        <view class="todo-checkbox {{ item.completed ? 'checked' : '' }}">
+          <text wx:if="{{ item.completed }}">✓</text>
+        </view>
+        <view class="todo-content">
+          <text class="todo-title {{ item.completed ? 'completed' : '' }}">{{ item.title }}</text>
+          <text class="todo-meta">{{ item.meta }}</text>
+        </view>
+        <view class="todo-priority" wx:if="{{ item.priority === 'high' }}">紧急</view>
+      </view>
+    </view>
+    <view class="empty-todo" wx:else>
+      <view class="empty-icon">🎉</view>
+      <text class="empty-text">今日暂无待办任务</text>
+    </view>
+  </view>
+
+  <view class="quick-links">
+    <view class="section-header">
+      <text class="section-title">快捷操作</text>
+    </view>
+    <view class="links-grid">
+      <view class="link-item" wx:for="{{ quickLinks }}" wx:key="name" bindtap="goToPage" data-path="{{ item.path }}">
+        <view class="link-icon-wrap" style="background: {{ item.bgColor }}">
+          <text class="link-icon">{{ item.icon }}</text>
+        </view>
+        <text class="link-name">{{ item.name }}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="recent-orders" wx:if="{{ !loading && recentOrders.length > 0 }}">
+    <view class="section-header">
+      <text class="section-title">最近订单</text>
+      <text class="section-more" bindtap="goToPage" data-path="/pages/order/list">查看全部</text>
+    </view>
+    <view class="order-list">
+      <view class="order-item" wx:for="{{ recentOrders }}" wx:key="id" bindtap="goToOrderDetail" data-id="{{ item.id }}">
+        <view class="order-info">
+          <text class="order-no">{{ item.displayNo }}</text>
+          <text class="order-time">{{ item.displayTime }}</text>
+        </view>
+        <view class="order-status-badge" style="background: {{ item.displayStatusBgColor }}; color: {{ item.displayStatusColor }}">
+          {{ item.displayStatusText }}
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="login-tip" wx:if="{{ !isLogin }}">
+    <view class="tip-icon">🔐</view>
+    <text class="tip-text">请先登录查看数据</text>
+    <button class="login-btn" bindtap="goToLogin">立即登录</button>
+  </view>
+
+  <view class="loading" wx:if="{{ loading }}">
+    <view class="loading-icon"></view>
+    <text>加载中...</text>
+  </view>
+</view>
