@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import request from '@/utils/request'
 import MainLayout from '@/components/MainLayout.vue'
@@ -199,7 +200,7 @@ async function saveRequest() {
       createdBy: authStore.currentUser?.id || 1,
     })
     message.value = '物料请求已登记，系统已自动计算库存和缺料数量。'
-    showForm.value = false
+    completeDrafts();showForm.value=false
     await loadRequests()
   } catch (error: any) {
     message.value = error.message || '保存物料请求失败'
@@ -244,6 +245,8 @@ async function sendPurchaseRequest(item: MaterialRequestRecord) {
     saving.value = false
   }
 }
+
+const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form,selectedTaskId}, record:()=>(form as Record<string,any>).id}})
 </script>
 
 <template>

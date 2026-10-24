@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { FilePlus2, RefreshCw, Search, X } from 'lucide-vue-next'
@@ -141,7 +142,7 @@ async function createPurchaseOrder() {
       orderDate: new Date().toISOString().slice(0, 10),
       expectedDate: orderForm.expectedDate,
       totalAmount: amount,
-      status: 'NOT_RECEIVED',
+      status: 'DRAFT',
       remark: orderForm.remark,
       createdBy: authStore.currentUser?.id || 1,
       items: [
@@ -157,7 +158,7 @@ async function createPurchaseOrder() {
     })
     await materialRequestApi.markPurchaseOrdered(currentRequest.value.id)
     message.value = `已根据 ${currentRequest.value.requestNo} 生成采购订单，需求状态已更新为“已转采购单”。`
-    showOrderForm.value = false
+    completeDrafts();showOrderForm.value = false
     await loadRequests()
   } catch (error: any) {
     message.value = error.message || '生成采购订单失败'
@@ -173,6 +174,8 @@ function formatDateTime(value?: string) {
 function formatMoney(value?: number) {
   return `¥${Number(value || 0).toFixed(2)}`
 }
+
+const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{orderForm},record:()=>currentRequest.value?.id}})
 </script>
 
 <template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import MainLayout from '@/components/MainLayout.vue'
@@ -296,7 +297,7 @@ async function saveInspection() {
     } else {
       message.value = editingId.value ? '质检单已修改' : '质检单已新增'
     }
-    closeForm()
+    completeDrafts();closeForm()
     await loadInspections()
   } catch (error: any) {
     message.value = error.message || '保存质检单失败'
@@ -316,6 +317,8 @@ async function removeInspection(item: QcInspection) {
   }
 }
 
+
+const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, record:()=>(form as Record<string,any>).id || editingId.value}})
 </script>
 
 <template>

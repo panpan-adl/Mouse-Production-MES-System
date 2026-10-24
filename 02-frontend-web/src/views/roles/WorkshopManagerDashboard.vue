@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Building, CheckCircle, Clock, RefreshCw, Settings, Users, Wrench, X } from 'lucide-vue-next'
@@ -112,7 +113,7 @@ async function assignMaintenance() {
       userId: maintainer.id,
       userName: maintainer.realName,
     })
-    showAssignForm.value = false
+    completeDrafts();showAssignForm.value=false
     message.value = `已将维修单 ${selectedMaintenance.value.maintenanceNo} 指派给 ${maintainer.realName}`
     await loadAll()
   } catch (error) {
@@ -145,7 +146,7 @@ async function assignProductionTask() {
       assignedUserName: worker.realName,
       taskStatus: 1,
     })
-    showTaskAssignForm.value = false
+    completeDrafts();showTaskAssignForm.value = false
     message.value = `已将生产任务 ${selectedTask.value.taskNo} 派发给 ${worker.realName}`
     await loadAll()
   } catch (error) {
@@ -177,6 +178,8 @@ function maintenanceStatusClass(status?: string) {
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : '操作失败，请稍后重试'
 }
+
+const completeDrafts=useFormDrafts({showAssignForm:{open:showAssignForm,fields:{assignForm},record:()=>selectedMaintenance.value?.id},showTaskAssignForm:{open:showTaskAssignForm,fields:{taskAssignForm},record:()=>selectedTask.value?.id}})
 </script>
 
 <template>

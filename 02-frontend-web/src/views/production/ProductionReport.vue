@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { PackageCheck, Play, Plus, RefreshCw, Search, X } from 'lucide-vue-next'
 import MainLayout from '@/components/MainLayout.vue'
@@ -202,7 +203,7 @@ async function submitReport() {
         reportQuantity: Number(form.reportQuantity),
         remark: form.remark.trim(),
       })
-      reportVisible.value = false
+      completeDrafts();reportVisible.value=false
       feedback.value = `报工记录 ${updated.id || editingReportId.value} 已修改。`
     } else {
       const updatedTask = await productionTaskApi.report(task.id, {
@@ -211,7 +212,7 @@ async function submitReport() {
         reportQuantity: Number(form.reportQuantity),
         remark: form.remark.trim(),
       })
-      reportVisible.value = false
+      completeDrafts();reportVisible.value=false
       feedback.value = updatedTask.taskStatus === 3
         ? `任务 ${updatedTask.taskNo} 已全部报工，进入待质检。`
         : `任务 ${updatedTask.taskNo} 报工成功。`
@@ -325,6 +326,8 @@ function getErrorMessage(error: unknown) {
 }
 
 onMounted(loadData)
+
+const completeDrafts=useFormDrafts({reportVisible:{open:reportVisible,fields:{form},record:()=>editingReportId.value||selectedTask.value?.id}})
 </script>
 
 <template>
@@ -471,7 +474,7 @@ onMounted(loadData)
     </div>
 
     <div v-if="reportVisible" class="modal-mask" @click.self="reportVisible = false">
-      <form class="modal-card max-w-2xl" @submit.prevent="submitReport">
+      <form class="modal-card max-w-2xl" @submit.prevent="submitReport"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-6 flex items-start justify-between">
           <div>
             <p class="text-sm text-gray-500">生产任务报工</p>

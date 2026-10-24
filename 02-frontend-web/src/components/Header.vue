@@ -7,7 +7,7 @@ import { sidebarCollapsed } from '@/stores/layout'
 
 const router = useRouter()
 const route = useRoute()
-const pageLabels:Record<string,string>={'/dashboard':'生产全景看板','/mes':'MES运营中心','/manufacturing':'制造与质量放行','/fulfillment':'生产与仓储闭环','/system/logs':'日志管理','/system/user':'员工管理','/system/role':'角色管理','/system/department':'部门管理','/automation':'规则与自动化','/intelligence':'智能业务查询','/notifications':'通知中心','/user/profile':'个人中心','/attendance':'考勤管理','/production/task':'生产任务','/inventory/stock':'库存管理'}
+const pageLabels:Record<string,string>={'/dashboard':'生产全景看板','/mes':'MES运营中心','/manufacturing':'制造与质量放行','/equipment/maintenance':'设备维修管理','/fulfillment':'生产与仓储流程总览','/system/logs':'日志管理','/system/user':'员工管理','/system/role':'岗位与权限管理','/system/department':'部门管理','/automation':'自动任务与提醒','/notifications':'通知中心','/user/profile':'个人中心','/attendance':'考勤管理','/production/task':'生产任务','/inventory/stock':'库存管理'}
 const domains:Record<string,string>={foundation:'基础配置',production:'生产管理',quality:'质量管理',inventory:'仓储管理',purchase:'采购管理',equipment:'设备管理',system:'系统管理',order:'销售管理',cfo:'财务看板'}
 const pageTitle=computed(()=>String(route.meta.title||'')||pageLabels[route.path]||domains[route.path.split('/')[1]]||'业务工作台')
 const sectionTitle=computed(()=>domains[route.path.split('/')[1]]||'工作空间')

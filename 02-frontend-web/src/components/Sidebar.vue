@@ -47,7 +47,6 @@ const collapsed = sidebarCollapsed
 const allMenuItems = ref<MenuItem[]>([
   {path:'/assistant',name:'Skill业务智能体',icon:Bot},
   {path:'/mes',name:'MES运营中心',icon:Package},
-  {path:'/intelligence',name:'智能业务查询',icon:BarChart3},
   {path:'/automation',name:'自动任务与提醒',icon:ClipboardCheck},
   { path: '/', name: '首页', icon: LayoutDashboard },
   { path: '/foundation/workshops', name: '基础配置中心', icon: Settings },
@@ -116,10 +115,8 @@ const allMenuItems = ref<MenuItem[]>([
     icon: Wrench,
     children: [
       { path: '/equipment/list', name: '设备台账', icon: Wrench },
-      { path: '/equipment/maintenance', name: '维修申请与派工', icon: Settings },
-      { path: '/equipment/repair-tasks', name: '维修执行与记录', icon: Wrench, roles: [8] },
+      { path: '/equipment/maintenance', name: '设备维修管理', icon: Settings },
       { path: '/equipment/periodic', name: '定期保养计划', icon: Calendar, roles: [8] },
-      { path: '/equipment/bills', name: '维护账单', icon: FileText, roles: [8] },
     ],
   },
   { path: '/cfo', name: '财务看板', icon: Wallet },
@@ -162,14 +159,14 @@ const roleChildMenus: Record<number, Record<string, string[]>> = {
     采购管理: ['采购需求', '采购订单', '供应商管理','采购收货','供应商退货'],
   },
   8: {
-    设备管理: ['维修执行与记录', '定期保养计划', '维护账单'],
+    设备管理: ['设备维修管理', '定期保养计划'],
   },
 }
 
 const roleMenuItems = computed(() => {
   const roleId = authStore.effectiveRoleId
   if (!roleId || !roleMenus[roleId]) return []
-  return allMenuItems.value.filter((item) => roleId === 9 || item.name==='Skill业务智能体' || item.name==='MES运营中心' || (item.name === '智能业务查询' && [1,2,4,5,6,7,10].includes(roleId)) || (item.name === '自动任务与提醒' && [1,2,4,6,8].includes(roleId)) || (item.name === '生产与仓储流程总览' && [1,2,3,4,5,6,7,8,10].includes(roleId)) || roleMenus[roleId].includes(item.name) || (item.name === '基础配置中心' && [1,2,4,5,6,7,8,11].includes(roleId)) || (item.name === '制造与质量放行' && [1,2,3,4].includes(roleId)))
+  return allMenuItems.value.filter((item) => roleId === 9 || item.name==='Skill业务智能体' || item.name==='MES运营中心' || (item.name === '自动任务与提醒' && [1,2,4,6,8].includes(roleId)) || (item.name === '生产与仓储流程总览' && [1,2,3,4,5,6,7,8,10].includes(roleId)) || roleMenus[roleId].includes(item.name) || (item.name === '基础配置中心' && [1,2,4,5,6,7,8,11].includes(roleId)) || (item.name === '制造与质量放行' && [1,2,3,4].includes(roleId)))
 })
 
 const menuItems=computed(()=>roleMenuItems.value.map(item=>{

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import request from '@/utils/request'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, Search, Edit, Trash2, RotateCcw, X, Check } from 'lucide-vue-next'
@@ -240,7 +241,7 @@ async function handleCreateUser() {
       username: realName,
       realName,
     })
-    showAddModal.value = false
+    completeDrafts();showAddModal.value=false
     await loadUsers()
     newUser.value = {
       username: '',
@@ -280,7 +281,7 @@ async function handleUpdateUser() {
       return
     }
     await updateUser(editUserId.value, editUser.value)
-    showEditModal.value = false
+    completeDrafts();showEditModal.value=false
     await loadUsers()
   } catch (error) {
     console.error('Failed to update user:', error)
@@ -340,6 +341,8 @@ function getStatusClass(status: number) {
 onMounted(async () => {
   await Promise.all([loadUsers(), loadDepartments()])
 })
+
+const completeDrafts=useFormDrafts({showAddModal:{open:showAddModal,fields:{newUser}},showEditModal:{open:showEditModal,fields:{editUser}, record:()=>editUserId.value}})
 </script>
 
 <template>

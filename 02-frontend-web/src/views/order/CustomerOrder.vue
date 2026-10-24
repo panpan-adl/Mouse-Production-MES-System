@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Edit3, Eye, Plus, RefreshCw, Search, Trash2, X } from 'lucide-vue-next'
@@ -150,7 +151,7 @@ async function saveCustomer() {
       await customerApi.create(payload)
       message.value = '客户已新增'
     }
-    showForm.value = false
+    completeDrafts();showForm.value=false
     await loadCustomers()
   } catch (error: any) {
     message.value = error.message || '客户保存失败'
@@ -201,6 +202,8 @@ function formatDate(value?: string) {
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString('zh-CN')
 }
+
+const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, record:()=>(form as Record<string,any>).id || editingId.value}})
 </script>
 
 <template>

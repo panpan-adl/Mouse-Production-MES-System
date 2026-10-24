@@ -104,7 +104,7 @@ public class FoundationService {
         if(key.equals("maintenance-plans")) {
             fail(number(values.get("frequency"))<1||number(values.get("frequency"))>1000,"保养间隔须为1至1000的整数");
             fail(new BigDecimal(values.get("frequency").toString()).stripTrailingZeros().scale()>0,"保养间隔必须是整数");
-            fail(number(values.get("remind_days"))>365||new BigDecimal(values.get("remind_days").toString()).stripTrailingZeros().scale()>0,"提前提醒应为0至365天的整数");
+            fail(number(values.get("remind_days"))<1||number(values.get("remind_days"))>365||new BigDecimal(values.get("remind_days").toString()).stripTrailingZeros().scale()>0,"提前提醒应为1至365天的整数");
             fail(count("SELECT COUNT(*) FROM t_user WHERE id=? AND role_id=8 AND status=1 AND deleted=0",values.get("owner_id"))!=1,"负责人须为在职设备维护员");
             if(id!=null) { var old=get(key,id); fail(count("SELECT COUNT(*) FROM mm_maintenance_occurrence WHERE plan_id=?",id)>0&&(!PeriodicMaintenanceService.dateTime(old.get("anchor_at")).equals(values.get("anchor_at"))||number(old.get("frequency"))!=number(values.get("frequency"))||!old.get("cycle_unit").equals(values.get("cycle_unit"))),"已有保养任务的周期不可改变，请停用原计划后新建"); }
         }

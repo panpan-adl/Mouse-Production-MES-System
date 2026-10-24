@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Edit, Eye, Plus, RefreshCw, Search, X } from 'lucide-vue-next'
@@ -278,7 +279,7 @@ async function saveOrder() {
       message.value = '订单已新增，状态为待确认'
     }
 
-    formVisible.value = false
+    completeDrafts();formVisible.value=false
     await loadOrders()
   } catch (error: any) {
     message.value = error.message || (formMode.value === 'edit' ? '订单修改失败' : '订单新增失败')
@@ -355,6 +356,8 @@ function formatDate(value?: string) {
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString('zh-CN')
 }
+
+const completeDrafts=useFormDrafts({formVisible:{open:formVisible,fields:{form}, record:()=>(form as Record<string,any>).id || editingOrderId.value}})
 </script>
 
 <template>

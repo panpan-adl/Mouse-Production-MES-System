@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { AlertTriangle, Calendar, Clock, PackageCheck, Play, RefreshCw, Wrench, X } from 'lucide-vue-next'
@@ -136,7 +137,7 @@ async function submitReport() {
       reportQuantity: Number(reportForm.reportQuantity),
       remark: reportForm.remark.trim(),
     })
-    showReportForm.value = false
+    completeDrafts();showReportForm.value=false
     message.value = updatedTask.taskStatus === 3 ? '报工完成，任务已转入待质检' : '报工已提交'
     await loadAll()
   } catch (error) {
@@ -168,7 +169,7 @@ async function submitRepairRequest() {
       faultDesc: repairForm.faultDesc.trim(),
       remark: `申请人：${currentUser.value.realName}（${currentUser.value.userCode}）；${repairForm.remark || '操作工提交设备故障维修申请'}`,
     })
-    showRepairForm.value = false
+    completeDrafts();showRepairForm.value=false
     message.value = '维修申请已提交，车间主任可在工作台中指派维修人员'
     await loadAll()
   } catch (error) {
@@ -248,6 +249,8 @@ function toDateInput(date: Date) {
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : '操作失败，请稍后重试'
 }
+
+const completeDrafts=useFormDrafts({showReportForm:{open:showReportForm,fields:{reportForm},record:()=>selectedTask.value?.id},showRepairForm:{open:showRepairForm,fields:{repairForm}}})
 </script>
 
 <template>
@@ -359,7 +362,7 @@ function getErrorMessage(error: unknown) {
     </div>
 
     <div v-if="showReportForm && selectedTask" class="modal-mask" @click.self="showReportForm = false">
-      <form class="modal-card max-w-lg" @submit.prevent="submitReport">
+      <form class="modal-card max-w-lg" @submit.prevent="submitReport"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-5 flex items-center justify-between">
           <div><p class="text-sm text-gray-500">生产报工</p><h2 class="text-xl font-bold text-gray-900">{{ selectedTask.taskNo }}</h2></div>
           <button type="button" class="icon-btn" @click="showReportForm = false"><X class="h-5 w-5" /></button>
@@ -377,7 +380,7 @@ function getErrorMessage(error: unknown) {
     </div>
 
     <div v-if="showRepairForm" class="modal-mask" @click.self="showRepairForm = false">
-      <form class="modal-card max-w-xl" @submit.prevent="submitRepairRequest">
+      <form class="modal-card max-w-xl" @submit.prevent="submitRepairRequest"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-5 flex items-center justify-between">
           <div><p class="text-sm text-gray-500">设备维修申请</p><h2 class="text-xl font-bold text-gray-900">提交故障设备</h2></div>
           <button type="button" class="icon-btn" @click="showRepairForm = false"><X class="h-5 w-5" /></button>

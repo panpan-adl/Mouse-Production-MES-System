@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { AlertTriangle, RefreshCw, Send, Wrench, X } from 'lucide-vue-next'
@@ -114,7 +115,7 @@ async function submitRepairRequest() {
       faultDesc: repairForm.faultDesc.trim(),
       remark: `操作工报修；申请人：${currentUser.value.realName}（${currentUser.value.userCode}）；设备：${selectedEquipment.value.equipmentCode}；${repairForm.remark.trim() || '无补充说明'}`,
     })
-    showRepairForm.value = false
+    completeDrafts();showRepairForm.value=false
     message.value = '设备报修已提交，车间主任工作台会出现待指派维修单'
     await loadData()
   } catch (error) {
@@ -152,6 +153,8 @@ function canReport(equipment: Equipment) {
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : '操作失败，请稍后重试'
 }
+
+const completeDrafts=useFormDrafts({showRepairForm:{open:showRepairForm,fields:{repairForm}, record:()=>selectedEquipment.value?.id}})
 </script>
 
 <template>
@@ -260,7 +263,7 @@ function getErrorMessage(error: unknown) {
     </div>
 
     <div v-if="showRepairForm && selectedEquipment" class="modal-mask" @click.self="showRepairForm = false">
-      <form class="modal-card max-w-xl" @submit.prevent="submitRepairRequest">
+      <form class="modal-card max-w-xl" @submit.prevent="submitRepairRequest"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-5 flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-500">设备报修上报</p>

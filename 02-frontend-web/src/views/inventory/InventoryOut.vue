@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
@@ -99,7 +100,7 @@ async function saveStockOut() {
     }))
     await stockOutApi.create(form)
     message.value = '出库成功，库存已扣减'
-    showForm.value = false
+    completeDrafts();showForm.value=false
     await loadAll()
   } catch (error: any) {
     message.value = error.message || '出库失败'
@@ -115,6 +116,8 @@ function firstMaterial(item: StockOut) {
 function formatDate(value?: string) {
   return value ? new Date(value).toLocaleString('zh-CN') : '-'
 }
+
+const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, record:()=>(form as Record<string,any>).id}})
 </script>
 
 <template>

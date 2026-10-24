@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MainLayout from '@/components/MainLayout.vue'
@@ -60,8 +61,9 @@ function edit(row?:Row) {
   editing.value=row?.id; Object.keys(form).forEach(k=>delete form[k]); error.value=''
   definition.value?.fields.forEach(f=>{
     let value=row?.[f.name] ?? ''
-    if(!row&&value===''){if(f.name==='conversion_rate')value=1;if(f.name==='data_type')value='TEXT';if(f.name==='phase')value='FINAL';if(f.name==='is_key')value='0';if(f.name==='enabled')value='1';if(f.name==='plan_type')value='CHECK'}
+    if(!row&&value===''){if(key.value==='maintenance-plans'&&['frequency','remind_days'].includes(f.name))value=1;if(f.name==='conversion_rate')value=1;if(f.name==='data_type')value='TEXT';if(f.name==='phase')value='FINAL';if(f.name==='is_key')value='0';if(f.name==='enabled')value='1';if(f.name==='plan_type')value='CHECK'}
     if(f.type==='datetime-local' && typeof value==='string')value=value.replace(' ','T').slice(0,16)
+    if(key.value==='maintenance-plans'&&['frequency','remind_days'].includes(f.name))value=Math.max(1,Number(value)||1)
     form[f.name]=value
   }); modal.value=true
 }
@@ -72,7 +74,7 @@ async function save() {
     if(editing.value) await request.put(`/foundation/${key.value}/${editing.value}`,data)
     else await request.post(`/foundation/${key.value}`,data)
     if(key.value==='role-menus'||key.value==='menus')await auth.refreshMenuAccess()
-    modal.value=false;message.value='保存成功';await load()
+    completeDrafts();modal.value=false;message.value='保存成功';await load()
   } catch(e:any) {error.value=e.message || '保存失败'} finally{saving.value=false}
 }
 async function remove(row:Row) {
@@ -90,6 +92,8 @@ async function uploadSop(event:Event){
 
 watch(key,()=>{modal.value=false;search.value='';message.value='';load()})
 onMounted(load)
+
+const completeDrafts=useFormDrafts({modal:{open:modal,fields:{form}, record:()=>(form as Record<string,any>).id || editing.value}})
 </script>
 
 <template>
@@ -125,13 +129,13 @@ onMounted(load)
       </section>
     </div>
     <div v-if="modal" class="fixed inset-0 bg-black/40 z-[80] flex items-center justify-center p-6" @click.self="modal=false">
-      <form class="bg-white rounded-xl shadow-xl p-6 w-full max-w-xl max-h-[85vh] overflow-y-auto" @submit.prevent="save">
+      <form class="bg-white rounded-xl shadow-xl p-6 w-full max-w-xl max-h-[85vh] overflow-y-auto" @submit.prevent="save"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <h2 class="font-bold text-xl mb-5">{{editing?'编辑':'新增'}}{{definition?.label}}</h2>
         <p v-if="error" role="alert" class="bg-red-50 text-red-700 p-3 rounded mb-4">{{error}}</p>
         <div v-for="f in visibleFields" :key="f.name" class="mb-4"><label :for="`field-${f.name}`" class="block text-sm font-medium text-gray-700 mb-1">{{f.label}}<span v-if="f.required" class="text-red-500"> *</span></label>
           <select v-if="f.ref" :id="`field-${f.name}`" v-model="form[f.name]" :required="f.required" class="w-full rounded-lg border px-3 py-2"><option value="">请选择</option><option v-for="r in lookups[f.ref] || []" :key="r.id" :value="r.id">{{rowName(r)}}</option></select>
           <select v-else-if="f.options" :id="`field-${f.name}`" v-model="form[f.name]" :required="f.required" class="w-full rounded-lg border px-3 py-2"><option value="">请选择</option><option v-for="(label,value) in f.options" :key="value" :value="value">{{label}}</option></select>
-          <template v-else-if="f.type==='image'"><input type="file" accept="image/png,image/jpeg" @change="uploadSop" /><p class="text-xs text-gray-500 mt-1">{{form[f.name]||'上传图片后自动保存地址'}}</p></template><input v-else :id="`field-${f.name}`" v-model="form[f.name]" :required="f.required" :type="['number','positive','decimal'].includes(f.type)?'number':f.type" :min="f.type==='positive'?0.0001:f.type==='number'?0:undefined" :step="['number','positive','decimal'].includes(f.type)?'0.0001':undefined" maxlength="500" class="w-full rounded-lg border px-3 py-2" />
+          <template v-else-if="f.type==='image'"><input type="file" accept="image/png,image/jpeg" @change="uploadSop" /><p class="text-xs text-gray-500 mt-1">{{form[f.name]||'上传图片后自动保存地址'}}</p></template><input v-else :id="`field-${f.name}`" v-model="form[f.name]" :required="f.required" :type="['number','positive','decimal'].includes(f.type)?'number':f.type" :min="key==='maintenance-plans'&&['frequency','remind_days'].includes(f.name)?1:f.type==='positive'?0.0001:f.type==='number'?0:undefined" :step="key==='maintenance-plans'&&['frequency','remind_days'].includes(f.name)?'1':['number','positive','decimal'].includes(f.type)?'0.0001':undefined" maxlength="500" class="w-full rounded-lg border px-3 py-2" />
         </div>
         <p class="text-sm text-gray-500 mt-4">内部编号由系统自动生成，关联资料按名称选择。</p><div class="flex justify-end gap-3 mt-6"><button type="button" class="border rounded-lg px-4 py-2" @click="modal=false">取消</button><button :disabled="saving" class="bg-blue-600 text-white rounded-lg px-5 py-2">{{saving?'保存中…':'保存'}}</button></div>
       </form>

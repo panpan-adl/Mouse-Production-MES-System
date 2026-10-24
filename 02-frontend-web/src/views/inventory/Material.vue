@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
@@ -97,7 +98,7 @@ async function saveMaterial() {
       await materialApi.create(form)
       message.value = '物料已新增'
     }
-    showForm.value = false
+    completeDrafts();showForm.value=false
     await loadMaterials()
   } catch (error: any) {
     message.value = error.message || '保存物料失败'
@@ -116,6 +117,8 @@ async function removeMaterial(item: Material) {
     message.value = error.message || '删除物料失败'
   }
 }
+
+const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, record:()=>(form as Record<string,any>).id || editingId.value}})
 </script>
 
 <template>

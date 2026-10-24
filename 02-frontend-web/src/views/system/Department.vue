@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Building2, Edit3, Plus, RefreshCw, Search, Trash2, Users, X } from 'lucide-vue-next'
@@ -169,7 +170,7 @@ async function saveDepartment() {
       await departmentApi.create(payload)
       message.value = '部门已新增。新部门创建后，请先在员工管理中分配员工，再设置负责人。'
     }
-    showForm.value = false
+    completeDrafts();showForm.value=false
     await loadAll()
   } catch (error: any) {
     message.value = error.message || '部门保存失败'
@@ -208,6 +209,8 @@ function leaderRuleText(department?: Department | null) {
   return `负责人角色：${roleIds.map((id) => roleNameById[id] || `角色${id}`).join('、')}`
 }
 
+
+const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, record:()=>(form as Record<string,any>).id}})
 </script>
 
 <template>

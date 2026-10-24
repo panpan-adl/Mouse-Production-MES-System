@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
@@ -120,7 +121,7 @@ async function saveEquipment() {
       await equipmentApi.create(form)
       message.value = '设备已新增'
     }
-    showForm.value = false
+    completeDrafts();showForm.value=false
     await loadEquipments()
   } catch (error: any) {
     message.value = error.message || '保存设备失败'
@@ -139,6 +140,8 @@ async function removeEquipment(item: Equipment) {
     message.value = error.message || '删除设备失败'
   }
 }
+
+const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, record:()=>(form as Record<string,any>).id || editingId.value}})
 </script>
 
 <template>

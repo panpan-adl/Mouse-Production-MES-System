@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
@@ -365,7 +366,7 @@ async function saveOrder() {
       await purchaseOrderApi.create(payload)
       message.value = '采购订单已新增'
     }
-    showForm.value = false
+    completeDrafts();showForm.value=false
     await loadOrders()
   } catch (error: any) {
     message.value = error.message || '保存采购订单失败'
@@ -506,6 +507,8 @@ function toDateInput(value?: string) {
 function formatMoney(value?: number) {
   return `¥${Number(value || 0).toFixed(2)}`
 }
+
+const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, record:()=>(form as Record<string,any>).id || editingOrderId.value}})
 </script>
 
 <template>

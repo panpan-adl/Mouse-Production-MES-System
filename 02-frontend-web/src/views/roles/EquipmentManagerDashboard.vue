@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { AlertCircle, CheckCircle, Clock, RefreshCw, Settings, Wrench, X } from 'lucide-vue-next'
@@ -88,7 +89,7 @@ async function finishMaintenance() {
       cost: Number(finishForm.cost || 0),
       scrapEquipment: finishForm.scrapEquipment,
     })
-    showFinishForm.value = false
+    completeDrafts();showFinishForm.value=false
     message.value = `维修单 ${selectedMaintenance.value.maintenanceNo} 已完成`
     await loadAll()
   } catch (error) {
@@ -122,6 +123,8 @@ function formatDate(value?: string) {
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : '操作失败，请稍后重试'
 }
+
+const completeDrafts=useFormDrafts({showFinishForm:{open:showFinishForm,fields:{finishForm}, record:()=>selectedMaintenance.value?.id}})
 </script>
 
 <template>
@@ -205,7 +208,7 @@ function getErrorMessage(error: unknown) {
     </div>
 
     <div v-if="showFinishForm && selectedMaintenance" class="modal-mask" @click.self="showFinishForm = false">
-      <form class="modal-card max-w-xl" @submit.prevent="finishMaintenance">
+      <form class="modal-card max-w-xl" @submit.prevent="finishMaintenance"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-5 flex items-center justify-between">
           <div><p class="text-sm text-gray-500">维修完成填报</p><h2 class="text-xl font-bold text-gray-900">{{ selectedMaintenance.maintenanceNo }}</h2></div>
           <button type="button" class="icon-btn" @click="showFinishForm = false"><X class="h-5 w-5" /></button>

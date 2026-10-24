@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
@@ -91,7 +92,7 @@ async function saveSupplier() {
       await supplierApi.create(form)
       message.value = '供应商已新增'
     }
-    showForm.value = false
+    completeDrafts();showForm.value=false
     await loadSuppliers()
   } catch (error: any) {
     message.value = error.message || '保存供应商失败'
@@ -126,6 +127,8 @@ async function removeSupplier(item: Supplier) {
     message.value = error.message || '删除供应商失败'
   }
 }
+
+const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, record:()=>(form as Record<string,any>).id || editingId.value}})
 </script>
 
 <template>

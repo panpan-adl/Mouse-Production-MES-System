@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import MaintenancePlans from '@/components/MaintenancePlans.vue'
 import MainLayout from '@/components/MainLayout.vue'
@@ -111,7 +112,7 @@ async function savePeriodicMaintenance() {
       result: '',
       remark: createForm.remark.trim() || '设备维护员创建的定期维护保养计划',
     })
-    showCreateForm.value = false
+    completeDrafts();showCreateForm.value=false
     message.value = '定期维护保养计划已创建'
     await loadData()
   } catch (error) {
@@ -155,7 +156,7 @@ async function finishMaintenance() {
       scrapEquipment: false,
       remark: finishForm.remark.trim() || '保养已完成',
     })
-    showFinishForm.value = false
+    completeDrafts();showFinishForm.value=false
     message.value = `保养单 ${selectedMaintenance.value.maintenanceNo} 已完成`
     await loadData()
   } catch (error) {
@@ -213,6 +214,8 @@ function checkMaintenanceTimers() {
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : '操作失败，请稍后重试'
 }
+
+const completeDrafts=useFormDrafts({showCreateForm:{open:showCreateForm,fields:{createForm}, record:()=>(createForm as Record<string,any>).id || selectedMaintenance.value?.id},showFinishForm:{open:showFinishForm,fields:{finishForm}, record:()=>selectedMaintenance.value?.id}})
 </script>
 
 <template>
@@ -287,7 +290,7 @@ function getErrorMessage(error: unknown) {
     </div>
 
     <div v-if="showCreateForm" class="modal-mask" @click.self="showCreateForm = false">
-      <form class="modal-card max-w-2xl" @submit.prevent="savePeriodicMaintenance">
+      <form class="modal-card max-w-2xl" @submit.prevent="savePeriodicMaintenance"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-5 flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-500">定期维护保养</p>
@@ -333,7 +336,7 @@ function getErrorMessage(error: unknown) {
     </div>
 
     <div v-if="showFinishForm && selectedMaintenance" class="modal-mask" @click.self="showFinishForm = false">
-      <form class="modal-card max-w-xl" @submit.prevent="finishMaintenance">
+      <form class="modal-card max-w-xl" @submit.prevent="finishMaintenance"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-5 flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-500">保养完成填报</p>

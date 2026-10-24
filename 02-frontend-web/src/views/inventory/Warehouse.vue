@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
@@ -117,7 +118,7 @@ async function saveWarehouse() {
       await warehouseApi.create(warehouseForm)
       message.value = '仓库已新增'
     }
-    showWarehouseForm.value = false
+    completeDrafts();showWarehouseForm.value=false
     await loadAll()
   } catch (error: any) {
     message.value = error.message || '保存仓库失败'
@@ -136,6 +137,8 @@ async function removeWarehouse(item: Warehouse) {
     message.value = error.message || '删除仓库失败'
   }
 }
+
+const completeDrafts=useFormDrafts({showWarehouseForm:{open:showWarehouseForm,fields:{warehouseForm}, record:()=>(warehouseForm as Record<string,any>).id}})
 </script>
 
 <template>

@@ -64,7 +64,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function refreshMenuAccess(){if(currentUser.value)currentUser.value.permissionRoleId=await request.get<number>('/mes/access-role');const rows=await request.get<{path:string}[]>('/mes/menu-access');menuPaths.value=rows.map(r=>r.path)}
   function hasMenu(path:string):boolean {
     if(currentUser.value?.roleId===9||!menuPaths.value?.length||['/','/dashboard','/login','/notifications','/user/profile'].includes(path))return true
-    return menuPaths.value.some(p=>path===p||path.startsWith(p+'/'))
+    const aliases:Record<string,string[]>={'/equipment/maintenance':['/equipment/repair-tasks','/equipment/bills'],'/assistant':['/intelligence']}
+    return menuPaths.value.some(p=>path===p||path.startsWith(p+'/')||aliases[path]?.includes(p))
   }
   const isLoggedIn = computed(() => currentUser.value !== null)
   const unreadCount = computed(() =>

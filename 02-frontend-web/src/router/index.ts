@@ -15,7 +15,7 @@ const routes: RouteRecordRaw[] = [
     {path:'/production/work-orders',title:'生产工单',mesTab:'work-orders',description:'创建订单或备货工单，选择产品、BOM、工艺路线及负责人后下达。'},
   ].map(module=>({path:module.path,component:()=>import('@/views/foundation/MesOperations.vue'),meta:{requiresAuth:true,...module}})),
   {path:'/mes',component:()=>import('@/views/foundation/MesOperations.vue'),meta:{requiresAuth:true}},
-  {path:'/intelligence',component:()=>import('@/views/foundation/Intelligence.vue'),meta:{requiresAuth:true}},
+  {path:'/intelligence',redirect:'/assistant'},
   {path:'/assistant',component:()=>import('@/views/foundation/SkillAssistant.vue'),meta:{requiresAuth:true,title:'Skill 业务智能体'}},
   {path:'/automation',component:()=>import('@/views/foundation/Automation.vue'),meta:{requiresAuth:true}},
   {path:'/inventory/trace',component:()=>import('@/views/inventory/StockTrace.vue'),meta:{requiresAuth:true}},
@@ -169,7 +169,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/equipment/repair-tasks',
     name: 'EquipmentRepairTasks',
-    component: () => import('@/views/equipment/RepairTasks.vue'),
+    redirect:'/equipment/maintenance?tab=execution',
     meta: { requiresAuth: true },
   },
   {
@@ -181,7 +181,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/equipment/bills',
     name: 'EquipmentMaintenanceBills',
-    component: () => import('@/views/equipment/MaintenanceBills.vue'),
+    redirect:'/equipment/maintenance?tab=bills',
     meta: { requiresAuth: true },
   },
   {

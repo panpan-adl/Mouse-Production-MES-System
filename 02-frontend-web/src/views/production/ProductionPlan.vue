@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, ref } from 'vue'
 import { AlertTriangle, Eye, Plus, RefreshCw, Search, X } from 'lucide-vue-next'
 import MainLayout from '@/components/MainLayout.vue'
@@ -251,7 +252,7 @@ async function savePlan() {
       priority: createForm.value.priority,
       createBy: order.createBy,
     })
-    createVisible.value = false
+    completeDrafts();createVisible.value=false
     await loadData()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '新增生产计划失败'
@@ -376,6 +377,8 @@ function taskStatus(task: ProductionTask) {
 }
 
 onMounted(loadData)
+
+const completeDrafts=useFormDrafts({createVisible:{open:createVisible,fields:{createForm,selectedOrderId}}})
 </script>
 
 <template>

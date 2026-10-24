@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { useRoute, useRouter } from 'vue-router'
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
 import { equipmentApi, maintenanceApi, type Equipment, type Maintenance } from '@/api/mes'
-import { getUsersByRoleId, type User } from '@/api/user'
+import request from '@/utils/request'
+import { type User } from '@/api/user'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -15,13 +18,16 @@ const equipments = ref<Equipment[]>([])
 /** 可指派的在职设备维护员，来自用户管理的真实员工数据。 */
 const maintainers = ref<User[]>([])
 const keyword = ref('')
+const route=useRoute(),router=useRouter()
+const activeTab=computed(()=>String(route.query.tab||'requests'))
+const billDetails=ref<Maintenance|null>(null)
 const statusFilter = ref('')
 const showCreateForm = ref(false)
 const showAssignForm = ref(false)
 const showFinishForm = ref(false)
 const selectedMaintenance = ref<Maintenance | null>(null)
 const currentUser = computed(() => authStore.currentUser)
-const isMaintainer = computed(() => currentUser.value?.roleId === 8)
+const isMaintainer = computed(() => authStore.effectiveRoleId === 8)
 
 const createForm = reactive<Maintenance>({
   maintenanceNo: '',
@@ -49,7 +55,8 @@ const filteredMaintenances = computed(() => {
       return false
     }
     const matchWord = !word || item.maintenanceNo?.toLowerCase().includes(word) || item.equipmentName?.toLowerCase().includes(word)
-    const matchStatus = !statusFilter.value || item.status === statusFilter.value
+    const tabMatches=activeTab.value==='bills'?item.status==='FINISHED':activeTab.value==='execution'?['PENDING','PROCESSING'].includes(item.status||''):true
+    const matchStatus = tabMatches&&(!statusFilter.value || item.status === statusFilter.value)
     return matchWord && matchStatus
   })
 })
@@ -78,11 +85,11 @@ async function loadAll() {
     const [maintenanceData, equipmentData, maintainerData] = await Promise.all([
       maintenanceApi.list(),
       equipmentApi.list(),
-      getUsersByRoleId(8),
+      request.get<User[]>('/mes/people'),
     ])
     maintenances.value = maintenanceData
     equipments.value = equipmentData
-    maintainers.value = maintainerData.filter((user) => user.status !== 0 && user.deleted === 0)
+    maintainers.value = maintainerData.filter((user) => user.roleId===8)
   } catch (error: any) {
     message.value = error.message || '维修数据加载失败'
   } finally {
@@ -132,7 +139,7 @@ async function saveMaintenance() {
   try {
     await maintenanceApi.create(createForm)
     message.value = '维修单已创建，设备状态已变为维修中'
-    showCreateForm.value = false
+    completeDrafts();showCreateForm.value=false
     await loadAll()
   } catch (error: any) {
     message.value = error.message || '创建维修单失败'
@@ -171,7 +178,7 @@ async function assignMaintenance() {
       userName: selectedMaintainer.realName,
     })
     message.value = '维修人员已指派'
-    showAssignForm.value = false
+    completeDrafts();showAssignForm.value=false
     await loadAll()
   } catch (error: any) {
     message.value = error.message || '指派维修人员失败'
@@ -224,7 +231,7 @@ async function finishMaintenance() {
       scrapEquipment: finishForm.scrapEquipment,
     })
     message.value = '维修已完成'
-    showFinishForm.value = false
+    completeDrafts();showFinishForm.value=false
     await loadAll()
   } catch (error: any) {
     message.value = error.message || '完成维修失败'
@@ -267,6 +274,8 @@ function canFinish(item: Maintenance) {
 function canCancel(item: Maintenance) {
   return !isMaintainer.value && ['PENDING', 'PROCESSING'].includes(item.status || '')
 }
+
+const completeDrafts=useFormDrafts({showCreateForm:{open:showCreateForm,fields:{createForm}, record:()=>(createForm as Record<string,any>).id || selectedMaintenance.value?.id},showAssignForm:{open:showAssignForm,fields:{assignForm}, record:()=>selectedMaintenance.value?.id},showFinishForm:{open:showFinishForm,fields:{finishForm}, record:()=>selectedMaintenance.value?.id}})
 </script>
 
 <template>
@@ -274,13 +283,13 @@ function canCancel(item: Maintenance) {
     <div class="space-y-6 animate-fadeIn">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">维修申请与派工</h1>
-          <p class="text-gray-500 mt-1">{{ isMaintainer ? '设备维护员只处理分配给自己的维修工单。' : '创建维修单、指派人员、开始和完成维修。' }}</p>
+          <h1 class="text-2xl font-bold text-gray-900">设备维修管理</h1>
+          <p class="text-gray-500 mt-1">{{ isMaintainer ? '设备维护员只处理分配给自己的维修工单。' : '统一管理维修申请、派工、执行记录与费用，已完成记录直接形成维护账单。' }}</p>
         </div>
-        <button v-if="!isMaintainer" class="btn-primary" @click="openCreate"><Plus class="w-4 h-4" />新增维修单</button>
+        <button v-if="[8,9].includes(authStore.effectiveRoleId)&&!isMaintainer" class="btn-primary" @click="openCreate"><Plus class="w-4 h-4" />新增维修单</button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <nav class="flex gap-3 flex-wrap" aria-label="维修管理业务"><button v-for="t in [{key:'requests',label:'申请与派工'},{key:'execution',label:'维修执行与记录'},{key:'bills',label:'维护账单'}]" :key="t.key" class="btn-secondary" :class="{'bg-blue-50 text-blue-700':activeTab===t.key}" @click="router.replace({query:{tab:t.key}})">{{t.label}}</button></nav><p v-if="activeTab==='bills'" class="text-gray-500">账单由已完成维修或保养记录自动汇总，费用在完成填报时登记，无需重复录单。</p><div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="stat-card"><p class="stat-label">待维修</p><p class="stat-value text-yellow-600">{{ pendingCount }}</p></div>
         <div class="stat-card"><p class="stat-label">维修中</p><p class="stat-value text-blue-600">{{ processingCount }}</p></div>
         <div class="stat-card"><p class="stat-label">已完成</p><p class="stat-value text-green-600">{{ finishedCount }}</p></div>
@@ -330,7 +339,7 @@ function canCancel(item: Maintenance) {
                 <td>{{ formatDate(item.endTime) }}</td>
                 <td>¥{{ Number(item.cost || 0).toFixed(2) }}</td>
                 <td><span :class="statusClass(item.status)">{{ statusText(item.status) }}</span></td>
-                <td class="text-right space-x-2">
+                <td class="text-right space-x-2"><button class="link-btn" @click="billDetails=item">查看记录</button>
                   <button v-if="canAssign(item)" class="link-btn" @click="openAssign(item)">指派</button>
                   <button v-if="canStart(item)" class="link-btn" @click="startMaintenance(item)">开始</button>
                   <button v-else-if="!isMaintainer && item.status === 'PENDING'" class="text-sm text-gray-400" @click="openAssign(item)">请先指派</button>
@@ -343,6 +352,7 @@ function canCancel(item: Maintenance) {
         </div>
       </div>
 
+      <div v-if="billDetails" class="modal-mask" @click.self="billDetails=null"><section class="modal-card max-w-xl space-y-4"><h2 class="text-xl font-bold">维修记录与费用明细</h2><p>{{billDetails.maintenanceNo}} · {{billDetails.equipmentName}}</p><p>执行人：{{billDetails.maintenanceUserName||'未指派'}}</p><p>问题描述：{{billDetails.faultDesc||'—'}}</p><p>维修／保养内容：{{billDetails.maintenanceContent||'未填报'}}</p><p>实际开始：{{formatDate(billDetails.startTime)}}</p><p>实际结束：{{formatDate(billDetails.endTime)}}</p><p>结果：{{billDetails.result||'未完成'}}</p><p>费用：¥{{Number(billDetails.cost||0).toFixed(2)}}</p><p>备注：{{billDetails.remark||'—'}}</p><button class="btn-secondary" @click="billDetails=null">关闭</button></section></div>
       <div v-if="showCreateForm" class="modal-mask">
         <div class="modal-card max-w-2xl">
           <div class="flex items-center justify-between mb-4">

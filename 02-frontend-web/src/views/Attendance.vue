@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Calendar, Clock, Edit3, Plus, RefreshCw, Search, Users, X } from 'lucide-vue-next'
@@ -201,7 +202,7 @@ async function saveAttendance() {
       message.value = '考勤记录已新增'
     }
 
-    showForm.value = false
+    completeDrafts();showForm.value=false
     await loadAll()
   } catch (error: any) {
     message.value = error.message || '考勤记录保存失败'
@@ -360,6 +361,8 @@ function recalculateWorkHours() {
   const hours = (end.getTime() - start.getTime()) / 3600000
   form.workHours = hours > 0 ? Number(hours.toFixed(2)) : 0
 }
+
+const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, record:()=>(form as Record<string,any>).id}})
 </script>
 
 <template>

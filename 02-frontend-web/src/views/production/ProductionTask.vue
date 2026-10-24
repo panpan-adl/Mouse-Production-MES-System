@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { Eye, Plus, RefreshCw, Search, Send, X } from 'lucide-vue-next'
 import MainLayout from '@/components/MainLayout.vue'
@@ -265,7 +266,7 @@ async function submitCreateTask() {
       taskStatus: assignedWorker ? 1 : 0,
       remark: createTaskForm.remark.trim(),
     })
-    createTaskVisible.value = false
+    completeDrafts();createTaskVisible.value=false
     feedback.value = assignedWorker ? '生产任务已新增并派发给操作工。' : '生产任务已新增，等待操作工领取。'
     await loadTasks()
   } catch (error) {
@@ -316,7 +317,7 @@ async function submitMaterialRequest() {
       remark: materialRequestForm.remark,
       createdBy: authStore.currentUser.id,
     })
-    materialRequestVisible.value = false
+    completeDrafts();materialRequestVisible.value=false
     feedback.value = `任务 ${selectedTask.value.taskNo} 的物料请求已发送给仓管员。`
   } catch (error) {
     feedback.value = getErrorMessage(error)
@@ -373,6 +374,8 @@ function getErrorMessage(error: unknown) {
 }
 
 onMounted(loadTasks)
+
+const completeDrafts=useFormDrafts({createTaskVisible:{open:createTaskVisible,fields:{createTaskForm}},materialRequestVisible:{open:materialRequestVisible,fields:{materialRequestForm},record:()=>selectedTask.value?.id}})
 </script>
 
 <template>
@@ -446,7 +449,7 @@ onMounted(loadTasks)
     </div>
 
     <div v-if="createTaskVisible" class="modal-mask" @click.self="createTaskVisible = false">
-      <form class="modal-card max-w-3xl" @submit.prevent="submitCreateTask">
+      <form class="modal-card max-w-3xl" @submit.prevent="submitCreateTask"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-6 flex items-start justify-between">
           <div><p class="text-sm text-gray-500">生产计划下发</p><h2 class="mt-1 text-xl font-bold text-gray-800">新增生产任务</h2></div>
           <button type="button" class="icon-btn" aria-label="关闭新增生产任务" @click="createTaskVisible = false"><X class="h-5 w-5" /></button>
@@ -498,7 +501,7 @@ onMounted(loadTasks)
     </div>
 
     <div v-if="materialRequestVisible && selectedTask" class="modal-mask" @click.self="materialRequestVisible = false">
-      <form class="modal-card max-w-xl" @submit.prevent="submitMaterialRequest">
+      <form class="modal-card max-w-xl" @submit.prevent="submitMaterialRequest"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p>
         <div class="mb-6 flex items-start justify-between"><div><p class="text-sm text-gray-500">发送给仓管员</p><h2 class="mt-1 text-xl font-bold text-gray-800">{{ selectedTask.taskNo }} 物料请求</h2></div><button type="button" class="icon-btn" aria-label="关闭物料请求" @click="materialRequestVisible = false"><X class="h-5 w-5" /></button></div>
         <div class="space-y-4"><label class="block"><span class="field-label">需求物料</span><select v-model.number="materialRequestForm.materialId" class="input mt-1" required><option v-for="material in materials" :key="material.id" :value="material.id">{{ material.materialCode }} / {{ material.materialName }}</option></select></label><label class="block"><span class="field-label">需求数量</span><input v-model.number="materialRequestForm.requiredQuantity" class="input mt-1" required min="1" type="number" /></label><label class="block"><span class="field-label">建议出料仓库</span><select v-model.number="materialRequestForm.warehouseId" class="input mt-1"><option :value="undefined">暂不指定</option><option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">{{ warehouse.warehouseCode }} / {{ warehouse.warehouseName }}</option></select></label><label class="block"><span class="field-label">说明</span><textarea v-model="materialRequestForm.remark" class="input mt-1 min-h-24" placeholder="例如：该生产任务下发前需确认物料齐套"></textarea></label><p class="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">提交后，仓管员会在“仓库管理 / 物料请求”中看到该需求；若库存不足，仓管员可继续发送采购请求给采购员。</p></div>
         <div class="mt-6 flex justify-end gap-3"><button type="button" class="btn-secondary" @click="materialRequestVisible = false">取消</button><button type="submit" class="btn-primary">发送物料请求</button></div>
