@@ -6,6 +6,7 @@ import java.util.*;
 public final class RolePermissions {
     private RolePermissions() {}
     public static boolean canRead(int role, String path) {
+        if (path.startsWith("/api/account/")) return role >= 1 && role <= 11;
         if (role == 9) return true;
         if (path.startsWith("/api/finance")) return Set.of(1,10).contains(role);
         if(path.startsWith("/api/roles/manage"))return role==11;
@@ -14,6 +15,7 @@ public final class RolePermissions {
         return role >= 1 && role <= 11;
     }
     public static boolean canWrite(int role,String path,String method){
+        if(path.startsWith("/api/account/"))return role>=1&&role<=11;
         if(role==9)return true;
         if(path.startsWith("/api/agent/"))return role>=1&&role<=11; // Each skill enforces its business roles.
         if(path.startsWith("/api/mes/"))return role>=1&&role<=11; // Each operation checks its own roles.

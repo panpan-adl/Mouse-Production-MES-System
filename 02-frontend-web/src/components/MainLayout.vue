@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted,onBeforeUnmount } from 'vue'
 import Sidebar from './Sidebar.vue'
 import Header from './Header.vue'
 import AgentEntry from './AgentEntry.vue'
 import { sidebarCollapsed } from '@/stores/layout'
 const demo = import.meta.env.VITE_DEMO_MODE === '1'
-onMounted(()=>{if(window.innerWidth<900)sidebarCollapsed.value=true})
+function fitNavigation(){if(window.innerWidth<900)sidebarCollapsed.value=true}
+onMounted(()=>{fitNavigation();window.addEventListener('resize',fitNavigation)})
+onBeforeUnmount(()=>window.removeEventListener('resize',fitNavigation))
 </script>
 <template>
   <div class="mes-workspace notion-workspace" :class="{'nav-collapsed':sidebarCollapsed}">

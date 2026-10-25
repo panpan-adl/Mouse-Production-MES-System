@@ -11,6 +11,16 @@ const service: AxiosInstance = axios.create({
   timeout: 15000,
 })
 
+// Ignore expired responses from an earlier session after logout or a new login.
+function expireSession(config?: AxiosRequestConfig) {
+  const auth = useAuthStore()
+  if (!auth.currentUser) return
+  const sent = config?.headers?.Authorization
+  if (sent && String(sent) !== `Bearer ${auth.currentUser.token || ''}`) return
+  auth.logout()
+  if (router.currentRoute.value.path !== '/login') router.replace('/login')
+}
+
 service.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const authStore = useAuthStore()
@@ -22,8 +32,7 @@ service.interceptors.request.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      useAuthStore().logout()
-      router.push('/login')
+      expireSession(error.config)
     }
     const message=error.response?.data?.msg||error.message||'请求失败'
     if(error.config?.method&&error.config.method!=='get')showBusinessFormError(message)
@@ -39,9 +48,7 @@ service.interceptors.response.use(
     }
     if (res.code !== 200) {
       if (res.code === 401) {
-        const authStore = useAuthStore()
-        authStore.logout()
-        router.push('/login')
+        expireSession(response.config)
       }
       if(response.config.method!=='get')showBusinessFormError(res.msg||'保存失败，请检查填写内容')
       return Promise.reject(new Error(res.msg || '请求失败'))
@@ -50,8 +57,7 @@ service.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      useAuthStore().logout()
-      router.push('/login')
+      expireSession(error.config)
     }
     const message=error.response?.data?.msg||error.message||'请求失败'
     if(error.config?.method&&error.config.method!=='get')showBusinessFormError(message)

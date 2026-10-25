@@ -16,12 +16,13 @@ import {
   Package,
   Settings,
   ShoppingCart,
-  User,
+
   Users,
   Wallet,
   Wrench,
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import UserAvatar from './UserAvatar.vue'
 import { sidebarCollapsed } from '@/stores/layout'
 
 interface ChildMenuItem {
@@ -227,7 +228,7 @@ function handleLogout() {
     <div class="sidebar-identity p-3">
       <div class="flex items-center space-x-3">
         <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-          <User class="w-5 h-5 text-blue-600" />
+          <UserAvatar :src="currentUser?.avatar" class="w-10 h-10"/>
         </div>
         <div v-if="!collapsed" class="min-w-0">
           <p class="text-sm font-medium text-gray-800 truncate">{{ currentUser?.realName || '未登录' }}</p>

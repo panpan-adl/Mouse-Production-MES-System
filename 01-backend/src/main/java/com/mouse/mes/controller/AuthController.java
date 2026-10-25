@@ -49,6 +49,7 @@ public class AuthController {
     private OperationLogMapper operationLogMapper;
 
     @Autowired private com.mouse.mes.service.RoleAccessService roleAccess;
+    @Autowired private com.mouse.mes.service.AccountService accounts;
     @Autowired
     private RedisService redisService;
 
@@ -71,7 +72,10 @@ public class AuthController {
             return JsonResult.error("用户编码或密码错误");
         }
         
-        if (!request.getPassword().equals(user.getPassword())) {
+        long sessionVersion=accounts.sessionVersion(user.getId());
+        user=userMapper.findById(user.getId());
+        if(user==null)return JsonResult.error("用户编码或密码错误");
+        if (request.getPassword()==null || !request.getPassword().equals(user.getPassword())) {
             logger.warn("登录失败 - 密码错误: {}", userCode);
             saveLoginLog(user.getId(), user.getUserCode(), httpRequest, 0, "密码错误", user.getUserCode());
             return JsonResult.error("用户编码或密码错误");
@@ -111,13 +115,16 @@ public class AuthController {
         response.setDeptName(deptName);
         response.setStatus(user.getStatus());
         response.setToken(generateToken(user.getId(), user.getUserCode()));
+        response.setSessionVersion(sessionVersion);
         
         saveLoginLog(user.getId(), user.getUserCode(), httpRequest, 1, "登录成功", user.getUsername());
         saveOperationLog(user.getId(), user.getUserCode(), user.getUsername(), httpRequest, "系统登录", "无");
         
         user.setLastLoginTime(new Date());
         user.setLastLoginIp(getClientIp(httpRequest));
-        userMapper.update(user);
+        User loginUpdate=new User();
+        loginUpdate.setId(user.getId());loginUpdate.setLastLoginTime(user.getLastLoginTime());loginUpdate.setLastLoginIp(user.getLastLoginIp());
+        userMapper.update(loginUpdate);
         
         redisService.set("user:token:" + response.getToken(), response, 24, TimeUnit.HOURS);
         redisService.set("user:info:" + userCode, response, 24, TimeUnit.HOURS);
@@ -144,6 +151,7 @@ public class AuthController {
         log.setMsg(msg);
         log.setLoginTime(new Date());
         loginLogMapper.insert(log);
+        accounts.recordLogin(userId,log.getLoginIp(),status);
     }
 
     private void saveOperationLog(Long userId, String userCode, String username, HttpServletRequest request, String module, String operation) {

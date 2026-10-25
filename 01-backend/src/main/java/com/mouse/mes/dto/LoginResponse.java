@@ -21,4 +21,5 @@ public class LoginResponse {
     private String deptName;
     private Integer status;
     private String token;
+    private Long sessionVersion;
 }

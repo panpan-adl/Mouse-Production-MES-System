@@ -24,6 +24,7 @@ public class TokenInterceptor implements HandlerInterceptor {
     @Autowired private com.mouse.mes.mapper.UserMapper userMapper;
 
     @Autowired private com.mouse.mes.service.RoleAccessService roleAccess;
+    @Autowired private com.mouse.mes.service.AccountService accounts;
 
     private static final List<String> WHITE_LIST = Arrays.asList(
             "/api/auth/login",
@@ -78,6 +79,9 @@ public class TokenInterceptor implements HandlerInterceptor {
         }
 
         com.mouse.mes.dto.LoginResponse identity = objectMapper.convertValue(userInfo, com.mouse.mes.dto.LoginResponse.class);
+        if(!accounts.validSession(identity)){
+            redisService.delete("user:token:"+token);response.setStatus(401);response.setContentType("application/json;charset=UTF-8");response.getWriter().write(objectMapper.writeValueAsString(JsonResult.error(401,"密码已变更，请重新登录")));return false;
+        }
         var current=userMapper.findById(identity.getId());
         if(current==null||current.getStatus()==null||current.getStatus()==0||Integer.valueOf(1).equals(current.getDeleted())||!java.util.Objects.equals(current.getRoleId(),identity.getRoleId())){
             redisService.delete("user:token:"+token);response.setStatus(401);response.setContentType("application/json;charset=UTF-8");response.getWriter().write(objectMapper.writeValueAsString(JsonResult.error(401,"账号状态或岗位已变更，请重新登录")));return false;

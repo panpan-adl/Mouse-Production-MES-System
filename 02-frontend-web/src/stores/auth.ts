@@ -10,6 +10,7 @@ export interface User {
   realName: string
   phone: string
   email: string
+  avatar?: string
   gender: number
   permissionRoleId?: number
   roleId: number
@@ -127,18 +128,27 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function loadNotifications() {
     if (!currentUser.value) { notifications.value = []; return }
-    const rows = await request.get<Notification[]>('/mes/notices')
-    notifications.value = rows.map(n => ({...n,isRead: Boolean(n.isRead)}))
+    const token=currentUser.value.token
+    const [rows, alerts] = await Promise.all([request.get<Notification[]>('/mes/notices'),request.get<Notification[]>('/account/alerts')])
+    if(currentUser.value?.token!==token)return
+    notifications.value = [...alerts.map(n=>({...n,id:-n.id})),...rows].map(n=>({...n,isRead:Boolean(n.isRead)})).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))
   }
   async function markNotificationAsRead(id: number) {
-    await request.post(`/mes/notices/${id}/read`)
+    await request.post(id<0 ? `/account/alerts/${-id}/read` : `/mes/notices/${id}/read`)
     await loadNotifications()
   }
   async function markAllAsRead() {
-    for (const notice of notifications.value.filter(n => !n.isRead)) await request.post(`/mes/notices/${notice.id}/read`)
+    for (const notice of notifications.value.filter(n => !n.isRead)) await request.post(notice.id<0 ? `/account/alerts/${-notice.id}/read` : `/mes/notices/${notice.id}/read`)
     await loadNotifications()
   }
+  async function refreshProfile() {
+    if (!currentUser.value) return
+    const token=currentUser.value.token
+    const fresh=await request.get<User>('/account/profile')
+    if(currentUser.value?.token===token)currentUser.value={...currentUser.value,...fresh,token}
+  }
   return {
+    refreshProfile,
     currentUser,
     effectiveRoleId,
     notifications,

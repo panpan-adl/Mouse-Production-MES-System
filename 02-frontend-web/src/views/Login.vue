@@ -2,10 +2,10 @@
 import { ref } from 'vue'
 import LoginParticleCloud from '@/components/LoginParticleCloud.vue'
 import { motionEnabled } from '@/stores/layout'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ArrowRight, Eye, EyeOff, LockKeyhole, UserRound, Factory, ShieldCheck } from 'lucide-vue-next'
-const auth=useAuthStore(),router=useRouter()
+const auth=useAuthStore(),router=useRouter(),route=useRoute()
 const userCode=ref(''),password=ref(''),showPassword=ref(false),loading=ref(false),error=ref('')
 const demo=import.meta.env.VITE_DEMO_MODE==='1'
 async function login(){
@@ -41,6 +41,7 @@ async function login(){
     <section class="login-access">
       <div class="login-top-note"><ShieldCheck :size="15"/><span>企业工作空间</span><span v-if="demo" class="login-demo">演示环境</span></div>
       <div class="login-card"><div class="login-greeting"><span class="login-status-light"></span> ENTER YOUR WORKSPACE</div><h2>欢迎回来</h2><p class="login-description">登录您的账号，开始今天的生产协作。</p>
+        <p v-if="route.query.passwordChanged==='1'" role="status" class="text-sm text-green-700 bg-green-50 rounded-lg p-3 mb-4">密码已修改，请使用新密码重新登录。</p>
         <form @submit.prevent="login" class="login-fields">
           <label for="login-user-code">员工工号</label><div class="login-input"><UserRound :size="18"/><input id="login-user-code" v-model="userCode" autocomplete="username" inputmode="numeric" maxlength="6" placeholder="请输入6位员工工号" required /></div>
           <div class="password-label"><label for="login-password">登录密码</label><span>使用您的企业账号密码</span></div><div class="login-input"><LockKeyhole :size="18"/><input id="login-password" v-model="password" :type="showPassword?'text':'password'" autocomplete="current-password" placeholder="请输入登录密码" required /><button type="button" :aria-label="showPassword?'隐藏密码':'显示密码'" @click="showPassword=!showPassword"><EyeOff v-if="showPassword" :size="17"/><Eye v-else :size="17"/></button></div>

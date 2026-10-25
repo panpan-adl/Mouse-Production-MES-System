@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref,onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Bell, User, Settings, Menu, ChevronRight } from 'lucide-vue-next'
+import { Bell, Settings, Menu, ChevronRight } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import UserAvatar from './UserAvatar.vue'
 import { sidebarCollapsed } from '@/stores/layout'
 
 const router = useRouter()
@@ -13,7 +14,7 @@ const pageTitle=computed(()=>String(route.meta.title||'')||pageLabels[route.path
 const sectionTitle=computed(()=>domains[route.path.split('/')[1]]||'工作空间')
 const todayLabel=new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'})
 const authStore = useAuthStore()
-onMounted(()=>Promise.all([authStore.loadNotifications(),authStore.refreshMenuAccess(),authStore.refreshSettings()]).catch(()=>{}))
+onMounted(()=>Promise.all([authStore.refreshProfile(),authStore.loadNotifications(),authStore.refreshMenuAccess(),authStore.refreshSettings()]).catch(()=>{}))
 const showNotifications = ref(false)
 
 function goToNotifications() {
@@ -104,7 +105,7 @@ function goToProfile() {
           class="flex items-center space-x-3 hover:bg-gray-50 p-2 rounded-lg transition-colors cursor-pointer"
         >
           <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
-            <User class="w-5 h-5 text-blue-600" />
+            <UserAvatar :src="authStore.currentUser?.avatar" class="w-9 h-9"/>
           </div>
           <div class="text-left">
             <p class="text-sm font-medium text-gray-800">{{ authStore.currentUser?.realName }}</p>

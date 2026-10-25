@@ -18,3 +18,5 @@ Thumbs.db
 *.pem
 *.key
 npm_cache/
+
+01-backend/uploads/
