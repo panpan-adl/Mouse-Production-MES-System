@@ -24,4 +24,5 @@ public class Order {
     private Date createTime;
     private Date updateTime;
     private Integer deleted;
+    private Boolean hasProductionPlan;
 }

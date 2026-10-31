@@ -85,6 +85,7 @@ const allMenuItems = ref<MenuItem[]>([
     name: '采购管理',
     icon: ShoppingCart,
     children: [
+      { path: '/inventory/material-requests', name: '物料需求', icon: ClipboardCheck },
       { path: '/purchase/requests', name: '采购需求', icon: ClipboardCheck },
       { path: '/purchase/order', name: '采购订单', icon: FileText },
       {path:'/purchase/receipts',name:'采购收货',icon:Package,roles:[1,2,4,5,6,10]},
@@ -129,7 +130,6 @@ const allMenuItems = ref<MenuItem[]>([
       {path:'/inventory/shipments',name:'销售发货',icon:Package,roles:[1,2,4,5,7]},
       {path:'/inventory/trace',name:'库存与批次追溯',icon:Package},
       { path: '/inventory/packages', name: '装箱管理', icon: Package, roles:[1,2,5,7] },
-      { path: '/inventory/material-requests', name: '物料请求', icon: ClipboardCheck },
     ],
   },
   { path: '/attendance', name: '考勤管理', icon: Calendar },
@@ -175,7 +175,7 @@ const sharedEntry = takeEntry('/foundation/units')
 sharedEntry.name = '通用基础资料'
 sharedEntry.roles = [1,2,4,5,6,7,8,11]
 const manufacturingEntry = takeEntry('/manufacturing')
-manufacturingEntry.roles = [1,2,3,4]
+manufacturingEntry.roles = [1,2,3,4,5]
 allMenuItems.value.find(item=>item.name==='生产管理')?.children?.push(manufacturingEntry)
 allMenuItems.value.find(item=>item.name==='系统管理')?.children?.unshift(sharedEntry)
 allMenuItems.value.push({ name: '智能与提醒', icon: Bot, children: assistantEntries })
@@ -190,7 +190,7 @@ const moduleOrder = ['首页','销售订单','采购管理','生产管理','质�
 allMenuItems.value.sort((a,b)=>moduleOrder.indexOf(a.name)-moduleOrder.indexOf(b.name))
 const childOrder: Record<string,string[]> = {
   销售订单: ['客户管理','订单列表'],
-  采购管理: ['供应商管理','采购需求','采购订单','采购收货','供应商退货'],
+  采购管理: ['供应商管理','物料需求','采购需求','采购订单','采购收货','供应商退货'],
   生产管理: ['产品与工艺','班组与排班配置','生产计划','生产工单','班组排班计划','生产任务','生产报工','制造与质量放行','设备状态管理'],
   质量管理: ['质检任务','质检记录'],
   仓库管理: ['仓库设置','库区设置','库位设置','物料管理','仓库库存','入库管理','出库管理','生产领料','生产退料','产成品入库','装箱管理','销售发货','库存与批次追溯','物料请求'],
@@ -219,15 +219,15 @@ const roleMenus: Record<number, string[]> = {
 const roleChildMenus: Record<number, Record<string, string[]>> = {
   3: {
     生产管理: ['生产工单', '生产任务', '设备状态管理','班组排班计划'],
-    仓库管理: ['物料请求'],
+    采购管理: ['物料需求'],
     设备管理: ['设备状态管理'],
   },
   5: {
     仓库管理: ['仓库库存', '仓库设置', '库区设置', '库位设置', '物料管理', '入库管理', '出库管理', '物料请求','生产领料','生产退料','产成品入库','装箱管理','销售发货','库存与批次追溯'],
-    采购管理: ['采购订单','采购收货','供应商退货'],
+    采购管理: ['物料需求','采购订单','采购收货','供应商退货'],
   },
   6: {
-    采购管理: ['采购需求', '采购订单', '供应商管理','采购收货','供应商退货'],
+    采购管理: ['物料需求','采购需求', '采购订单', '供应商管理','采购收货','供应商退货'],
   },
   8: {
     设备管理: ['设备台账', '设备维修管理', '定期保养计划'],
@@ -237,7 +237,7 @@ const roleChildMenus: Record<number, Record<string, string[]>> = {
 const roleMenuItems = computed(() => {
   const roleId = authStore.effectiveRoleId
   if (!roleId || !roleMenus[roleId]) return []
-  return allMenuItems.value.filter(item => roleId===9 || roleMenus[roleId].includes(item.name) || ['业务总览','智能与提醒','系统管理'].includes(item.name) || (item.name==='生产管理'&&[1,2,3,4].includes(roleId)))
+  return allMenuItems.value.filter(item => roleId===9 || roleMenus[roleId].includes(item.name) || ['业务总览','智能与提醒','系统管理'].includes(item.name) || (item.name==='采购管理'&&[1,2,3].includes(roleId)) || (item.name==='生产管理'&&[1,2,3,4].includes(roleId)))
 })
 
 const menuItems=computed(()=>roleMenuItems.value.map(item=>{
@@ -292,7 +292,7 @@ function visibleChildren(item: MenuItem) {
   if (item.name !== '采购管理') return accessible
   return [
     { name: '供应商管理', paths: ['/purchase/supplier'] },
-    { name: '采购申请与订单', paths: ['/purchase/requests', '/purchase/order'] },
+    { name: '采购申请与订单', paths: ['/inventory/material-requests', '/purchase/requests', '/purchase/order'] },
     { name: '采购收货与退货', paths: ['/purchase/receipts', '/purchase/returns'] },
   ].flatMap(group => {
     const members = group.paths.flatMap(path => accessible.filter(child => child.path === path))
@@ -307,6 +307,8 @@ function isChildActive(item: MenuItem) {
 }
 
 function childActive(child:ChildMenuItem){
+  // Cross-module shortcuts must not activate the warehouse menu on procurement pages.
+  if (route.path.startsWith('/purchase/') && warehouseSections.some(section => section.title === child.name)) return false
   if (child.relatedPaths?.includes(route.path)) return true
   const group=foundationGroups.find(group=>group.title===child.name)
   return group?group.keys.some(key=>route.path===`/foundation/${key}`):route.path===child.path||route.path.startsWith(child.path+'/')

@@ -107,11 +107,11 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     @Transactional
     public ProductionPlan update(ProductionPlan productionPlan) {
         db.queryForList("SELECT id FROM mm_guard WHERE id=1 FOR UPDATE");
-        foundation.protectPlan(productionPlan.getId());
-        if(db.queryForObject("SELECT COUNT(*) FROM t_production_task WHERE plan_id=?",Integer.class,productionPlan.getId())>0) throw new IllegalArgumentException("已有任务的计划不能修改");
         ProductionPlan existing = productionPlanMapper.findById(productionPlan.getId());
-        if (existing == null) {
-            throw new RuntimeException("生产计划不存在");
+        if(existing==null)throw new IllegalArgumentException("生产计划不存在");
+        boolean linked=db.queryForObject("SELECT COUNT(*) FROM mm_work_order WHERE plan_id=?",Integer.class,existing.getId())>0 || db.queryForObject("SELECT COUNT(*) FROM t_production_task WHERE plan_id=?",Integer.class,existing.getId())>0;
+        if(linked){
+            if((productionPlan.getOrderId()!=null&&!java.util.Objects.equals(productionPlan.getOrderId(),existing.getOrderId())) || (productionPlan.getProductId()!=null&&!java.util.Objects.equals(productionPlan.getProductId(),existing.getProductId())) || (productionPlan.getPlanQuantity()!=null&&!java.util.Objects.equals(productionPlan.getPlanQuantity(),existing.getPlanQuantity())) || (productionPlan.getPlanStatus()!=null&&!java.util.Objects.equals(productionPlan.getPlanStatus(),existing.getPlanStatus())) || (productionPlan.getCompletedQuantity()!=null&&!java.util.Objects.equals(productionPlan.getCompletedQuantity(),existing.getCompletedQuantity())))throw new IllegalArgumentException("已生成工单的计划只能修改编号、日期和优先级");
         }
         if (productionPlan.getPlanNo() != null) {
             existing.setPlanNo(productionPlan.getPlanNo());

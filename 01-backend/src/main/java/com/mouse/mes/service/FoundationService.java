@@ -242,6 +242,26 @@ public class FoundationService {
         if(children.isEmpty()||!root&&sourcing.equals("BUY")){fail(number(material.get("material_type"))!=1&&!Set.of("BUY","BOTH").contains(sourcing),"自制半成品或成品缺少子BOM；外购物资请设置供应方式");leaves.merge(parent,amount,BigDecimal::add);return;}
         for(var child:children)expandNode(number(child.get("material_id")),amount.multiply(decimal(child.get("quantity"))),lines,leaves,reached);
     }
+    @org.springframework.transaction.annotation.Transactional
+    public void updateWorkStatus(long id,String status) {
+        fulfillment.lock();
+        fail(!Set.of("IN_PROGRESS","PRODUCTION_COMPLETED","TERMINATED").contains(status),"工单状态无效");
+        var work=db.queryForMap("SELECT * FROM mm_work_order WHERE id=? FOR UPDATE",id);
+        String current=String.valueOf(work.get("status"));
+        boolean ended=Set.of("TERMINATED","CANCELLED","SCRAP_HOLD").contains(current);
+        fail(ended&&!status.equals("TERMINATED"),"已终止工单不能恢复生产，请新建计划");
+        fail(current.equals("PRODUCTION_COMPLETED")&&!status.equals("PRODUCTION_COMPLETED"),"已完工工单不能变更状态");
+        long plan=number(work.get("plan_id"));
+        if(status.equals("PRODUCTION_COMPLETED")){
+            fail(count("SELECT COUNT(*) FROM t_production_task WHERE plan_id=?",plan)==0,"工单没有生产任务");
+            fail(count("SELECT COUNT(*) FROM t_production_task WHERE plan_id=? AND task_status<>4",plan)>0,"仍有生产任务未完成，请完成报工及检验后再完工");
+        }
+        if(status.equals("TERMINATED")){
+            fail(count("SELECT COUNT(*) FROM mm_document WHERE source_id=? AND kind='PRODUCTION_RECEIPT' AND status='POSTED'",id)>0,"工单已经入库，不能终止");
+            db.update("UPDATE t_production_task SET task_status=5 WHERE plan_id=? AND task_status<>4",plan);
+        }
+        db.update("UPDATE mm_work_order SET status=? WHERE id=?",status,id);
+    }
     public List<Map<String,Object>> workOrders() {return db.queryForList("SELECT w.*,p.plan_no,p.product_id,p.product_name,p.completed_quantity FROM mm_work_order w JOIN t_production_plan p ON p.id=w.plan_id ORDER BY w.id DESC");}
     public List<Map<String,Object>> workTasks(long id) {return db.queryForList("SELECT t.*,c.operation_id,c.station_id,c.schedule_id,c.sequence_no,c.is_terminal,o.name AS operation_name FROM mm_task_context c JOIN t_production_task t ON t.id=c.task_id JOIN mm_operation o ON o.id=c.operation_id WHERE c.work_order_id=? ORDER BY c.sequence_no",id);}
     public List<Map<String,Object>> plans() {return db.queryForList("SELECT p.id,CONCAT(p.plan_no,' · ',COALESCE(p.product_name,''),' · 计划量',p.plan_quantity) AS name,p.product_id,p.plan_quantity,p.plan_status FROM t_production_plan p WHERE p.plan_status<2 AND NOT EXISTS(SELECT 1 FROM mm_work_order w WHERE w.plan_id=p.id) ORDER BY p.id DESC");}
@@ -299,7 +319,7 @@ public class FoundationService {
         int completed=count("SELECT COALESCE(SUM(t.quantity),0) FROM mm_task_context c JOIN t_production_task t ON t.id=c.task_id JOIN mm_operation o ON o.id=c.operation_id WHERE c.work_order_id=? AND o.is_key=1 AND t.task_status=4",wo);
         int pending=count("SELECT COUNT(*) FROM mm_task_context c JOIN t_production_task t ON t.id=c.task_id WHERE c.work_order_id=? AND t.task_status<>4",wo);
         db.update("UPDATE t_production_plan SET completed_quantity=?,plan_status=? WHERE id=?",completed,pending==0?2:1,planId);
-        db.update("UPDATE mm_work_order SET status=? WHERE id=? AND status<>'SCRAP_HOLD'",pending==0?"PRODUCTION_COMPLETED":"IN_PROGRESS",wo);
+        db.update("UPDATE mm_work_order SET status=? WHERE id=? AND status NOT IN ('SCRAP_HOLD','TERMINATED','CANCELLED')",pending==0?"PRODUCTION_COMPLETED":"IN_PROGRESS",wo);
         // Production completion does not imply delivery; shipping will advance the order in stage two.
     }
     public List<Map<String,Object>> inspections() { return db.queryForList("SELECT * FROM mm_inspection ORDER BY id DESC"); }

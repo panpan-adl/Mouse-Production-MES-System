@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
+const props = defineProps<{ embedded?: boolean }>()
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import MainLayout from '@/components/MainLayout.vue'
+import TablePagination from '@/components/TablePagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import PurchaseNavigation from '@/components/PurchaseNavigation.vue'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
 import {
@@ -63,7 +66,7 @@ function openLinkedOrder() {
   const id = Number(route.query.orderId)
   if (!id) return
   const order = orders.value.find(o => o.id === id)
-  if (order) { keyword.value = order.poNo; openDetail(order) }
+  if (order) { keyword.value = ''; arrivalFilter.value = ''; const index = filteredOrders.value.findIndex(o => o.id === order.id); page.value = index < 0 ? 1 : Math.floor(index / pageSize.value) + 1; openDetail(order) }
   else message.value = '关联采购订单不存在或不可查看。'
 }
 watch(() => route.query.orderId, openLinkedOrder)
@@ -106,6 +109,8 @@ const filteredOrders = computed(() => {
     return matchKeyword && matchArrival
   })
 })
+const { page, pageSize, total, items: pageItems } = usePagination(filteredOrders)
+
 
 const notReceivedCount = computed(() => orders.value.filter((item) => arrivalStatus(item) === 'NOT_RECEIVED').length)
 const receivedCount = computed(() => orders.value.filter((item) => arrivalStatus(item) === 'RECEIVED').length)
@@ -538,19 +543,18 @@ function formatMoney(value?: number) {
   return `¥${Number(value || 0).toFixed(2)}`
 }
 
-const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, record:()=>(form as Record<string,any>).id || editingOrderId.value}})
+async function focusOrder(id: number) { await loadOrders(); sourceRequests.value = await materialRequestApi.list(); const order = orders.value.find(o => o.id === id); if (order) { keyword.value = ''; arrivalFilter.value = ''; const index = filteredOrders.value.findIndex(o => o.id === order.id); page.value = index < 0 ? 1 : Math.floor(index / pageSize.value) + 1; openDetail(order) } }
+defineExpose({ refresh: loadOrders, focus: focusOrder })
+const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, record:()=>(form as Record<string,any>).id || editingOrderId.value}}, '/purchase/order')
 </script>
 
 <template>
-  <MainLayout>
-    <PurchaseNavigation group="orders" />
+  <component :is="props.embedded ? 'div' : MainLayout">
+    <PurchaseNavigation v-if="!props.embedded" group="orders" />
     <div class="space-y-6 animate-fadeIn">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-bold text-gray-900">采购订单</h1>
-          <p class="text-gray-500 mt-1">
-            {{ isWarehouseManager ? '采购员创建采购单；仓管员只查看状态，并在到货时选择仓库和库位办理入库。' : '列表只展示订单概要，点击详情查看数据库中的采购明细。' }}
-          </p>
         </div>
         <button v-if="!isWarehouseManager" class="btn-primary" @click="openCreate">
           <Plus class="w-4 h-4" />
@@ -612,7 +616,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
               <tr v-else-if="filteredOrders.length === 0">
                 <td colspan="8" class="empty-cell">暂无采购订单</td>
               </tr>
-              <tr v-for="item in filteredOrders" v-else :key="item.id">
+              <tr v-for="item in pageItems" v-else :key="item.id">
                 <td class="font-medium text-gray-900">{{ item.poNo }}</td>
                 <td>{{ supplierName(item.supplierId) }}</td>
                 <td>{{ formatDate(item.orderDate) }}</td>
@@ -625,7 +629,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
                   </span>
                 </td>
                 <td class="text-right space-x-2">
-                  <button class="link-btn" @click="openDetail(item)">详情</button><span class="text-gray-500">{{({DRAFT:'草稿',SUBMITTED:'待审批',APPROVED:'已审批',PARTIAL_RECEIVED:'已审批',COMPLETED:'已完成',CANCELLED:'已取消'} as Record<string,string>)[item.status||'']||item.status}}</span><button v-if="!isWarehouseManager&&item.status==='DRAFT'" :disabled="saving" class="link-btn" @click="transition(item,'submit')">提交审批</button><button v-if="!isWarehouseManager&&item.status==='SUBMITTED'" :disabled="saving" class="link-btn" @click="transition(item,'approve')">审批</button>
+                  <button class="link-btn" @click="openDetail(item)">详情</button><span v-if="item.status!=='DRAFT'" class="text-gray-500">{{({DRAFT:'草稿',SUBMITTED:'待审批',APPROVED:'已审批',PARTIAL_RECEIVED:'已审批',COMPLETED:'已完成',CANCELLED:'已取消'} as Record<string,string>)[item.status||'']||item.status}}</span><button v-if="!isWarehouseManager&&item.status==='DRAFT'" :disabled="saving" class="link-btn" @click="transition(item,'submit')">提交审批</button><button v-if="!isWarehouseManager&&item.status==='SUBMITTED'" :disabled="saving" class="link-btn" @click="transition(item,'approve')">审批</button>
                   <button v-if="canReceive(item)" class="link-btn" @click="openReceive(item)">确认收货</button>
                   <button v-else-if="needsStatusSync(item)" class="link-btn" :disabled="saving" @click="syncReceivedStatus(item)">同步状态</button>
                   <button v-else-if="!isWarehouseManager && item.status==='DRAFT'" class="link-btn" @click="openEdit(item)">补录明细</button>
@@ -635,6 +639,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
             </tbody>
           </table>
         </div>
+        <TablePagination v-model:page="page" v-model:page-size="pageSize" :total="total" label="采购订单" />
       </div>
 
       <div v-if="showDetail && detailOrder" class="modal-mask" data-business-form>
@@ -710,7 +715,6 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
 
           <div class="flex justify-end gap-3 mt-6">
             <button class="btn-secondary" @click="showDetail = false">关闭</button>
-            <router-link v-if="authStore.hasMenu('/purchase/receipts')" class="btn-secondary" :to="{ path: '/purchase/receipts', query: { sourceId: detailOrder.id } }">查看关联收货／办理入库</router-link>
             <button v-if="canReceive(detailOrder)" class="btn-primary" @click="openReceive(detailOrder)">确认收货</button>
             <button v-else-if="needsStatusSync(detailOrder)" class="btn-primary" :disabled="saving" @click="syncReceivedStatus(detailOrder)">同步为已到货</button>
             <button v-else-if="!isWarehouseManager && arrivalStatus(detailOrder) === 'NOT_RECEIVED'" class="btn-primary" @click="openEdit(detailOrder)">补录明细</button>
@@ -884,5 +888,5 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
         </div>
       </div>
     </div>
-  </MainLayout>
+  </component>
 </template>

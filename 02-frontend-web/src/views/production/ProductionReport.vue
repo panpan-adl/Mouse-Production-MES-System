@@ -2,14 +2,17 @@
 import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { assignablePeople } from '@/api/assignment'
 import { useFormDrafts } from '@/composables/useFormDrafts'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, reactive, ref } from 'vue'
 import { PackageCheck, Play, Plus, RefreshCw, Search, X } from 'lucide-vue-next'
 import MainLayout from '@/components/MainLayout.vue'
 import { productionReportApi, productionTaskApi, type ProductionReport, type ProductionTask } from '@/api/mes'
 import { type User } from '@/api/user'
 import { useAuthStore } from '@/stores/auth'
 
+const ApprovalWorkspace=defineAsyncComponent(()=>import('@/views/foundation/MesOperations.vue'))
+const reportView=ref('records')
 const authStore = useAuthStore()
+const canApprove=computed(()=>[1,2,9].includes(Number(authStore.effectiveRoleId)))
 
 const reports = ref<ProductionReport[]>([])
 const tasks = ref<ProductionTask[]>([])
@@ -19,7 +22,7 @@ const saving = ref(false)
 const reportVisible = ref(false)
 const keyword = ref('')
 const feedback = ref('')
-const activeTab = ref<'tasks' | 'records'>('tasks')
+const activeTab = ref<'tasks' | 'records'>('records')
 const formMode = ref<'create' | 'edit'>('create')
 const editingReportId = ref<number | undefined>()
 
@@ -332,6 +335,9 @@ const completeDrafts=useFormDrafts({reportVisible:{open:reportVisible,fields:{fo
 
 <template>
   <MainLayout>
+    <div class="report-management-switch"><button :class="{active:reportView==='records'}" @click="reportView='records'">报工记录与填报</button><button v-if="canApprove" :class="{active:reportView==='approval'}" @click="reportView='approval'">报工审批</button></div>
+    <ApprovalWorkspace v-if="reportView==='approval'&&canApprove" embedded initial-tab="reports" />
+    <div v-else>
     <div class="animate-fadeIn space-y-6">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -511,5 +517,8 @@ const completeDrafts=useFormDrafts({reportVisible:{open:reportVisible,fields:{fo
         </div>
       </form>
     </div>
+    </div>
   </MainLayout>
 </template>
+
+<style scoped>.report-management-switch{display:flex;gap:8px;margin-bottom:18px}.report-management-switch button{padding:8px 14px;font-size:12px;border:1px solid #e5dfd4;border-radius:7px;color:#998b77}.report-management-switch button.active{background:#eee6d8;color:#80633e;font-weight:600}</style>

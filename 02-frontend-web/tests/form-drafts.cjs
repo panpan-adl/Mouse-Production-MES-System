@@ -12,7 +12,7 @@ const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.
 const mod=new Module(path.join(__dirname,'draft-test.cjs'));mod.paths=module.paths;mod.filename=path.join(__dirname,'draft-test.cjs');mod._compile(compiled,mod.filename)
 const {useFormDrafts}=mod.exports
 const renderer=vue.createRenderer({createElement:()=>({}),insert(){},remove(){},setElementText(){},createText:()=>({}),createComment:()=>({}),setText(){},setComment(){},parentNode:()=>null,nextSibling:()=>null,patchProp(){}})
-function mount(){let state;const app=renderer.createApp({setup(){const open=vue.ref(false),form=vue.reactive({id:null,name:'',lines:[],password:''}),selection=vue.ref(''),record=vue.ref(null);const complete=useFormDrafts({order:{open,fields:{form,selection},record:()=>record.value}});state={open,form,selection,record,complete};return()=>null}});app.mount({});return {...state,unmount:()=>app.unmount()}}
+function mount(draftPath){let state;const app=renderer.createApp({setup(){const open=vue.ref(false),form=vue.reactive({id:null,name:'',lines:[],password:''}),selection=vue.ref(''),record=vue.ref(null);const complete=useFormDrafts({order:{open,fields:{form,selection},record:()=>record.value}},draftPath);state={open,form,selection,record,complete};return()=>null}});app.mount({});return {...state,unmount:()=>app.unmount()}}
 async function settle(){await vue.nextTick();await vue.nextTick();await vue.nextTick()}
 async function run(){
  let a=mount();a.open.value=true;a.form.name='半成品采购';a.form.lines.push({quantity:12});a.form.password='never-save';a.selection.value='supplier-2';a.open.value=false
@@ -32,6 +32,16 @@ async function run(){
  console.log('PASS drafts are isolated between accounts')
  b.open.value=false;b.unmount();auth.currentUser.id=9;route.path='/inventory/material-requests';const c=mount();c.open.value=true;await settle();assert.equal(c.form.name,'');c.unmount()
  console.log('PASS drafts are isolated between business pages')
- console.log('Form draft regression: 7 checks passed')
+ route.path='/purchase/requests'
+ const material=mount('/inventory/material-requests'),order=mount('/purchase/order')
+ material.open.value=true;order.open.value=true;await settle()
+ material.form.name='物料申请草稿';order.form.name='采购订单草稿'
+ material.open.value=false;order.open.value=false;material.form.name='';order.form.name=''
+ material.open.value=true;order.open.value=true;await settle()
+ assert.equal(material.form.name,'物料申请草稿');assert.equal(order.form.name,'采购订单草稿')
+ material.complete();order.open.value=false;order.form.name='';order.open.value=true;await settle();assert.equal(order.form.name,'采购订单草稿')
+ material.unmount();order.unmount()
+ console.log('PASS embedded forms share a URL but keep separate drafts and clear only their own')
+ console.log('Form draft regression: 8 checks passed')
 }
 run().catch(error=>{console.error(error);process.exitCode=1})

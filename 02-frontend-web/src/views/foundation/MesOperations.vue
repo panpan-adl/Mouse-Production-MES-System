@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useFormDrafts } from '@/composables/useFormDrafts'
-import { computed,onMounted,onBeforeUnmount,reactive,ref,watch } from 'vue'
+import { computed,onMounted,onBeforeUnmount,reactive,ref,watch,provide } from 'vue'
 import { useRoute } from 'vue-router'
 import MainLayout from '@/components/MainLayout.vue'
 import PurchaseNavigation from '@/components/PurchaseNavigation.vue'
 import QueryTable from '@/components/QueryTable.vue'
+import TablePagination from '@/components/TablePagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import request from '@/utils/request'
 import { useAuthStore } from '@/stores/auth'
 import { canVisit } from '@/utils/permissions'
@@ -12,12 +14,13 @@ import { warehouseDocumentPaths } from '@/utils/warehouseNavigation'
 import { barcodeSvg } from '@/utils/barcode'
 import QRCode from 'qrcode'
 type Row=Record<string,any>
-defineProps<{ embedded?: boolean }>()
+const props=defineProps<{ embedded?: boolean; initialTab?: string; formOnly?: boolean }>()
+const emit=defineEmits<{close:[];created:[id:number]}>()
 const route=useRoute()
-const dedicated=computed(()=>Boolean(route.meta.mesTab))
+const dedicated=computed(()=>Boolean(route.meta.mesTab||props.initialTab))
 const documentFilter=ref('')
 const groupedKinds=computed(()=>(Array.isArray(route.meta.documentKinds)?route.meta.documentKinds as string[]:[]).filter(kind=>canVisit(Number(auth.effectiveRoleId),warehouseDocumentPaths[kind])&&auth.hasMenu(warehouseDocumentPaths[kind])))
-const dedicatedKind=computed(()=>String(route.meta.documentKind||''))
+const dedicatedKind=computed(()=>String(route.meta.documentKind||'')||(['/inventory/in','/inventory/out'].includes(route.path)?documentFilter.value:''))
 const pageTitle=computed(()=>String(route.meta.title||'MES运营中心'))
 const pageDescription=computed(()=>String(route.meta.description||'连接计划、生产与交付，让每一道工序有迹可循。'))
 const ready=ref(false),createdWork=ref<number>()
@@ -27,6 +30,14 @@ const tabs=computed(()=>allTabs.filter(t=>role.value===9||!(t[2] as readonly num
 const tab=ref<string>('calendar'),rows=ref<Row[]>([]),detail=ref<Row[]>([]),selected=ref<Row>(),lookup=reactive<Record<string,Row[]>>({})
 const error=ref(''),message=ref(''),busy=ref(false),modal=ref(''),form=reactive<Row>({}),docLines=ref<Row[]>([]),barcodeImage=ref(''),images=ref<string[]>([])
 const qrImage=ref(''),qrContent=ref('')
+provide('warehouseInbound', {
+  selected: documentFilter,
+  disabled: computed(()=>busy.value||!ready.value),
+  select: (kind: string) => {
+    if(busy.value||!ready.value||kind===documentFilter.value||(kind&&!groupedKinds.value.includes(kind)))return
+    documentFilter.value=kind;modal.value='';message.value='';load()
+  },
+})
 const calendarMonth=ref(`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`)
 const calendarDays=computed(()=>{
   if(tab.value!=='calendar')return []
@@ -36,6 +47,27 @@ const calendarDays=computed(()=>{
 const names:Row={good_quantity:'报工合格数',bad_quantity:'报工不良数',report_time:'实际报工时间',reporter_name:'报工人',approver_name:'确认人',approval_note:'驳回原因',business_date:'业务日期',id:'编号',code:'单号',kind:'业务类型',status:'状态',warehouse_name:'仓库',actor_name:'经办人',source_id:'来源编号',reason:'原因',created_at:'创建时间',posted_at:'过账时间',material_code:'物料编码',material_name:'物料名称',material_id:'物料编号',quantity:'数量',unit:'单位',lot_no:'批次',work_order_code:'工单',work_order_id:'工单编号',task_no:'任务编号',task_status:'任务状态',operation_name:'工序',station_name:'工作站',assigned_user_name:'负责人',start_at:'开始时间',end_at:'结束时间',due_date:'应执行日期',equipment_name:'设备',name:'名称',standard:'执行标准',owner_name:'执行人',team_name:'班组',real_name:'成员',inspection_code:'检验单',decision:'处置方式',rework_status:'返工状态',title:'标题',content:'内容',createdAt:'发布时间',isRead:'已读',safety_stock:'安全库存',max_stock:'最高库存',alert:'预警',customer_name:'客户',order_no:'订单',length_mm:'长mm',width_mm:'宽mm',height_mm:'高mm',net_weight:'净重',gross_weight:'毛重',parent_id:'父箱',enabled:'启用状态',interval_seconds:'执行间隔秒',last_run:'上次执行',role:'岗位',ttl_seconds:'会话剩余秒数',box_code:'包装箱',qc_status:'质检状态',document_id:'单据编号',inventory_id:'库存编号',approved_by:'处置人',completed_at:'完成时间'}
 const visibleCols=computed(()=>{const hidden=['results','actor_id','owner_id','station_id','operation_id','inspection_id','task_id','nc_id','rework_id','record_id','plan_id','source_line_id','location_id','lot_id','created_by'];return rows.value.length?Object.keys(rows.value[0]).filter(k=>!hidden.includes(k)&&names[k]).map(k=>({key:k,label:names[k]})):[]})
 const tableRows=computed(()=>rows.value.map(r=>Object.fromEntries(Object.entries(r).map(([k,v])=>[k,k==='task_status'?['待领取','已派发','生产中','待质检','完成','取消'][Number(v)]:v]))))
+const documentDetailOpen = ref(false), documentDetailBusy = ref(false), documentDetailError = ref('')
+const purchaseColumns = [
+  {key:'code',label:'单号'}, {key:'source_id',label:'来源编号'}, {key:'status',label:'状态'},
+  {key:'reason',label:'原因'}, {key:'created_at',label:'创建时间'}, {key:'posted_at',label:'过账时间'},
+  {key:'business_date',label:'业务日期'}, {key:'warehouse_name',label:'仓库'}, {key:'actor_name',label:'经办人'},
+]
+async function viewDocument(row: Row) {
+  selected.value = row; detail.value = []; documentDetailError.value = ''; documentDetailOpen.value = true; documentDetailBusy.value = true
+  try { detail.value = await request.get<Row[]>(`/mes/documents/${row.id}/lines`) }
+  catch (e: any) { documentDetailError.value = e.message || '单据详情加载失败，请重试' }
+  finally { documentDetailBusy.value = false }
+}
+const warehouseDocuments = computed(() => tab.value==='documents' && route.path.startsWith('/inventory/'))
+const fittedDocuments = computed(() => purchaseDocuments.value || warehouseDocuments.value)
+const warehouseColumns = [
+  {key:'code',label:'单号'}, {key:'kind',label:'业务类型'}, {key:'name',label:'名称'},
+  {key:'status',label:'状态'}, {key:'warehouse_name',label:'仓库'},
+  {key:'business_date',label:'业务日期'}, {key:'reason',label:'备注'},
+]
+const purchaseDocuments = computed(() => ['/purchase/receipts','/purchase/returns'].includes(route.path))
+const { page, pageSize, total, items: pageRows } = usePagination(tableRows)
 const can=(...roles:number[])=>role.value===9||roles.includes(role.value)
 const sourceOptions=computed<Row[]>(()=>{
   if(form.kind?.startsWith('PURCHASE'))return (lookup.purchases||[]).filter(p=>['APPROVED','PARTIAL_RECEIVED','COMPLETED'].includes(p.status)&&(!form.supplier_id||Number(p.supplier_id)===Number(form.supplier_id)))
@@ -102,7 +134,7 @@ async function save(){await run(async()=>{
     case 'item':await request.post(`/mes/packages/${form.id}/items`,form);break
     case 'child':await request.post(`/mes/packages/${form.id}/children`,form);break
     case 'split':await request.post(`/mes/tasks/${form.id}/split`,form);break
-    case 'work':{const w=await request.post<Row>('/mes/work-orders',{...form,order_id:form.order_id||null});if(dedicatedKind.value==='LINE_ISSUE')createdWork.value=Number(w.id);break}
+    case 'work':{const w=await request.post<Row>('/mes/work-orders',{...form,order_id:form.order_id||null});if(dedicatedKind.value==='LINE_ISSUE')createdWork.value=Number(w.id);if(props.formOnly)emit('created',Number(w.id));break}
     case 'decompose':await request.post(`/mes/work-orders/${form.id}/decompose`,form);break
   }completeDrafts();modal.value=''
 })}
@@ -114,60 +146,83 @@ async function showSop(row:Row){images.value.forEach(URL.revokeObjectURL);images
 async function barcode(){try{const data=await request.get<Row>('/mes/barcode',{params:{kind:form.barcode_kind||'MATERIAL',id:form.barcode_id}});qrContent.value=data.content;qrImage.value=await QRCode.toDataURL(data.content,{width:280,margin:4,errorCorrectionLevel:'M'});barcodeImage.value=/^[\x20-\x7e]{1,100}$/.test(data.content)?barcodeSvg(data.content):''}catch(e:any){error.value=e.message}}
 async function showQr(id:number){try{const data=await request.get<Row>('/mes/barcode',{params:{kind:'PACKAGE',id}});qrContent.value=data.content;qrImage.value=await QRCode.toDataURL(data.content,{width:280,margin:4,errorCorrectionLevel:'M'})}catch(e:any){error.value=e.message}}
 const gantt=computed<Row[]>(()=>{const scheduled=rows.value.filter(r=>r.start_at&&r.end_at);if(!scheduled.length)return[];const from=Math.min(...scheduled.map(r=>new Date(r.start_at).getTime())),to=Math.max(...scheduled.map(r=>new Date(r.end_at).getTime()));return scheduled.map(r=>({...r,left:(new Date(r.start_at).getTime()-from)/Math.max(1,to-from)*100,width:(new Date(r.end_at).getTime()-new Date(r.start_at).getTime())/Math.max(1,to-from)*100}))})
-function resetContext(kind=false){if(kind)form.source_id='';lookup.workMaterials=[];lookup.returnLots=[];docLines.value=[{material_id:'',unit_id:'',lot_id:'',lot_no:'',location_id:'',quantity:1}]}
+function resetContext(kind=false){if(kind){form.source_id='';form.name=(docKinds[form.kind]||'仓储')+'单';}lookup.workMaterials=[];lookup.returnLots=[];docLines.value=[{material_id:'',unit_id:'',lot_id:'',lot_no:'',location_id:'',quantity:1}]}
 function materialChanged(line:Row){line.lot_id='';line.unit_id='';line.location_id=''}
 function warehouseChanged(){for(const line of docLines.value){line.location_id='';if(isStockOut.value)line.lot_id=''}}
 function chooseLot(line:Row){const stock=(lookup.stock||[]).filter(s=>Number(s.warehouse_id)===Number(form.warehouse_id)&&Number(s.material_id)===Number(line.material_id)&&Number(s.lot_id)===Number(line.lot_id)&&Number(s.quantity)>0);const locations=[...new Set(stock.map(s=>s.location_id))];if(isStockOut.value)line.location_id=locations.length===1?(locations[0]||''):'';else line.location_id=lookup.locations?.find(l=>Number(l.warehouse_id)===Number(form.warehouse_id))?.id||''}
 async function fillWorkMaterials(){if(!form.source_id)return;const uses=(lookup.workMaterials||[]).filter(m=>Number(m.unissued_quantity)>0);if(!uses.length){error.value='该工单没有待领物料，请检查BOM或已领料记录';return}const lines:Row[]=[];for(const m of uses){let remaining=Number(m.unissued_quantity);for(const stock of (lookup.stock||[]).filter(i=>Number(i.warehouse_id)===Number(form.warehouse_id)&&Number(i.material_id)===Number(m.material_id)&&Number(i.quantity)>0)){if(remaining<=0)break;const take=Math.min(remaining,Number(stock.quantity));lines.push({material_id:m.material_id,quantity:take,unit_id:'',lot_id:stock.lot_id,location_id:stock.location_id||''});remaining-=take}if(remaining>0)lines.push({material_id:m.material_id,quantity:remaining,unit_id:'',lot_id:'',location_id:''})}docLines.value=lines;error.value=lines.some(l=>!l.lot_id)?'部分物料库存不足或缺少批次，请补充采购入库或更换仓库后再保存':''}
-function applyRoute(){documentFilter.value='';modal.value='';qrImage.value='';qrContent.value='';const requested=String(route.meta.mesTab||route.query.tab||'');const next=tabs.value.some(t=>t[0]===requested)?requested:tabs.value[0]?.[0]||'calendar';if(tab.value===next)load();else tab.value=next}
+function applyRoute(){documentFilter.value='';modal.value='';qrImage.value='';qrContent.value='';const requested=String(props.initialTab||route.meta.mesTab||route.query.tab||'');const next=tabs.value.some(t=>t[0]===requested)?requested:tabs.value[0]?.[0]||'calendar';if(tab.value===next)load();else tab.value=next}
+watch(modal,(value,old)=>{if(props.formOnly&&old&&!value)emit('close')})
 watch(tab,()=>{if(ready.value)load()})
 watch(()=>route.fullPath,()=>{if(ready.value)applyRoute()})
 watch(()=>form.product_id,()=>{if(modal.value==='work'){form.bom_id=lookup['bom-versions']?.find(b=>Number(b.product_id)===Number(form.product_id))?.id||'';form.route_id=lookup.routes?.find(r=>Number(r.product_id)===Number(form.product_id))?.id||''}})
 let sourceRequest=0
 watch(()=>[form.kind,form.source_id],async()=>{const revision=++sourceRequest;if(modal.value!=='document'||!form.source_id)return;try{if(['PURCHASE_RETURN','SALES_RETURN'].includes(form.kind)){const lots=await request.get<Row[]>('/mes/return-lots',{params:{kind:form.kind,source:form.source_id}});if(revision===sourceRequest)lookup.returnLots=lots.map(l=>({...l,returned_quantity:Number(l.received_quantity)-Number(l.quantity)}))}if(['LINE_ISSUE','LINE_RETURN'].includes(form.kind)){const materials=await request.get<Row[]>(`/fulfillment/work-orders/${form.source_id}/materials`);if(revision===sourceRequest)lookup.workMaterials=materials}}catch(e:any){if(revision===sourceRequest){lookup.returnLots=[];error.value=e.message}}})
-onMounted(async()=>{try{await auth.refreshSettings();await lookups();ready.value=true;applyRoute();await auth.loadNotifications()}catch(e:any){error.value=e.message}})
+onMounted(async()=>{try{await auth.refreshSettings();await lookups();ready.value=true;applyRoute();if(props.formOnly)open('work');await auth.loadNotifications()}catch(e:any){error.value=e.message}})
 onBeforeUnmount(()=>images.value.forEach(URL.revokeObjectURL))
 
 const completeDrafts=useFormDrafts({modal:{open:modal,fields:{form,docLines}, record:()=>(form as Record<string,any>).id || selected.value?.id}})
 </script>
 
-<template><component :is="embedded ? 'div' : MainLayout">
+<template><component :is="embedded ? 'div' : MainLayout" :full-width="purchaseDocuments" :class="{'work-form-only':formOnly}">
   <PurchaseNavigation v-if="!embedded && ['/purchase/receipts','/purchase/returns'].includes(route.path)" group="receipts" />
   <div class="mes-hero-label">MANUFACTURING OPERATIONS</div><div class="module-heading"><div class="module-heading-mark" aria-hidden="true">MES</div><div><h1 class="text-2xl font-bold mb-1">{{pageTitle}}</h1><p class="text-gray-500">{{pageDescription}}</p></div></div>
   <div v-if="!dedicated" class="mes-module-tabs" role="tablist" aria-label="运营功能"><button v-for="t in tabs" role="tab" :aria-selected="tab===t[0]" :key="t[0]" class="px-3 py-2 rounded-lg border" :class="tab===t[0]?'bg-blue-600 text-white':'bg-white'" @click="tab=t[0]">{{t[1]}}</button></div>
   <div v-if="route.path==='/purchase/receipts' && route.query.sourceId" class="mb-4 text-sm text-blue-700">当前仅显示所选采购订单的收货记录。新建收货单时自动带入该订单（需已审批）。<router-link class="ml-3 underline" to="/purchase/receipts">查看全部收货</router-link></div>
   <p v-if="!ready&&!error" class="p-5 text-sm text-gray-500">正在加载业务资料…</p>
   <p v-if="error" role="alert" class="bg-red-50 text-red-700 p-3 rounded mb-4">{{error}}</p><p v-if="message" role="status" class="bg-green-50 text-green-700 p-3 rounded mb-4">{{message}}</p>
-  <div class="bg-white border rounded-xl p-4 mb-5 flex gap-3 items-center flex-wrap">
-    <select v-if="Array.isArray(route.meta.documentKinds)" v-model="documentFilter" @change="load" class="border rounded px-3 py-2" aria-label="按出入库业务类型筛选"><option value="">全部业务类型</option><option v-for="kind in groupedKinds" :key="kind" :value="kind">{{docKinds[kind]}}</option></select><button class="border rounded px-3 py-2" @click="load">刷新</button><router-link to="/foundation/categories" class="text-blue-600">维护基础配置 →</router-link>
-    <button v-if="tab==='work-orders'&&can(1,2)" class="bg-blue-600 text-white px-3 py-2 rounded" :disabled="busy||!ready" @click="open('work')">新建生产工单</button><button v-if="tab==='documents'&&can(5)&&(!Array.isArray(route.meta.documentKinds)||groupedKinds.length>0)" class="bg-blue-600 text-white px-3 py-2 rounded" :disabled="busy||!ready" @click="open('document')">{{dedicatedKind?'新建'+docKinds[dedicatedKind]+'单':'新建仓储草稿'}}</button>
+  <div v-if="['/inventory/in','/inventory/out'].includes(route.path)" class="mb-5 flex justify-end">
+    <button v-if="can(5)&&groupedKinds.length>0" type="button" class="btn-primary" :disabled="busy||!ready" @click="open('document')">{{route.path==='/inventory/out'?'新建出库单据':'新建入库单据'}}</button>
+  </div>
+  <div v-else class="bg-white border rounded-xl p-4 mb-5 flex gap-3 items-center flex-wrap">
+    <select v-if="Array.isArray(route.meta.documentKinds)&&route.path!=='/inventory/in'" v-model="documentFilter" @change="load" class="border rounded px-3 py-2" aria-label="按出入库业务类型筛选"><option value="">全部业务类型</option><option v-for="kind in groupedKinds" :key="kind" :value="kind">{{docKinds[kind]}}</option></select><button v-if="!purchaseDocuments" class="border rounded px-3 py-2" @click="load">刷新</button><router-link v-if="!purchaseDocuments" to="/foundation/categories" class="text-blue-600">维护基础配置 →</router-link>
+    <button v-if="tab==='work-orders'&&can(1,2)" class="bg-blue-600 text-white px-3 py-2 rounded" :disabled="busy||!ready" @click="open('work')">新建生产工单</button><button v-if="tab==='documents'&&can(5)&&(!Array.isArray(route.meta.documentKinds)||groupedKinds.length>0)" class="bg-blue-600 text-white px-3 py-2 rounded" :disabled="busy||!ready" @click="open('document')">{{dedicatedKind==='PURCHASE_RECEIPT'?'新建入库单':dedicatedKind==='PURCHASE_RETURN'?'新建退货单':dedicatedKind?'新建'+docKinds[dedicatedKind]+'单':'新建仓储草稿'}}</button>
     <button v-if="tab==='packages'&&can(5)" class="bg-blue-600 text-white px-3 py-2 rounded" :disabled="busy||!ready" @click="open('package')">新建包装箱</button>
     <button v-if="tab==='notices'&&can(1,2,11)" class="bg-blue-600 text-white px-3 py-2 rounded" :disabled="busy||!ready" @click="open('notice')">发布公告</button>
     <button v-if="tab==='checks'&&can(8,11)" class="border rounded px-3 py-2" :disabled="busy" @click="run(()=>request.post('/mes/checks/generate'))">检查到期计划</button>
-    <button v-if="dedicatedKind==='LINE_ISSUE'&&can(1,2)" class="border rounded px-3 py-2" :disabled="busy||!ready" @click="open('work')">先创建生产工单</button><router-link v-if="['LINE_ISSUE','LINE_RETURN'].includes(dedicatedKind)&&can(1,2,3,4,5)" to="/production/work-orders" class="text-blue-600 text-sm">查看生产工单 →</router-link><p v-if="tab==='documents'" class="text-sm text-gray-500">草稿 → 确认 → 逐批检验 → 执行过账；已过账单据不可编辑。</p>
+    <button v-if="dedicatedKind==='LINE_ISSUE'&&can(1,2)" class="border rounded px-3 py-2" :disabled="busy||!ready" @click="open('work')">先创建生产工单</button><router-link v-if="['LINE_ISSUE','LINE_RETURN'].includes(dedicatedKind)&&can(1,2,3,4,5)" to="/production/work-orders" class="text-blue-600 text-sm">查看生产工单 →</router-link><p v-if="tab==='documents' && !purchaseDocuments" class="text-sm text-gray-500">草稿 → 确认 → 逐批检验 → 执行过账；已过账单据不可编辑。</p>
   </div>
   <div v-if="tab==='barcode'" class="bg-white border rounded-xl p-5"><select v-model="form.barcode_kind" class="border p-2 rounded"><option v-for="(name,kind) in {MATERIAL:'物料产品',WAREHOUSE:'仓库',CUSTOMER:'客户',SUPPLIER:'供应商',EQUIPMENT:'设备',STATION:'工作站',PACKAGE:'包装箱',INVENTORY:'物资库存'}" :key="kind" :value="kind">{{name}}</option></select><input v-model="form.barcode_id" type="number" min="1" placeholder="档案编号" class="border rounded p-2 mx-3" /><button class="bg-blue-600 text-white px-4 py-2 rounded" @click="barcode">生成条码</button><div v-if="barcodeImage" class="mt-6"><img :src="barcodeImage" alt="可扫描生产要素条码" class="max-w-full" /><a :href="barcodeImage" download="MES-barcode.svg" class="text-blue-600">下载条码</a></div></div>
   <div v-if="tab==='planning'&&gantt.length" class="bg-white rounded-xl border p-5 mb-5"><h2 class="font-semibold mb-4">生产任务甘特图</h2><div v-for="r in gantt" :key="r.id" class="grid grid-cols-[180px_1fr] gap-4 mb-3 items-center"><span class="text-sm">{{r.task_no}} · {{r.station_name}}</span><div class="relative bg-gray-100 h-7 rounded"><div class="absolute h-full rounded bg-blue-500" :style="{left:r.left+'%',width:Math.max(0.5,r.width)+'%'}" :title="r.start_at+' — '+r.end_at"></div></div></div></div>
   <section v-if="tab==='calendar'" class="bg-white border rounded-xl p-5 mb-5"><div class="flex items-center gap-4 mb-4"><h2 class="font-semibold">班组与人员月历</h2><input v-model="calendarMonth" type="month" aria-label="排班月份" class="border rounded p-2" /></div><div class="grid grid-cols-7"><div v-for="name in ['周一','周二','周三','周四','周五','周六','周日']" :key="name" class="bg-slate-50 p-3 text-center text-sm">{{name}}</div><div v-for="day in calendarDays" :key="day.key" class="border p-2 min-h-28" :class="day.current?'bg-white':'bg-gray-50 text-gray-400'"><span class="text-sm">{{day.day}}</span><div v-for="(event,index) in day.events" :key="index" class="bg-blue-50 rounded text-blue-800 text-xs p-2 mt-1 break-words">{{event.team_name}} · {{event.real_name||''}}<br/>{{event.station_name}}<br/>{{String(event.start_at).slice(11,16)}}—{{String(event.end_at).slice(11,16)}}</div></div></div></section>
   <div v-if="dedicatedKind==='LINE_RETURN'" class="bg-blue-50 text-blue-700 border border-blue-100 rounded-xl p-4 text-sm mb-4">退料单必须关联已有领料记录且线边有余料的工单；新工单没有领料时，不能直接退料。</div>
-  <div v-if="dedicatedKind==='PURCHASE_RETURN'" class="bg-blue-50 text-blue-700 border border-blue-100 rounded-xl p-4 text-sm mb-4">选择原采购单 → 选择原收货批次和实际出库库位 → 保存草稿 → 确认 → 执行退货。累计退货量不能超过原收货量。</div>
   <p v-if="dedicated&&ready&&!rows.length&&!error" class="text-sm text-gray-500 p-5 bg-white rounded-xl border mb-4">暂无{{pageTitle}}记录，可通过上方按钮开始创建。仓储单据由仓管员执行，生产工单由生产主管下达。</p>
-  <QueryTable v-if="tab!=='barcode'" :rows="tableRows" :columns="visibleCols" />
+  <QueryTable v-if="tab!=='barcode'" :rows="fittedDocuments ? pageRows : tableRows" :columns="warehouseDocuments ? warehouseColumns : purchaseDocuments ? purchaseColumns : visibleCols" class="mes-record-table" :class="{'warehouse-document-table':warehouseDocuments}" :fit="fittedDocuments">
+    <template v-if="fittedDocuments" #heading>操作</template>
+    <template v-if="fittedDocuments" #default="{ row: r }"><div class="flex flex-wrap items-center justify-center gap-2"><button type="button" class="document-view-button" @click="viewDocument(r)">查看</button><button v-if="r.status==='DRAFT'&&can(5)" class="text-blue-600" @click="editDocument(r)">编辑头部与明细</button><button v-if="r.status==='DRAFT'&&can(5)" class="text-blue-600" :disabled="busy" @click="run(()=>request.post(`/mes/documents/${r.id}/confirm`))">确认</button><button v-if="r.status==='CONFIRMED'&&can(5)" class="text-blue-600" :disabled="busy" @click="run(()=>request.post(`/mes/documents/${r.id}/post`))">执行过账</button><button v-if="['DRAFT','CONFIRMED'].includes(r.status)&&can(5)" class="text-red-600" :disabled="busy" @click="run(()=>request.post(`/mes/documents/${r.id}/cancel`))">取消</button></div></template>
+  </QueryTable>
+  <TablePagination v-if="fittedDocuments" v-model:page="page" v-model:page-size="pageSize" :total="total" :label="pageTitle" />
   <div v-if="qrImage" class="bg-white rounded-xl border p-5 my-5"><h2 class="font-semibold">生产要素二维码</h2><img :src="qrImage" alt="可扫描的生产要素二维码" width="280" height="280"/><p>{{qrContent}}</p><a :href="qrImage" download="MES-qrcode.png" class="text-blue-600">下载二维码</a></div>
-  <div v-if="rows.length&&['work-orders','planning','reports','rotations','nonconformities','documents','packages','line-stock','jobs','sessions'].includes(tab)" class="bg-white border rounded-xl mt-5 divide-y"><div v-for="r in rows" :key="r.id" class="p-3 flex flex-wrap items-center gap-3"><span class="mr-auto font-medium">{{r.task_no||r.code||r.inspection_code||r.work_order_code||r.id}}</span>
+  <div v-if="!fittedDocuments&&rows.length&&['work-orders','planning','reports','rotations','nonconformities','documents','packages','line-stock','jobs','sessions'].includes(tab)" class="bg-white border rounded-xl mt-5 divide-y"><div v-for="r in (purchaseDocuments ? pageRows : rows)" :key="r.id" class="p-3 flex flex-wrap items-center gap-3"><span class="mr-auto font-medium">{{r.task_no||r.code||r.inspection_code||r.work_order_code||r.id}}</span>
     <template v-if="tab==='work-orders'&&can(1,2)"><button class="text-blue-600" :disabled="busy||!ready" @click="open('decompose',r)">分解半成品子工单</button><router-link :to="`/manufacturing?workOrder=${r.id}`" class="text-blue-600">工序执行 →</router-link></template><template v-if="tab==='planning'"><button v-if="can(1,2)&&r.task_status<=1" class="text-blue-600" :disabled="busy||!ready" @click="open('split',r)">拆分到多工作站</button><button v-if="can(1,2)&&r.task_status<=2" class="text-blue-600" :disabled="busy||!ready" @click="open('dispatch',r)">分派/调整时间</button><button class="text-blue-600" @click="showSop(r)">查看工序SOP</button><router-link :to="`/manufacturing?workOrder=${r.work_order_id}&taskId=${r.id}`" class="text-blue-600">开工/报工/检验 →</router-link></template>
     <button v-if="tab==='rotations'&&can(1,2)" class="text-blue-600" :disabled="busy" @click="run(()=>request.post(`/mes/rotations/${r.id}/generate`))">生成轮班日历</button>
     <template v-if="tab==='nonconformities'"><button v-if="r.status==='SCRAP_PENDING'&&can(5)" class="text-red-600" :disabled="busy" @click="run(()=>request.post(`/mes/nonconformities/${r.id}/scrap`))">执行整批报废</button><button v-if="r.status==='OPEN'&&can(4)" class="text-blue-600" :disabled="busy||!ready" @click="open('disposition',r)">审批处置</button><button v-if="r.rework_status==='PENDING'&&can(3)" class="text-blue-600" :disabled="busy||!ready" @click="open('rework',r)">提交返工结果</button></template>
     <template v-if="tab==='reports'&&r.status==='PENDING'&&can(1,2)"><button class="text-blue-600" :disabled="busy" @click="run(()=>request.post(`/mes/reports/${r.id}/confirm`))">确认报工并扣料</button><button class="text-red-600" @click="rejectReport(r)">驳回</button></template>
-    <template v-if="tab==='documents'"><button class="text-blue-600" @click="show(r)">明细与检验</button><button v-if="r.status==='DRAFT'&&can(5)" class="text-blue-600" @click="editDocument(r)">编辑头部与明细</button><button v-if="r.status==='DRAFT'&&can(5)" class="text-blue-600" :disabled="busy" @click="run(()=>request.post(`/mes/documents/${r.id}/confirm`))">确认</button><button v-if="r.status==='CONFIRMED'&&can(5)" class="text-blue-600" :disabled="busy" @click="run(()=>request.post(`/mes/documents/${r.id}/post`))">执行过账</button><button v-if="['DRAFT','CONFIRMED'].includes(r.status)&&can(5)" class="text-red-600" :disabled="busy" @click="run(()=>request.post(`/mes/documents/${r.id}/cancel`))">取消</button></template>
+    <template v-if="tab==='documents'"><button v-if="r.status==='DRAFT'&&can(5)" class="text-blue-600" @click="editDocument(r)">编辑头部与明细</button><button v-if="r.status==='DRAFT'&&can(5)" class="text-blue-600" :disabled="busy" @click="run(()=>request.post(`/mes/documents/${r.id}/confirm`))">确认</button><button v-if="r.status==='CONFIRMED'&&can(5)" class="text-blue-600" :disabled="busy" @click="run(()=>request.post(`/mes/documents/${r.id}/post`))">执行过账</button><button v-if="['DRAFT','CONFIRMED'].includes(r.status)&&can(5)" class="text-red-600" :disabled="busy" @click="run(()=>request.post(`/mes/documents/${r.id}/cancel`))">取消</button></template>
     <template v-if="tab==='packages'"><button class="text-blue-600" @click="showQr(r.id)">包装箱二维码</button><button class="text-blue-600" @click="show(r)">追溯箱内物料</button><template v-if="r.status==='DRAFT'&&can(5)"><button class="text-blue-600" :disabled="busy||!ready" @click="open('item',r)">装入物料</button><button class="text-blue-600" :disabled="busy||!ready" @click="open('child',r)">装入子箱</button><button class="text-blue-600" :disabled="busy" @click="run(()=>request.post(`/mes/packages/${r.id}/confirm`))">确认装箱</button></template></template>
     <template v-if="tab==='jobs'"><router-link to="/foundation/jobs" class="text-blue-600">配置启用与间隔</router-link><button v-if="r.enabled" class="text-blue-600" :disabled="busy" @click="run(()=>request.post(`/mes/jobs/${r.code}/run`))">立即执行</button></template>
     <button v-if="tab==='sessions'" class="text-red-600" @click="revokeSession(r)">让此会话重新登录</button>
     <button v-if="tab==='line-stock'" class="text-blue-600" @click="show(r)">线边流水</button>
   </div></div>
-  <section v-if="detail.length" class="bg-white border rounded-xl mt-5 p-5"><h2 class="font-semibold mb-4">{{selected?.code||selected?.work_order_code}} 明细</h2><QueryTable :rows="detail" :columns="Object.keys(detail[0]).filter(k=>names[k]).map(k=>({key:k,label:names[k]}))" /><div v-if="tab==='documents'&&can(4)" class="flex gap-3 mt-4"><button v-for="r in detail" :key="r.id" class="text-blue-600" :disabled="busy||!ready" @click="open('inspect',r)">检验 {{r.material_name}} · {{r.lot_no}}</button></div></section>
+  <div v-if="documentDetailOpen && fittedDocuments" class="modal-mask fixed inset-0 bg-black/40 z-[80] flex items-center justify-center p-5" role="dialog" aria-modal="true" aria-label="单据详情" @keydown.esc="documentDetailOpen=false">
+    <section class="modal-card bg-white rounded-xl p-6 max-w-6xl w-full max-h-[90vh] overflow-auto">
+      <div class="flex items-center justify-between gap-4 mb-5"><h2 class="text-xl font-semibold">{{dedicatedKind==='PURCHASE_RETURN'?'退货单详情':'入库单详情'}} · {{selected?.code}}</h2><button type="button" aria-label="关闭单据详情" @click="documentDetailOpen=false">关闭</button></div>
+      <dl class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-5 text-sm">
+        <div><dt class="text-gray-500">名称</dt><dd>{{selected?.name||'—'}}</dd></div>
+        <div><dt class="text-gray-500">来源编号</dt><dd>{{selected?.source_id||'—'}}</dd></div>
+        <div><dt class="text-gray-500">仓库</dt><dd>{{selected?.warehouse_name||'—'}}</dd></div>
+        <div><dt class="text-gray-500">经办人</dt><dd>{{selected?.actor_name||'—'}}</dd></div>
+        <div><dt class="text-gray-500">业务日期</dt><dd>{{selected?.business_date||'—'}}</dd></div>
+        <div><dt class="text-gray-500">原因</dt><dd>{{selected?.reason||'—'}}</dd></div>
+      </dl>
+      <p v-if="documentDetailBusy" role="status">正在加载明细…</p>
+      <p v-else-if="documentDetailError" role="alert" class="text-red-600">{{documentDetailError}} <button class="text-blue-600" @click="viewDocument(selected!)">重试</button></p>
+      <QueryTable v-else :rows="detail" :columns="detail.length ? Object.keys(detail[0]).filter(k=>names[k]).map(k=>({key:k,label:names[k]})) : []" />
+    </section>
+  </div>
+  <section v-if="detail.length && !purchaseDocuments" class="bg-white border rounded-xl mt-5 p-5"><h2 class="font-semibold mb-4">{{selected?.code||selected?.work_order_code}} 明细</h2><QueryTable :rows="detail" :columns="Object.keys(detail[0]).filter(k=>names[k]).map(k=>({key:k,label:names[k]}))" /><div v-if="tab==='documents'&&can(4)" class="flex gap-3 mt-4"><button v-for="r in detail" :key="r.id" class="text-blue-600" :disabled="busy||!ready" @click="open('inspect',r)">检验 {{r.material_name}} · {{r.lot_no}}</button></div></section>
   <div v-for="src in images" :key="src" class="bg-white rounded-xl border mt-5 p-5"><img :src="src" alt="当前工序SOP" class="max-w-full" /></div>
-  <div v-if="modal" role="dialog" aria-modal="true" aria-label="业务单据" class="modal-mask fixed inset-0 bg-black/40 z-[80] flex items-center justify-center p-5"><form class="modal-card bg-white rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-auto space-y-4" @submit.prevent="save"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p><h2 class="text-xl font-semibold">{{({dispatch:'生产任务排产',disposition:'不合格处置审批',rework:'返工结果',notice:'发布公告',document:dedicatedKind?docKinds[dedicatedKind]+'单':'仓储单据草稿',inspect:'物料批次检验',package:'新建包装箱',item:'装入库存物料',child:'关联已确认子箱',split:'拆分工序任务',work:'新建备货或订单工单',decompose:'分解半成品子工单'} as Row)[modal]}}</h2><p v-if="error" class="text-red-600">{{error}}</p>
+  <div v-if="modal" role="dialog" aria-modal="true" aria-label="业务单据" class="modal-mask fixed inset-0 bg-black/40 z-[80] flex items-center justify-center p-5"><form class="modal-card bg-white rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-auto space-y-4" @submit.prevent="save"><p class="text-xs text-gray-500 mb-3" role="note">退出填写会保留草稿；保存成功后自动关闭。</p><h2 class="text-xl font-semibold">{{({dispatch:'生产任务排产',disposition:'不合格处置审批',rework:'返工结果',notice:'发布公告',document:docKinds[form.kind]?docKinds[form.kind]+'单':'仓储单据草稿',inspect:'物料批次检验',package:'新建包装箱',item:'装入库存物料',child:'关联已确认子箱',split:'拆分工序任务',work:'新建备货或订单工单',decompose:'分解半成品子工单'} as Row)[modal]}}</h2><p v-if="error" class="text-red-600">{{error}}</p>
     <template v-if="modal==='report'"><label class="block">生产任务<select v-model="form.task_id" required class="border rounded p-2 w-full"><option value="">请选择</option><option v-for="t in lookup.planning?.filter(t=>[1,2].includes(Number(t.task_status))&&(role!==3||Number(t.assigned_user_id)===Number(auth.currentUser?.id)))" :key="t.id" :value="t.id">{{t.task_no}} · {{t.operation_name}} · {{t.assigned_user_name}} · 计划{{t.quantity}}</option></select></label><label v-if="can(1,2)" class="block">实际报工人<select v-model="form.reporter_id" required class="border rounded p-2 w-full"><option v-for="p in lookup.people?.filter(p=>p.roleId===3)" :key="p.id" :value="p.id">{{p.realName}}</option></select></label><label class="block">合格品数量<input v-model="form.good_quantity" type="number" min="0" step="1" required class="border rounded p-2 w-full" /></label><label class="block">不良品数量<input v-model="form.bad_quantity" type="number" min="0" step="1" required class="border rounded p-2 w-full" /></label><label class="block">实际报工时间<input v-model="form.report_time" type="datetime-local" required class="border rounded p-2 w-full" /></label><textarea v-model="form.remark" maxlength="500" placeholder="生产情况与不良现象" class="border rounded p-2 w-full" /><p class="text-sm text-gray-500">主管确认后才扣减线边耗料；含不良品的批次须经过处置与复检。</p></template>
     <template v-if="modal==='work'"><label class="block">生产产品<select aria-label="生产产品" v-model="form.product_id" required class="border rounded p-2 w-full"><option value="">选择生产产品</option><option v-for="p in lookup.products" :key="p.id" :value="p.id" :disabled="!producibleProducts.some(product=>product.id===p.id)">{{p.product_name}}{{producibleProducts.some(product=>product.id===p.id)?'':'（请先配置BOM及工艺）'}}</option></select></label><p v-if="!producibleProducts.length" class="text-amber-700 text-sm">暂无配置完整BOM与工艺路线的产品，请先在基础配置中心维护后创建工单。</p><label class="block">关联订单（留空为库存备货）<select v-model="form.order_id" class="border rounded p-2 w-full"><option value="">库存备货</option><option v-for="o in lookup.orders" :key="o.id" :value="o.id">{{sourceName(o)}}</option></select></label><label class="block">生产数量<input v-model="form.quantity" type="number" min="1" step="1" required placeholder="生产数量" class="border rounded p-2 w-full" /></label><label class="block">BOM版本<select v-model="form.bom_id" required class="border rounded p-2 w-full"><option value="">选择BOM版本</option><option v-for="b in lookup['bom-versions']?.filter(b=>Number(b.product_id)===Number(form.product_id))" :key="b.id" :value="b.id">{{b.name}} · {{b.version}}</option></select></label><label class="block">工艺路线<select v-model="form.route_id" required class="border rounded p-2 w-full"><option value="">选择工艺路线</option><option v-for="r in lookup.routes?.filter(r=>Number(r.product_id)===Number(form.product_id))" :key="r.id" :value="r.id">{{r.name}} · {{r.version}}</option></select></label></template>
     <label v-if="['work','decompose'].includes(modal)" class="block">默认负责人<select v-model="form.owner_id" required class="border rounded p-2 w-full"><option v-for="p in lookup.people?.filter(p=>p.roleId===3)" :key="p.id" :value="p.id">{{p.realName}}</option></select></label>
@@ -202,3 +257,25 @@ const completeDrafts=useFormDrafts({modal:{open:modal,fields:{form,docLines}, re
     <div class="flex justify-end gap-4"><button type="button" @click="modal=''">取消</button><button :disabled="busy" class="bg-blue-600 text-white rounded px-5 py-2">{{busy?'正在处理…':'保存并校验'}}</button></div>
   </form></div>
 </component></template>
+
+<style scoped>
+.document-view-button{display:inline-flex;align-items:center;justify-content:center;min-width:60px;padding:6px 14px;border:1px solid #ded3c1;border-radius:6px;background:#f5efe4;color:#80633e;font-size:12px;font-weight:500;line-height:1.5;transition:background .15s,border-color .15s}
+.document-view-button:hover{background:#ece2d1;border-color:#c8b594}
+.document-view-button:focus-visible{outline:2px solid #a98a5d;outline-offset:2px}
+
+.warehouse-document-table :deep(th),.warehouse-document-table :deep(td){white-space:normal!important;overflow-wrap:anywhere;word-break:normal}
+.warehouse-document-table :deep(th:last-child){width:20%}
+
+.mes-record-table :deep(.query-table-fit){min-width:0}
+.mes-record-table.query-table-fit :deep(th),.mes-record-table.query-table-fit :deep(td){padding:14px 8px!important;text-align:center!important}
+.mes-record-table.query-table-fit :deep(th:nth-child(1)){width:11%}
+.mes-record-table.query-table-fit :deep(th:nth-child(2)){width:6%}
+.mes-record-table.query-table-fit :deep(th:nth-child(3)){width:7%}
+.mes-record-table.query-table-fit :deep(th:nth-child(4)){width:10%}
+.mes-record-table.query-table-fit :deep(th:nth-child(5)),.mes-record-table.query-table-fit :deep(th:nth-child(6)){width:15%}
+.mes-record-table.query-table-fit :deep(th:nth-child(7)){width:9%}
+.mes-record-table.query-table-fit :deep(th:nth-child(8)){width:10%}
+.mes-record-table.query-table-fit :deep(th:nth-child(9)){width:7%}
+.mes-record-table.query-table-fit :deep(th:last-child){width:10%}
+.work-form-only>:not([role=dialog]){display:none}
+</style>

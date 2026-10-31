@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
+const props = defineProps<{ embedded?: boolean }>()
+const emit = defineEmits<{ progressed: [stage: 'requests' | 'orders', id: number] }>()
 import { computed, onMounted, reactive, ref } from 'vue'
 import request from '@/utils/request'
 import MainLayout from '@/components/MainLayout.vue'
+import TablePagination from '@/components/TablePagination.vue'
+import { usePagination } from '@/composables/usePagination'
+import PurchaseNavigation from '@/components/PurchaseNavigation.vue'
 import { Plus, RefreshCw, Search, Send, X } from 'lucide-vue-next'
 import {
   materialApi,
@@ -21,6 +26,7 @@ import { canVisit } from '@/utils/permissions'
 type RequestStatus = '' | 'PENDING_CHECK' | 'ENOUGH' | 'SHORTAGE' | 'PURCHASE_REQUESTED' | 'PURCHASE_ORDERED'
 
 const authStore = useAuthStore()
+const canManage = computed(() => [1,2,3,5,9].includes(Number(authStore.effectiveRoleId)))
 const loading = ref(false)
 const saving = ref(false)
 const message = ref('')
@@ -65,6 +71,8 @@ const filteredRequests = computed(() => {
     return matchStatus && matchKeyword
   })
 })
+const { page, pageSize, total, items: pageItems } = usePagination(filteredRequests)
+
 
 const pendingCount = computed(() => requests.value.filter((item) => item.requestStatus === 'PENDING_CHECK').length)
 const shortageCount = computed(() => requests.value.filter((item) => Number(item.shortageQuantity || 0) > 0).length)
@@ -154,7 +162,7 @@ function materialText(id?: number) {
 
 function warehouseText(id?: number) {
   const warehouse = warehouses.value.find((item) => item.id === Number(id))
-  return warehouse ? `${warehouse.warehouseCode} / ${warehouse.warehouseName}` : '-'
+  return warehouse ? warehouse.warehouseName : '-'
 }
 
 function statusText(status?: string) {
@@ -181,7 +189,7 @@ function statusClass(status?: string) {
 
 function canSendPurchaseRequest(item: MaterialRequestRecord) {
   return (
-    Number(item.shortageQuantity || 0) > 0 &&
+    canManage.value && Number(item.shortageQuantity || 0) > 0 &&
     item.requestStatus !== 'PURCHASE_REQUESTED' &&
     item.requestStatus !== 'PURCHASE_ORDERED'
   )
@@ -242,6 +250,7 @@ async function sendPurchaseRequest(item: MaterialRequestRecord) {
     await materialRequestApi.requestPurchase(item.id)
     message.value = `物料请求 ${item.requestNo} 已发送给采购员。`
     await loadRequests()
+    emit('progressed', 'requests', item.id)
   } catch (error: any) {
     message.value = error.message || '发送采购请求失败'
   } finally {
@@ -249,18 +258,19 @@ async function sendPurchaseRequest(item: MaterialRequestRecord) {
   }
 }
 
-const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form,selectedTaskId}, record:()=>(form as Record<string,any>).id}})
+defineExpose({ refresh: loadRequests })
+const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form,selectedTaskId}, record:()=>(form as Record<string,any>).id}}, '/inventory/material-requests')
 </script>
 
 <template>
-  <MainLayout>
+  <component :is="props.embedded ? 'div' : MainLayout">
+    <PurchaseNavigation v-if="!props.embedded" group="orders" />
     <div class="space-y-6 animate-fadeIn">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">物料请求</h1>
-          <p class="text-gray-500 mt-1">仓管员接收生产任务用料请求，判断库存是否足够；不足时发送采购请求给采购员。</p>
+          <h1 class="text-2xl font-bold text-gray-900">物料需求</h1>
         </div>
-        <button class="btn-primary" @click="openCreate">
+        <button v-if="canManage" class="btn-primary" @click="openCreate">
           <Plus class="w-4 h-4" />
           登记物料请求
         </button>
@@ -330,11 +340,11 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form,selecte
               <tr v-else-if="filteredRequests.length === 0">
                 <td colspan="10" class="empty-cell">暂无物料请求</td>
               </tr>
-              <tr v-for="item in filteredRequests" v-else :key="item.id">
+              <tr v-for="item in pageItems" v-else :key="item.id">
                 <td class="font-medium text-gray-900">{{ item.requestNo }}</td>
                 <td>{{ item.sourceTaskNo || '-' }}</td>
                 <td>{{ item.productName || '-' }}</td>
-                <td>{{ item.materialCode || materialText(item.materialId) }} / {{ item.materialName || '' }}</td>
+                <td :title="item.materialCode">{{ item.materialName || materialText(item.materialId) }}</td>
                 <td>{{ item.requiredQuantity }}</td>
                 <td>{{ item.availableQuantity || 0 }}</td>
                 <td :class="Number(item.shortageQuantity || 0) > 0 ? 'font-medium text-red-600' : 'text-green-600'">
@@ -343,17 +353,18 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form,selecte
                 <td>{{ warehouseText(item.warehouseId) }}</td>
                 <td><span :class="statusClass(item.requestStatus)">{{ statusText(item.requestStatus) }}</span></td>
                 <td class="text-right space-x-2">
-                  <button v-if="!['PURCHASE_REQUESTED','PURCHASE_ORDERED'].includes(item.requestStatus || '')" class="link-btn" :disabled="saving" @click="refreshRequest(item)">刷新判断</button>
+                  <button v-if="canManage && !['PURCHASE_REQUESTED','PURCHASE_ORDERED'].includes(item.requestStatus || '')" class="link-btn" :disabled="saving" @click="refreshRequest(item)">刷新判断</button>
                   <router-link v-if="['PURCHASE_REQUESTED','PURCHASE_ORDERED'].includes(item.requestStatus || '') && canVisit(Number(authStore.effectiveRoleId), '/purchase/requests') && authStore.hasMenu('/purchase/requests')" class="link-btn" :to="{ path: '/purchase/requests', query: { requestId: item.id, requestNo: item.requestNo } }">查看采购进度</router-link>
                   <button v-if="canSendPurchaseRequest(item)" class="link-btn" :disabled="saving" @click="sendPurchaseRequest(item)">
                     <Send class="inline-block w-4 h-4 mr-1" />
-                    发送采购请求
+                    生成采购需求
                   </button>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+        <TablePagination v-model:page="page" v-model:page-size="pageSize" :total="total" label="物料需求" />
       </div>
 
       <div v-if="showForm" class="modal-mask" data-business-form>
@@ -418,5 +429,5 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form,selecte
         </div>
       </div>
     </div>
-  </MainLayout>
+  </component>
 </template>

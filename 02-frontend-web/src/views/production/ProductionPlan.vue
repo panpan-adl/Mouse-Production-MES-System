@@ -4,6 +4,15 @@ import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, ref } from 'vue'
 import { AlertTriangle, Eye, Plus, RefreshCw, Search, X } from 'lucide-vue-next'
 import MainLayout from '@/components/MainLayout.vue'
+import request from '@/utils/request'
+import { useAuthStore } from '@/stores/auth'
+import { canVisit } from '@/utils/permissions'
+const auth=useAuthStore()
+const workOrders=ref<Record<string,any>[]>([])
+const workOrdersLoaded=ref(false)
+const canGenerateWork=computed(()=>[1,2,9].includes(Number(auth.effectiveRoleId))&&canVisit(Number(auth.effectiveRoleId),'/manufacturing')&&auth.hasMenu('/manufacturing'))
+const linkedWork=(plan:ProductionPlan)=>workOrders.value.find(w=>Number(w.plan_id)===Number(plan.id))
+
 import {
   orderApi,
   productionPlanApi,
@@ -55,6 +64,8 @@ const createVisible = ref(false)
 const errorMessage = ref('')
 
 /** 当前选择用来生成生产计划的订单ID。 */
+const editingPlan=ref<ProductionPlan|null>(null)
+function editPlan(plan:ProductionPlan){editingPlan.value=plan;selectedOrderId.value=plan.orderId||'';createForm.value={planNo:plan.planNo,startDate:toDateTimeLocal(plan.startDate),endDate:toDateTimeLocal(plan.endDate),priority:plan.priority??2};createVisible.value=true}
 const selectedOrderId = ref<number | ''>('')
 
 /** 新增生产计划表单，只保留用户真正需要确认的字段。 */
@@ -164,6 +175,8 @@ async function loadData() {
       productionPlanApi.list(),
       orderApi.list(),
     ])
+    workOrdersLoaded.value=false
+    try{workOrders.value=await request.get<Record<string,any>[]>('/fulfillment/work-orders');workOrdersLoaded.value=true}catch{workOrders.value=[]}
     plans.value = planData
     orders.value = orderData
 
@@ -199,6 +212,7 @@ async function openDetail(plan: ProductionPlan) {
 
 /** 打开新增生产计划弹窗，并默认选中第一条未制定计划的订单。 */
 function openCreate() {
+  editingPlan.value=null
   if (unplannedOrders.value.length === 0) {
     errorMessage.value = '当前没有未制定生产计划的订单'
     showBusinessFormError(errorMessage.value)
@@ -224,6 +238,8 @@ function handleOrderChange() {
 
 /** 根据选中的订单新增生产计划。 */
 async function savePlan() {
+  if(editingPlan.value?.id){saving.value=true;try{await productionPlanApi.update(editingPlan.value.id,{...editingPlan.value,planNo:createForm.value.planNo,startDate:fromDateTimeLocal(createForm.value.startDate),endDate:fromDateTimeLocal(createForm.value.endDate),priority:createForm.value.priority});completeDrafts();createVisible.value=false;editingPlan.value=null;await loadData()}catch(e:any){errorMessage.value=e.message;showBusinessFormError(e.message)}finally{saving.value=false}return}
+
   const order = selectedOrder.value
   if (!order?.id) {
     errorMessage.value = '请先选择来源订单'
@@ -332,6 +348,9 @@ function normalizeOrderStatus(status?: number) {
 }
 
 /** 显示计划阶段的统一颜色。 */
+const flowStages:PlanStage[]=['UNKNOWN','PLANNED','ISSUED','ACCEPTED','COMPLETED']
+const currentFlowStage=computed(()=>selectedPlan.value?derivePlanStage(selectedPlan.value):'UNKNOWN')
+const visibleFlowStages=computed(()=>currentFlowStage.value==='UNKNOWN'?flowStages.slice(0,1):flowStages)
 function stageClass(stage: PlanStage) {
   if (stage === 'COMPLETED') return 'tag-green'
   if (stage === 'ACCEPTED') return 'tag-blue'
@@ -452,7 +471,8 @@ const completeDrafts=useFormDrafts({createVisible:{open:createVisible,fields:{cr
         <p v-if="errorMessage" class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage }}</p>
 
         <div class="overflow-x-auto">
-          <table class="data-table min-w-[1080px]">
+          <table class="data-table plan-table">
+            <colgroup><col style="width:14%"><col style="width:20%"><col style="width:13%"><col style="width:6%"><col style="width:6%"><col style="width:16%"><col style="width:9%"><col style="width:16%"></colgroup>
             <thead>
               <tr>
                 <th>计划编号</th>
@@ -475,9 +495,14 @@ const completeDrafts=useFormDrafts({createVisible:{open:createVisible,fields:{cr
                 <td>{{ formatDate(plan.startDate) }} 至 {{ formatDate(plan.endDate) }}</td>
                 <td><span :class="stageClass(derivePlanStage(plan))">{{ stageText[derivePlanStage(plan)] }}</span></td>
                 <td>
+                  <div class="plan-actions inline-flex items-center whitespace-nowrap flex-nowrap">
                   <button class="link-btn" @click="openDetail(plan)">
-                    <Eye class="mr-1 inline h-4 w-4" />查看流程
+                    <Eye class="mr-1 inline h-4 w-4" />查看
                   </button>
+                  <button v-if="canGenerateWork" class="link-btn" @click="editPlan(plan)">修改</button>
+                  <router-link v-if="canGenerateWork&&workOrdersLoaded&&!linkedWork(plan)&&derivePlanStage(plan)!=='COMPLETED'" class="link-btn" :to="{path:'/manufacturing',query:{createFromPlan:plan.id}}">生成生产工单</router-link>
+                  <button v-else-if="canGenerateWork" disabled class="text-xs text-gray-400" :title="linkedWork(plan)?'该计划已生成生产工单':'当前计划不可生成工单'">生成生产工单</button>
+                  </div>
                 </td>
               </tr>
               <tr v-if="loading"><td colspan="8" class="empty-cell">正在加载生产计划…</td></tr>
@@ -493,7 +518,7 @@ const completeDrafts=useFormDrafts({createVisible:{open:createVisible,fields:{cr
         <div class="mb-6 flex items-start justify-between">
           <div>
             <p class="text-sm text-gray-500">从订单创建</p>
-            <h2 class="mt-1 text-xl font-bold text-gray-900">新增生产计划</h2>
+            <h2 class="mt-1 text-xl font-bold text-gray-900">{{editingPlan?'修改生产计划':'新增生产计划'}}</h2>
           </div>
           <button class="icon-btn" aria-label="关闭新增生产计划" @click="createVisible = false"><X class="h-5 w-5" /></button>
         </div>
@@ -501,8 +526,8 @@ const completeDrafts=useFormDrafts({createVisible:{open:createVisible,fields:{cr
         <div class="space-y-5">
           <label class="field-label">
             来源订单
-            <select v-model="selectedOrderId" class="input mt-1" @change="handleOrderChange">
-              <option v-for="order in unplannedOrders" :key="order.id" :value="order.id">
+            <select v-model="selectedOrderId" :disabled="!!editingPlan" class="input mt-1" @change="handleOrderChange">
+              <option v-for="order in (editingPlan?orders:unplannedOrders)" :key="order.id" :value="order.id">
                 {{ order.orderNo }}｜{{ displayOrderField(order, 'customerName') }}｜{{ displayOrderField(order, 'productName') }}｜{{ order.quantity ?? 0 }}只
               </option>
             </select>
@@ -564,14 +589,13 @@ const completeDrafts=useFormDrafts({createVisible:{open:createVisible,fields:{cr
         </div>
 
         <div class="mt-6">
-          <h3 class="font-semibold text-gray-800">业务流程</h3>
-          <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
-            <span :class="stageClass('UNKNOWN')">未确定</span><span class="text-gray-300">→</span>
-            <span :class="['PLANNED', 'ISSUED', 'ACCEPTED', 'COMPLETED'].includes(derivePlanStage(selectedPlan)) ? 'tag-green' : 'tag-gray'">已制定计划</span><span class="text-gray-300">→</span>
-            <span :class="['ISSUED', 'ACCEPTED', 'COMPLETED'].includes(derivePlanStage(selectedPlan)) ? 'tag-green' : 'tag-gray'">任务已下达</span><span class="text-gray-300">→</span>
-            <span :class="['ACCEPTED', 'COMPLETED'].includes(derivePlanStage(selectedPlan)) ? 'tag-green' : 'tag-gray'">任务已被接收</span><span class="text-gray-300">→</span>
-            <span :class="derivePlanStage(selectedPlan) === 'COMPLETED' ? 'tag-green' : 'tag-gray'">已完成</span>
-          </div>
+          <h3 class="font-semibold text-gray-800">计划状态</h3>
+          <ol class="plan-flow mt-3 flex flex-wrap items-center gap-2 text-sm" aria-label="计划业务进度">
+            <li v-for="(stage,index) in visibleFlowStages" :key="stage" class="inline-flex items-center gap-2">
+              <span v-if="index" aria-hidden="true" :class="['flow-arrow',{'reached':flowStages.indexOf(stage)<=flowStages.indexOf(currentFlowStage)}]">→</span>
+              <span class="flow-stage" :class="{reached:flowStages.indexOf(stage)<=flowStages.indexOf(currentFlowStage),current:stage===currentFlowStage}" :aria-current="stage===currentFlowStage?'step':undefined">{{stageText[stage]}}<span class="sr-only">{{stage===currentFlowStage?'（当前阶段）':flowStages.indexOf(stage)<flowStages.indexOf(currentFlowStage)?'（已经过）':'（未到达）'}}</span></span>
+            </li>
+          </ol>
         </div>
 
         <div class="mt-6">
@@ -596,3 +620,14 @@ const completeDrafts=useFormDrafts({createVisible:{open:createVisible,fields:{cr
     </div>
   </MainLayout>
 </template>
+
+<style scoped>
+.plan-table{width:100%;table-layout:fixed;min-width:0}
+.plan-table th,.plan-table td{padding-left:8px;padding-right:8px;white-space:normal;overflow-wrap:anywhere;font-size:12px}
+.plan-table th{font-size:11px}
+.plan-actions{gap:8px;max-width:100%}
+.plan-actions :is(button,a){font-size:11px;white-space:nowrap;flex-shrink:0}
+.plan-actions svg{width:12px;height:12px;margin-right:2px}
+@media(max-width:1100px){.plan-table th,.plan-table td{padding-left:4px;padding-right:4px;font-size:11px}.plan-actions{gap:5px}.plan-actions :is(button,a){font-size:10px}.plan-actions svg{display:none}}
+.plan-flow .flow-stage{display:inline-flex;align-items:center;padding:5px 10px;border:1px solid #e6e2db;border-radius:6px;background:#f2f0ec;color:#b1aaa0;font-size:12px;line-height:1.5}.plan-flow .flow-stage.reached{background:#e9dfce;border-color:#dac8ac;color:#80633e}.plan-flow .flow-stage.current{background:#80633e;border-color:#80633e;color:#fffdf8;font-weight:600}.plan-flow .flow-arrow{color:#d5d0c7}.plan-flow .flow-arrow.reached{color:#a18761}
+</style>

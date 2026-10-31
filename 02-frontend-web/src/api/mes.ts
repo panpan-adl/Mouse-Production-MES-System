@@ -25,6 +25,7 @@ export interface Order {
   totalAmount?: number
   orderDate?: string
   deliveryDate?: string
+  hasProductionPlan?: boolean
   orderStatus?: number
   priority?: number
   remark?: string

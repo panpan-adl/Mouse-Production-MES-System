@@ -15,7 +15,7 @@ export function canVisit(role: number, path: string): boolean {
   if(path === '/intelligence')return [1,2,4,5,6,7,10].includes(role)
   if(path === '/automation')return [1,2,4,6,8].includes(role)
   if (path.startsWith('/foundation')) return true
-  if (path === '/manufacturing') return [1, 2, 3, 4].includes(role)
+  if (path === '/manufacturing') return [1, 2, 3, 4, 5].includes(role)
   if (path === '/fulfillment') return [1, 2, 3, 4, 5, 6, 7, 8, 10].includes(role)
   if (role === 3 && path.startsWith('/production/')) return ['/production/task', '/production/equipment-status'].includes(path)
   const domains: Record<string, number[]> = {

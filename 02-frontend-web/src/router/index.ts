@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import { canVisit } from '@/utils/permissions'
 
 const routes: RouteRecordRaw[] = [
+  {path:'/production/work-orders',redirect:to=>({path:'/manufacturing',query:to.query}),meta:{requiresAuth:true}},
   {path:'/production/schedules',component:()=>import('@/views/production/SchedulePlanning.vue'),meta:{requiresAuth:true}},
   ...[
     {path:'/purchase/receipts',title:'采购收货',mesTab:'documents',documentKind:'PURCHASE_RECEIPT',description:'选择已审批采购单，登记实际到货批次，逐批检验放行后确认过账。'},
@@ -12,7 +13,6 @@ const routes: RouteRecordRaw[] = [
     {path:'/inventory/production-return',title:'生产退料',mesTab:'documents',documentKind:'LINE_RETURN',description:'将指定工单线边库中的剩余物料退回仓库，保留批次与库存流水。'},
     {path:'/inventory/product-receipts',title:'产成品入库',mesTab:'documents',documentKind:'PRODUCTION_RECEIPT',description:'将已完成检验放行的工单产出转入成品仓库，之后可装箱与发货。'},
     {path:'/inventory/packages',title:'装箱管理',mesTab:'packages',description:'新建包装箱、装入成品或关联子箱，确认装箱并生成追溯二维码。'},
-    {path:'/production/work-orders',title:'生产工单',mesTab:'work-orders',description:'创建订单或备货工单，选择产品、BOM、工艺路线及负责人后下达。'},
   ].map(module=>({path:module.path,component:()=>import('@/views/foundation/MesOperations.vue'),meta:{requiresAuth:true,...module}})),
   {path:'/mes',redirect:to=>({path:'/dashboard',query:{...to.query,view:'operations'}}),meta:{requiresAuth:true}},
   {path:'/intelligence',redirect:'/assistant'},
@@ -110,7 +110,7 @@ const routes: RouteRecordRaw[] = [
     path: '/inventory/in',
     name: 'InventoryIn',
     component: () => import('@/views/foundation/MesOperations.vue'),
-    meta: { requiresAuth: true, title: '入库单据', mesTab: 'documents', documentKinds: ['PURCHASE_RECEIPT','LINE_RETURN','PRODUCTION_RECEIPT'], description: '汇总采购收货、生产退料与产成品入库，按业务类型筛选和办理。' },
+    meta: { requiresAuth: true, title: '入库单据', mesTab: 'documents', documentKinds: ['LINE_RETURN','PRODUCTION_RECEIPT'], description: '汇总生产退料与产成品入库，按业务类型筛选和办理。' },
   },
   {
     path: '/inventory/out',
@@ -121,19 +121,19 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/inventory/material-requests',
     name: 'InventoryMaterialRequests',
-    component: () => import('@/views/inventory/MaterialRequest.vue'),
+    component: () => import('@/views/purchase/PurchaseWorkspace.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/purchase/requests',
     name: 'PurchaseRequests',
-    component: () => import('@/views/purchase/PurchaseRequest.vue'),
+    component: () => import('@/views/purchase/PurchaseWorkspace.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/purchase/order',
     name: 'PurchaseOrder',
-    component: () => import('@/views/purchase/PurchaseOrder.vue'),
+    component: () => import('@/views/purchase/PurchaseWorkspace.vue'),
     meta: { requiresAuth: true },
   },
   {

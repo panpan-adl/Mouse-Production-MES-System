@@ -1,18 +1,32 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { canVisit } from '@/utils/permissions'
 import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-vue-next'
 import type { DashboardData } from '@/mock/dashboard'
 const props = defineProps<{ data: DashboardData; activeNode: string }>()
 const emit = defineEmits<{ select: [key: string] }>()
 const zoom = ref(1)
+const router=useRouter(),auth=useAuthStore()
+const destinations:Record<string,{path:string;label:string}>={
+  raw:{path:'/inventory/warehouse',label:'仓库管理 · 仓库库存'},
+  electronic:{path:'/production/task',label:'生产管理 · 生产任务'},
+  assembly:{path:'/production/work-orders',label:'生产管理 · 生产工单'},
+  quality:{path:'/quality/check',label:'质量管理 · 质检记录'},
+  pack:{path:'/inventory/packages',label:'仓库管理 · 装箱管理'},
+  finished:{path:'/inventory/product-receipts',label:'仓库管理 · 产成品入库'},
+}
+function canOpenZone(id:string){const target=destinations[id];return !!target&&canVisit(Number(auth.effectiveRoleId),target.path)&&auth.hasMenu(target.path)}
+function zoneHint(id:string){return canOpenZone(id)?`前往${destinations[id].label}`:`${destinations[id].label}（当前岗位无访问权限）`}
 const zones = [
-  { id: 'raw', name: '原料仓储', subtitle: '物料准备', x: 60, y: 60, w: 145, d: 105, color: '#bc9367', node: 'bom', type: 'warehouse' },
-  { id: 'electronic', name: '电子装配', subtitle: 'PCBA / 元件装配', x: 245, y: 45, w: 185, d: 110, color: '#c98d5a', node: 'work', type: 'line' },
-  { id: 'assembly', name: '结构总装', subtitle: '壳体 / 按键 / 滚轮', x: 465, y: 45, w: 180, d: 110, color: '#b27a54', node: 'work', type: 'line' },
-  { id: 'quality', name: '质量检测', subtitle: '功能与外观检验', x: 245, y: 210, w: 185, d: 110, color: '#8c9b7b', node: 'qc', type: 'inspection' },
-  { id: 'pack', name: '贴标包装', subtitle: '包装 / 赋码', x: 465, y: 210, w: 180, d: 110, color: '#c2a363', node: 'stock', type: 'line' },
-  { id: 'finished', name: '成品仓储', subtitle: '入库与交付', x: 685, y: 145, w: 120, d: 140, color: '#a08f72', node: 'stock', type: 'warehouse' },
-]
+  { id: 'raw', x: 60, y: 60, w: 145, d: 105, color: '#bc9367', node: 'bom', type: 'warehouse' },
+  { id: 'electronic', x: 245, y: 45, w: 185, d: 110, color: '#c98d5a', node: 'work', type: 'line' },
+  { id: 'assembly', x: 465, y: 45, w: 180, d: 110, color: '#b27a54', node: 'work', type: 'line' },
+  { id: 'quality', x: 245, y: 210, w: 185, d: 110, color: '#8c9b7b', node: 'qc', type: 'inspection' },
+  { id: 'pack', x: 465, y: 210, w: 180, d: 110, color: '#c2a363', node: 'stock', type: 'line' },
+  { id: 'finished', x: 685, y: 145, w: 120, d: 140, color: '#a08f72', node: 'stock', type: 'warehouse' },
+].map(zone=>({...zone,name:destinations[zone.id].label.split(' · ')[1],subtitle:destinations[zone.id].label.split(' · ')[0]}))
 const selectedZone = ref('')
 watch(()=>props.activeNode,key=>{if(!key)selectedZone.value=''})
 const selected = computed(()=>zones.find(zone=>zone.id===selectedZone.value))
@@ -20,8 +34,7 @@ const nodeInfo = computed(()=>props.data.flowNodes.find(node=>node.key===selecte
 const project = (x:number,y:number,z=0)=>`${450+(x-y)*.72},${100+(x+y)*.36-z}`
 const face = (x:number,y:number,w:number,d:number,z=0)=>[project(x,y,z),project(x+w,y,z),project(x+w,y+d,z),project(x,y+d,z)].join(' ')
 function selectZone(zone:typeof zones[number]){
-  const next=selectedZone.value===zone.id?'':zone.id
-  selectedZone.value=next;emit('select',next?zone.node:'')
+  if(canOpenZone(zone.id))router.push(destinations[zone.id].path)
 }
 const flowPaths = [
   [205,110,245,100], [430,100,465,100], [555,155,555,183],
@@ -34,7 +47,7 @@ const flowPaths = [
     <header><div><span class="scene-kicker">MOUSE MES · FACTORY OVERVIEW</span><h2>鼠标智造 · 车间全景</h2></div><span class="scene-mode"><i></i>业务数据联动</span></header>
     <div class="scene-canvas">
       <div class="scene-watermark">MOUSE<br /><span>SMART FACTORY</span></div>
-      <svg viewBox="180 75 900 480" role="img" aria-label="鼠标工厂三维示意，展示原料仓、电子装配、结构总装、质量检测、包装与成品仓。点击区域筛选业务阶段。">
+      <svg viewBox="180 75 900 480" role="group" aria-label="鼠标工厂业务导航，点击原料仓、装配、检测、包装或成品仓进入对应业务模块。">
         <defs>
           <linearGradient id="factory-floor" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f9f6ed"/><stop offset="1" stop-color="#e9dfcb"/></linearGradient>
           <filter id="factory-shadow" x="-30%" y="-30%" width="170%" height="170%"><feDropShadow dx="0" dy="14" stdDeviation="13" flood-color="#8d7351" flood-opacity=".17"/></filter>
@@ -51,7 +64,8 @@ const flowPaths = [
           <path :d="`M${project(210,180)} L${project(820,180)}`" stroke="#dac9a5" stroke-width="16" opacity=".65" />
           <path :d="`M${project(210,180)} L${project(820,180)}`" stroke="#fff9e9" stroke-width="1" stroke-dasharray="9 8" />
           <path v-for="(p,i) in flowPaths" :key="i" :d="`M${project(p[0],p[1],3)} L${project(p[2],p[3],3)}`" class="material-route" marker-end="url(#factory-arrow)" />
-          <g v-for="zone in zones" :key="zone.id" role="button" tabindex="0" :aria-label="`${zone.name}，点击筛选相关工单`" :aria-pressed="selectedZone===zone.id" class="factory-zone" :class="{selected:selectedZone===zone.id}" @click="selectZone(zone)" @keydown.enter.prevent="selectZone(zone)" @keydown.space.prevent="selectZone(zone)">
+          <g v-for="zone in zones" :key="zone.id" role="link" :tabindex="canOpenZone(zone.id)?0:-1" :aria-label="`${zone.name}，${zoneHint(zone.id)}`" :aria-disabled="!canOpenZone(zone.id)" class="factory-zone" :class="{unavailable:!canOpenZone(zone.id)}" @click="selectZone(zone)" @keydown.enter.prevent="selectZone(zone)" @keydown.space.prevent="selectZone(zone)">
+            <title>{{zoneHint(zone.id)}}</title>
             <polygon :points="face(zone.x-7,zone.y-7,zone.w+14,zone.d+14,1)" :fill="zone.color" fill-opacity=".13" :stroke="zone.color" stroke-width="1" stroke-dasharray="4 3" class="zone-outline" />
             <polygon :points="face(zone.x,zone.y,zone.w,zone.d,4)" fill="#faf7ee" stroke="#d4c5a9" />
             <template v-if="zone.type==='warehouse'">
@@ -78,6 +92,7 @@ const flowPaths = [
           <!-- Labels render after every model so foreground machines cannot cover them. -->
           <g class="zone-label-layer" aria-hidden="true">
             <g v-for="(zone,index) in zones" :key="zone.id" class="zone-label-card" :transform="`translate(${project(zone.x+zone.w/2,zone.y+zone.d+8,0).replace(',', ' ')})`" @click.stop="selectZone(zone)">
+              <title>{{zoneHint(zone.id)}}</title>
               <rect x="-53" y="0" width="106" height="36" rx="5" fill="#fffdf7" stroke="#e3d8c5" />
               <text text-anchor="middle" y="15" class="zone-label">{{zone.name}}</text><text text-anchor="middle" y="29" class="zone-number">{{String(index+1).padStart(2,'0')}} · {{zone.subtitle}}</text>
             </g>
@@ -90,13 +105,14 @@ const flowPaths = [
     <footer>
       <div v-if="selected"><strong>{{selected.name}}</strong><span>{{nodeInfo?`${nodeInfo.name} · ${nodeInfo.count} 单 · 完成率 ${nodeInfo.completionRate}%`:'暂无对应阶段统计'}}</span><button @click="selectedZone='';emit('select','')">清除筛选 ×</button></div>
       <div v-else><strong>全流程协同</strong><span>原料 → 装配 → 检验 → 包装 → 交付</span></div>
-      <small>车间布局示意 · 点击区域查看阶段工单</small>
+      <small>车间布局示意 · 点击区域或名称进入对应业务模块</small>
     </footer>
   </section>
 </template>
 
 <style scoped>
 .zone-label-card{cursor:pointer}.zone-label-card:hover rect{stroke:#b78a55;fill:#fff8e9}
+.factory-zone.unavailable{cursor:not-allowed;opacity:.65}
 .factory-scene{background:linear-gradient(145deg,#fffefb,#f6f0e4);border:1px solid #e5dac8;border-radius:16px;overflow:hidden;min-width:0;display:flex;flex-direction:column}
 header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:23px 24px 0;z-index:1}.scene-kicker{font-size:9px;letter-spacing:.18em;color:#b39b7d}h2{font-size:19px;letter-spacing:.025em;font-weight:600;color:#554735;margin-top:7px}.scene-mode{font-size:10px;color:#8e866f;display:flex;align-items:center;gap:6px;white-space:nowrap}.scene-mode i{width:5px;height:5px;background:#8b9b79;border-radius:50%}
 .scene-canvas{position:relative;flex:1;min-height:320px;display:flex;align-items:center;overflow:hidden}.scene-canvas>svg{width:100%;position:relative;z-index:1;min-height:300px}.scene-watermark{position:absolute;top:20px;left:24px;color:#e9dfcc;font-size:50px;line-height:.8;font-weight:700;letter-spacing:-.05em}.scene-watermark span{font-size:10px;letter-spacing:.3em;font-weight:400}

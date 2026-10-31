@@ -2,13 +2,13 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mouse.mes.mapper.OrderMapper">
     <select id="findAll" resultType="com.mouse.mes.entity.Order">
-        SELECT * FROM t_order WHERE deleted = 0 ORDER BY create_time DESC
+        SELECT t_order.*, EXISTS(SELECT 1 FROM t_production_plan p WHERE p.order_id=t_order.id) AS has_production_plan FROM t_order WHERE deleted = 0 ORDER BY create_time DESC
     </select>
     <select id="findById" parameterType="Long" resultType="com.mouse.mes.entity.Order">
-        SELECT * FROM t_order WHERE id = #{id} AND deleted = 0
+        SELECT t_order.*, EXISTS(SELECT 1 FROM t_production_plan p WHERE p.order_id=t_order.id) AS has_production_plan FROM t_order WHERE id = #{id} AND deleted = 0
     </select>
     <select id="findByOrderNo" parameterType="String" resultType="com.mouse.mes.entity.Order">
-        SELECT * FROM t_order WHERE order_no = #{orderNo} AND deleted = 0
+        SELECT t_order.*, EXISTS(SELECT 1 FROM t_production_plan p WHERE p.order_id=t_order.id) AS has_production_plan FROM t_order WHERE order_no = #{orderNo} AND deleted = 0
     </select>
     <insert id="insert" parameterType="com.mouse.mes.entity.Order">
         <selectKey keyProperty="id" order="AFTER" resultType="Long">
@@ -39,7 +39,7 @@
         UPDATE t_order SET deleted = 1 WHERE id = #{id}
     </delete>
     <select id="findByStatus" parameterType="Integer" resultType="com.mouse.mes.entity.Order">
-        SELECT * FROM t_order WHERE order_status = #{status} AND deleted = 0 ORDER BY create_time DESC
+        SELECT t_order.*, EXISTS(SELECT 1 FROM t_production_plan p WHERE p.order_id=t_order.id) AS has_production_plan FROM t_order WHERE order_status = #{status} AND deleted = 0 ORDER BY create_time DESC
     </select>
     <update id="updateStatus" parameterType="map">
         UPDATE t_order SET order_status = #{status}, update_time = #{updateTime} WHERE id = #{id} AND deleted = 0

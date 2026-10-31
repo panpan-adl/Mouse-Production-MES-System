@@ -3,7 +3,7 @@ import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
-import { Edit, Eye, Plus, RefreshCw, Search, X } from 'lucide-vue-next'
+import { Check, CircleX, Edit, Eye, Plus, RefreshCw, Search, X } from 'lucide-vue-next'
 import { customerApi, orderApi, type Customer, type Order } from '@/api/mes'
 import { useAuthStore } from '@/stores/auth'
 
@@ -13,6 +13,7 @@ const loading = ref(false)
 const customerLoading = ref(false)
 const detailLoading = ref(false)
 const saving = ref(false)
+const actionOrderId = ref<number | null>(null)
 const message = ref('')
 const orders = ref<Order[]>([])
 const customers = ref<Customer[]>([])
@@ -43,7 +44,7 @@ const form = reactive({
 
 const statusText: Record<number, string> = {
   [-1]: '未确定',
-  0: '未确定',
+  0: '待确认',
   1: '已确认',
   2: '生产中',
   3: '已完成',
@@ -170,6 +171,10 @@ function openCreate() {
 
 async function openEdit(order: Order) {
   if (!order.id) return
+  if (orderLockReason(order)) {
+    message.value = orderLockReason(order)
+    return
+  }
   if (customers.value.length === 0) {
     await loadCustomers()
   }
@@ -195,6 +200,33 @@ async function openEdit(order: Order) {
     remark: displayOrderField(order, 'remark') === '-' ? '' : displayOrderField(order, 'remark'),
   })
   formVisible.value = true
+  detailVisible.value = false
+}
+
+function orderLockReason(order: Order) {
+  if (![0, 1].includes(normalizeOrderStatus(order.orderStatus))) return '当前状态不可修改或取消'
+  if (order.hasProductionPlan === undefined) return '订单操作权限尚未加载，请刷新后重试'
+  if (order.hasProductionPlan) return '已制定生产计划，不可修改或取消'
+  return ''
+}
+
+async function changeOrderStatus(order: Order, action: 'confirm' | 'cancel') {
+  if (!order.id || actionOrderId.value !== null) return
+  if (action === 'confirm' && normalizeOrderStatus(order.orderStatus) !== 0) return
+  if (action === 'cancel' && orderLockReason(order)) return
+  const label = action === 'confirm' ? '确认' : '取消'
+  if (!window.confirm(`确定${label}订单“${order.orderNo}”吗？`)) return
+  actionOrderId.value = order.id
+  try {
+    const updated = await orderApi[action](order.id)
+    if (selectedOrder.value?.id === order.id) selectedOrder.value = updated
+    await loadOrders()
+    message.value = action === 'confirm' ? '订单已确认，可进入生产计划安排' : '订单已取消'
+  } catch (error: any) {
+    message.value = error.message || `订单${label}失败`
+  } finally {
+    actionOrderId.value = null
+  }
 }
 
 function resetForm() {
@@ -478,14 +510,18 @@ const completeDrafts=useFormDrafts({formVisible:{open:formVisible,fields:{form},
                   <span :class="statusClass(item.orderStatus)">{{ orderStatusLabel(item.orderStatus) }}</span>
                 </td>
                 <td class="text-right whitespace-nowrap">
-                  <button class="link-btn inline-flex items-center gap-1" @click="openDetail(item)">
+                  <div class="order-actions">
+                  <button class="order-action" @click="openDetail(item)">
                     <Eye class="h-4 w-4" />
                     查看
                   </button>
-                  <button class="link-btn ml-3 inline-flex items-center gap-1" @click="openEdit(item)">
+                  <button v-if="!orderLockReason(item)" class="order-action" :disabled="actionOrderId !== null" @click="openEdit(item)">
                     <Edit class="h-4 w-4" />
                     修改
                   </button>
+                  <button v-if="!orderLockReason(item) && normalizeOrderStatus(item.orderStatus) === 0" class="order-action order-action-confirm" :disabled="actionOrderId !== null" @click="changeOrderStatus(item, 'confirm')"><Check class="h-4 w-4" />确认</button>
+                  <button v-if="!orderLockReason(item)" class="order-action order-action-cancel" :disabled="actionOrderId !== null" @click="changeOrderStatus(item, 'cancel')"><CircleX class="h-4 w-4" />取消</button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -691,7 +727,9 @@ const completeDrafts=useFormDrafts({formVisible:{open:formVisible,fields:{form},
           </template>
 
           <div class="mt-6 flex justify-end gap-3">
-            <button class="btn-primary" @click="openEdit(selectedOrder); detailVisible = false">修改订单</button>
+            <button v-if="!orderLockReason(selectedOrder) && normalizeOrderStatus(selectedOrder.orderStatus) === 0" class="btn-primary" :disabled="actionOrderId !== null" @click="changeOrderStatus(selectedOrder, 'confirm')">确认订单</button>
+            <button v-if="!orderLockReason(selectedOrder)" class="btn-secondary disabled:opacity-40" :disabled="actionOrderId !== null" @click="changeOrderStatus(selectedOrder, 'cancel')">取消订单</button>
+            <button v-if="!orderLockReason(selectedOrder)" class="btn-primary disabled:opacity-40" :disabled="actionOrderId !== null" @click="openEdit(selectedOrder)">修改订单</button>
             <button class="btn-secondary" @click="detailVisible = false">关闭</button>
           </div>
         </section>
@@ -699,3 +737,41 @@ const completeDrafts=useFormDrafts({formVisible:{open:formVisible,fields:{form},
     </div>
   </MainLayout>
 </template>
+
+<style scoped>
+.order-actions {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  white-space: nowrap;
+}
+.order-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 3px;
+  height: 26px;
+  min-height: 0;
+  padding: 0 6px;
+  border: 1px solid #e8e1d7;
+  border-radius: 5px;
+  background: #fcfaf7;
+  color: #927650;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.order-action:hover:not(:disabled) { background: #f2ece2; border-color: #d6c7b0; color: #705637; }
+.order-action-confirm { background: #f3f7f2; border-color: #dfe8db; color: #678064; }
+.order-action-confirm:hover:not(:disabled) { background: #e8f0e5; border-color: #b9ceb2; color: #486544; }
+.order-action-cancel { background: #fdf7f5; border-color: #eee0db; color: #b18578; }
+.order-action-cancel:hover:not(:disabled) { background: #f8ebe6; border-color: #dfc3b9; color: #975f4e; }
+.order-action:focus-visible { outline: 2px solid #b79a70; outline-offset: 3px; }
+.order-action:disabled { opacity: .45; cursor: not-allowed; }
+.order-action svg { width: 13px; height: 13px; flex-shrink: 0; }
+</style>

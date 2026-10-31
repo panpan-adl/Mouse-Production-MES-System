@@ -22,20 +22,21 @@ public class FoundationController {
     @GetMapping("/catalog") public Object catalog(){return JsonResult.success(service.catalog());}
     @GetMapping("/plans") public Object plans(){return JsonResult.success(service.plans());}
     @GetMapping("/work-orders") public Object workOrders(){return JsonResult.success(service.workOrders());}
-    @GetMapping("/work-orders/{id}/tasks") public Object tasks(@PathVariable long id){return JsonResult.success(service.workTasks(id));}
+    @GetMapping("/work-orders/{id}/tasks") public Object tasks(@PathVariable("id") long id){return JsonResult.success(service.workTasks(id));}
     @PostMapping("/work-orders") public Object create(@RequestBody Map<String,Object> body,HttpServletRequest req)throws Exception{allow(req,List.of(1,2));return JsonResult.success(service.createWorkOrder(body,actor(req)));}
-    @GetMapping("/bom/{id}/expand") public Object expand(@PathVariable long id,@RequestParam(defaultValue="1") BigDecimal quantity){return JsonResult.success(service.expand(id,quantity));}
+    @PutMapping("/work-orders/{id}") public Object updateWork(@PathVariable("id") long id,@RequestBody Map<String,Object> body,HttpServletRequest req){allow(req,List.of(1,2));service.updateWorkStatus(id,String.valueOf(body.get("status")));return JsonResult.success();}
+    @GetMapping("/bom/{id}/expand") public Object expand(@PathVariable("id") long id,@RequestParam(name="quantity",defaultValue="1") BigDecimal quantity){return JsonResult.success(service.expand(id,quantity));}
     @GetMapping("/inspections") public Object inspections(){return JsonResult.success(service.inspections());}
     @PostMapping("/inspections") public Object inspect(@RequestBody Map<String,Object> body,HttpServletRequest req)throws Exception{allow(req,List.of(4));return JsonResult.success(service.inspect(body,actor(req)));}
-    @GetMapping("/{key}") public Object list(@PathVariable String key,HttpServletRequest req){
+    @GetMapping("/{key}") public Object list(@PathVariable("key") String key,HttpServletRequest req){
         var rows=service.list(key);
         if(key.equals("products")&&!Set.of(1L,7L,9L,10L).contains(user(req).getRoleId()))
             rows.forEach(row->{row.remove("cost_price");row.remove("selling_price");});
         return JsonResult.success(rows);
     }
-    @PostMapping("/{key}") public Object save(@PathVariable String key,@RequestBody Map<String,Object> body,HttpServletRequest req){allow(req,service.definition(key).roles());return JsonResult.success(service.save(key,null,body,actor(req)));}
-    @PutMapping("/{key}/{id}") public Object update(@PathVariable String key,@PathVariable long id,@RequestBody Map<String,Object> body,HttpServletRequest req){allow(req,service.definition(key).roles());return JsonResult.success(service.save(key,id,body,actor(req)));}
-    @DeleteMapping("/{key}/{id}") public Object delete(@PathVariable String key,@PathVariable long id,HttpServletRequest req){allow(req,service.definition(key).roles());service.delete(key,id,actor(req));return JsonResult.success();}
+    @PostMapping("/{key}") public Object save(@PathVariable("key") String key,@RequestBody Map<String,Object> body,HttpServletRequest req){allow(req,service.definition(key).roles());return JsonResult.success(service.save(key,null,body,actor(req)));}
+    @PutMapping("/{key}/{id}") public Object update(@PathVariable("key") String key,@PathVariable("id") long id,@RequestBody Map<String,Object> body,HttpServletRequest req){allow(req,service.definition(key).roles());return JsonResult.success(service.save(key,id,body,actor(req)));}
+    @DeleteMapping("/{key}/{id}") public Object delete(@PathVariable("key") String key,@PathVariable("id") long id,HttpServletRequest req){allow(req,service.definition(key).roles());service.delete(key,id,actor(req));return JsonResult.success();}
     @ExceptionHandler(SecurityException.class) @ResponseStatus(org.springframework.http.HttpStatus.FORBIDDEN)
     public Object denied(SecurityException error){return JsonResult.error(403,error.getMessage());}
     @ExceptionHandler({IllegalArgumentException.class,ArithmeticException.class,java.time.DateTimeException.class,NoSuchElementException.class,DataAccessException.class})

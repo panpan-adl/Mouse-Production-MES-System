@@ -197,7 +197,7 @@ function getErrorMessage(error: unknown) {
                 <th>任务数量</th>
                 <th>操作工</th>
                 <th>状态</th>
-                <th class="text-right">操作</th>
+                <th class="quality-action-column"><span class="quality-action-heading">操作</span></th>
               </tr>
             </thead>
             <tbody>
@@ -214,8 +214,8 @@ function getErrorMessage(error: unknown) {
                 <td>{{ task.quantity || 0 }}</td>
                 <td>{{ task.assignedUserName || '-' }}</td>
                 <td><span class="tag-yellow">待质检</span></td>
-                <td class="text-right">
-                  <button class="link-btn inline-flex items-center gap-1" @click="goQualityCheck(task)">
+                <td class="quality-action-column">
+                  <button class="link-btn quality-action-button" @click="goQualityCheck(task)">
                     <ClipboardCheck class="h-4 w-4" />
                     登记质检
                   </button>
@@ -245,7 +245,7 @@ function getErrorMessage(error: unknown) {
                 <th>不合格数量</th>
                 <th>结果</th>
                 <th>处理方式</th>
-                <th class="text-right">操作</th>
+                <th class="quality-action-column"><span class="quality-action-heading">操作</span></th>
               </tr>
             </thead>
             <tbody>
@@ -262,8 +262,8 @@ function getErrorMessage(error: unknown) {
                 <td class="font-semibold text-red-600">{{ item.defectiveQuantity || 0 }}</td>
                 <td><span :class="resultClass(item.result)">{{ resultText(item.result) }}</span></td>
                 <td>{{ item.handleMethod || '-' }}</td>
-                <td class="text-right">
-                  <button class="link-btn inline-flex items-center gap-1" @click="goInspectionRecord(item)">
+                <td class="quality-action-column">
+                  <button class="link-btn quality-action-button" @click="goInspectionRecord(item)">
                     <CheckCircle class="h-4 w-4" />
                     查看/处理
                   </button>
@@ -276,3 +276,30 @@ function getErrorMessage(error: unknown) {
     </div>
   </MainLayout>
 </template>
+
+<style scoped>
+.data-table th.quality-action-column,
+.data-table td.quality-action-column {
+  width: 144px;
+  min-width: 144px;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.quality-action-heading {
+  display: inline-block;
+  width: 112px;
+  text-align: center;
+}
+.quality-action-button {
+  display: inline-flex;
+  width: 112px;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.quality-action-button svg { flex-shrink: 0; }
+</style>

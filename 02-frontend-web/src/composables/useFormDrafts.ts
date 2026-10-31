@@ -9,7 +9,7 @@ const prefix = 'mousemes:form-draft:v1:'
 function snapshot(value: unknown): any {
   return JSON.parse(JSON.stringify(value, (key, item) => /password|token|secret/i.test(key) ? undefined : item))
 }
-export function useFormDrafts(dialogs: Record<string, DraftDialog>) {
+export function useFormDrafts(dialogs: Record<string, DraftDialog>, draftPath?: string) {
   const route = useRoute(), auth = useAuthStore()
   const active = new Map<string, string>()
   let restoring = false
@@ -26,7 +26,7 @@ export function useFormDrafts(dialogs: Record<string, DraftDialog>) {
   for (const [name, dialog] of Object.entries(dialogs)) {
     watch(dialog.open, async (open) => {
       if (!open) { persist(name); active.delete(name); return }
-      const key = prefix + [auth.currentUser?.id || 'anonymous', route.path, name, typeof open === 'string' ? open : '', dialog.record?.() || 'new'].join(':')
+      const key = prefix + [auth.currentUser?.id || 'anonymous', draftPath || route.path, name, typeof open === 'string' ? open : '', dialog.record?.() || 'new'].join(':')
       active.set(name, key)
       const draft = storage.read(key)
       if (!draft?.values) return

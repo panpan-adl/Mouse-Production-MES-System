@@ -9,6 +9,7 @@ const route = useRoute()
 const auth = useAuthStore()
 const groups = {
   orders: { title: '采购申请与订单', description: '承接物料缺口，核对需求后向供应商下单。', tabs: [
+    { path: '/inventory/material-requests', label: '物料需求' },
     { path: '/purchase/requests', label: '采购需求' },
     { path: '/purchase/order', label: '采购订单' },
   ] },

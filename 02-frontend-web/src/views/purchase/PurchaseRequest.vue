@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
+const props = defineProps<{ embedded?: boolean }>()
+const emit = defineEmits<{ progressed: [stage: 'requests' | 'orders', id: number] }>()
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { canVisit } from '@/utils/permissions'
 import MainLayout from '@/components/MainLayout.vue'
+import TablePagination from '@/components/TablePagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import PurchaseNavigation from '@/components/PurchaseNavigation.vue'
 import { FilePlus2, RefreshCw, Search, X } from 'lucide-vue-next'
 import {
@@ -18,7 +22,7 @@ import { useAuthStore } from '@/stores/auth'
 type RequestStatus = '' | 'PENDING_CHECK' | 'ENOUGH' | 'SHORTAGE' | 'PURCHASE_REQUESTED' | 'PURCHASE_ORDERED'
 
 const authStore = useAuthStore()
-const route = useRoute(), router = useRouter()
+const router = useRouter()
 const canOpenRequests = computed(() => canVisit(Number(authStore.effectiveRoleId), '/inventory/material-requests') && authStore.hasMenu('/inventory/material-requests'))
 const canSend = computed(() => [1,2,3,5,9].includes(Number(authStore.effectiveRoleId)))
 const canOrder = computed(() => [6,9].includes(Number(authStore.effectiveRoleId)))
@@ -50,16 +54,17 @@ const filteredRequests = computed(() => {
       item.productName?.toLowerCase().includes(word) ||
       item.materialCode?.toLowerCase().includes(word) ||
       item.materialName?.toLowerCase().includes(word)
-    return matchStatus && matchKeyword
+    return matchStatus && matchKeyword && (!props.embedded || ['PURCHASE_REQUESTED','PURCHASE_ORDERED'].includes(item.requestStatus || ''))
   })
 })
+const { page, pageSize, total, items: pageItems } = usePagination(filteredRequests)
+
 
 const pendingPurchaseCount = computed(() => requests.value.filter((item) => item.requestStatus === 'PURCHASE_REQUESTED').length)
 const orderedCount = computed(() => requests.value.filter((item) => item.requestStatus === 'PURCHASE_ORDERED').length)
 const unsentCount = computed(() => requests.value.filter(item => item.requestStatus === 'SHORTAGE').length)
 
 onMounted(async () => {
-  if (route.query.requestId) keyword.value = String(route.query.requestNo || '')
   await Promise.all([loadRequests(), loadSuppliers()])
 })
 
@@ -152,7 +157,8 @@ async function createPurchaseOrder() {
     })
     message.value = `已根据 ${currentRequest.value.requestNo} 生成采购订单，需求状态已更新为“已转采购单”。`
     completeDrafts();showOrderForm.value = false
-    await router.push({ path: '/purchase/order', query: { orderId: created.id, fromRequest: currentRequest.value.id } })
+    if (props.embedded) emit('progressed', 'orders', Number(created.id))
+    else await router.push({ path: '/purchase/order', query: { orderId: created.id, fromRequest: currentRequest.value.id } })
   } catch (error: any) {
     message.value = error.message || '生成采购订单失败'
   } finally {
@@ -179,17 +185,18 @@ function formatMoney(value?: number) {
   return `¥${Number(value || 0).toFixed(2)}`
 }
 
-const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{orderForm},record:()=>currentRequest.value?.id}})
+async function focusRequest(id: number) { await loadRequests(); keyword.value = ''; statusFilter.value = ''; const index = filteredRequests.value.findIndex(r => r.id === id); page.value = index < 0 ? 1 : Math.floor(index / pageSize.value) + 1 }
+defineExpose({ refresh: loadRequests, focus: focusRequest })
+const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{orderForm},record:()=>currentRequest.value?.id}}, '/purchase/requests')
 </script>
 
 <template>
-  <MainLayout>
-    <PurchaseNavigation group="orders" />
+  <component :is="props.embedded ? 'div' : MainLayout">
+    <PurchaseNavigation v-if="!props.embedded" group="orders" />
     <div class="space-y-6 animate-fadeIn">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-bold text-gray-900">采购需求</h1>
-          <p class="text-gray-500 mt-1">这里接收仓管员发送的缺料请求；采购员确认供应商后生成采购订单。</p>
         </div>
         <button class="btn-secondary" @click="loadRequests">
           <RefreshCw class="w-4 h-4" />
@@ -197,12 +204,12 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
         </button>
       </div>
 
-      <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900 space-y-2">
+      <div v-if="!props.embedded" class="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900 space-y-2">
         <p>业务流程：登记物料请求 → 仓库核对缺口并发送采购 → 采购员选择供应商生成订单 → 审批 → 收货检验与入库。</p>
         <router-link v-if="canOpenRequests" class="link-btn" to="/inventory/material-requests">去登记／处理物料请求</router-link>
         <p v-else>采购需求由生产或仓库岗位提交；尚未发送的缺料请求也在下方显示，供跟进处理。</p>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 gap-4" :class="props.embedded ? 'md:grid-cols-2' : 'md:grid-cols-3'">
         <button class="stat-card text-left" @click="statusFilter = 'PURCHASE_REQUESTED'">
           <p class="stat-label">待采购下单</p>
           <p class="stat-value text-blue-600">{{ pendingPurchaseCount }}</p>
@@ -211,7 +218,7 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
           <p class="stat-label">已转采购单</p>
           <p class="stat-value text-gray-700">{{ orderedCount }}</p>
         </button>
-        <button class="stat-card text-left" @click="statusFilter = 'SHORTAGE'">
+        <button v-if="!props.embedded" class="stat-card text-left" @click="statusFilter = 'SHORTAGE'">
           <p class="stat-label">待发送缺料请求</p>
           <p class="stat-value text-red-600">{{ unsentCount }}</p>
         </button>
@@ -228,21 +235,24 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
               <option value="">全部状态</option>
               <option value="PURCHASE_REQUESTED">待采购下单</option>
               <option value="PURCHASE_ORDERED">已转采购单</option>
-              <option value="SHORTAGE">库存不足未发送</option>
-              <option value="ENOUGH">库存充足</option>
+              <option v-if="!props.embedded" value="SHORTAGE">库存不足未发送</option>
+              <option v-if="!props.embedded" value="ENOUGH">库存充足</option>
             </select>
             <button class="btn-primary w-full" @click="loadRequests"><Search class="w-4 h-4" />查询</button>
             <button class="btn-secondary w-full" @click="loadRequests"><RefreshCw class="w-4 h-4" />刷新</button>
           </div>
         </div>
 
+        <div v-if="keyword || statusFilter" class="mb-4 flex items-center gap-3 text-sm text-gray-500">
+          <span>当前筛选显示 {{ total }} 条，共 {{ requests.filter(r => !props.embedded || ['PURCHASE_REQUESTED','PURCHASE_ORDERED'].includes(r.requestStatus || '')).length }} 条采购需求</span>
+          <button type="button" class="link-btn" @click="keyword = ''; statusFilter = ''">重置筛选，显示全部</button>
+        </div>
         <p v-if="message" class="mb-4 text-sm text-blue-600">{{ message }}</p>
 
         <div class="overflow-x-auto">
           <table class="data-table min-w-[1080px]">
             <thead>
               <tr>
-                <th>操作</th>
                 <th>请求编号</th>
                 <th>来源任务</th>
                 <th>产品</th>
@@ -252,6 +262,7 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
                 <th>缺口</th>
                 <th>状态</th>
                 <th>更新时间</th>
+                <th>操作</th>
 
               </tr>
             </thead>
@@ -261,12 +272,24 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
               </tr>
               <tr v-else-if="filteredRequests.length === 0">
                 <td colspan="10" class="empty-cell">
-                  <p>{{ requests.length ? '当前筛选下没有记录，可切换全部状态查看。' : '尚未登记物料请求，请先由生产或仓库岗位登记需求并核对库存。' }}</p>
+                  <p>{{ requests.length ? '当前筛选下没有记录，可切换全部状态查看。' : '暂无已生成的采购需求，请在上方物料需求区核对缺料并点击生成采购需求。' }}</p>
                   <button v-if="requests.length" class="link-btn mt-2" @click="statusFilter = ''; keyword = ''">查看全部需求</button>
                   <router-link v-else-if="canOpenRequests" class="link-btn mt-2" to="/inventory/material-requests">登记物料请求</router-link>
                 </td>
               </tr>
-              <tr v-for="item in filteredRequests" v-else :key="item.id">
+              <tr v-for="item in pageItems" v-else :key="item.id">
+
+                <td class="font-medium text-gray-900">{{ item.requestNo }}</td>
+                <td>{{ item.sourceTaskNo || '-' }}</td>
+                <td>{{ item.productName || '-' }}</td>
+                <td :title="item.materialCode">{{ item.materialName }}</td>
+                <td>{{ item.requiredQuantity }}</td>
+                <td>{{ item.availableQuantity || 0 }}</td>
+                <td class="font-medium" :class="Number(item.shortageQuantity || 0) > 0 ? 'text-red-600' : 'text-green-600'">
+                  {{ item.shortageQuantity || 0 }}
+                </td>
+                <td><span :class="statusClass(item.requestStatus)">{{ statusText(item.requestStatus) }}</span></td>
+                <td>{{ formatDateTime(item.updatedAt || item.createdAt) }}</td>
                 <td class="text-left">
                   <button
                     v-if="item.requestStatus === 'PURCHASE_REQUESTED' && canOrder"
@@ -283,22 +306,12 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
                   <span v-else-if="item.requestStatus === 'PURCHASE_ORDERED'" class="text-gray-500">历史转单记录未关联订单，请核对</span>
                   <span v-else class="text-gray-400">{{ item.requestStatus === 'ENOUGH' ? '库存充足，无需采购' : '等待处理' }}</span>
                 </td>
-                <td class="font-medium text-gray-900">{{ item.requestNo }}</td>
-                <td>{{ item.sourceTaskNo || '-' }}</td>
-                <td>{{ item.productName || '-' }}</td>
-                <td>{{ item.materialCode }} / {{ item.materialName }}</td>
-                <td>{{ item.requiredQuantity }}</td>
-                <td>{{ item.availableQuantity || 0 }}</td>
-                <td class="font-medium" :class="Number(item.shortageQuantity || 0) > 0 ? 'text-red-600' : 'text-green-600'">
-                  {{ item.shortageQuantity || 0 }}
-                </td>
-                <td><span :class="statusClass(item.requestStatus)">{{ statusText(item.requestStatus) }}</span></td>
-                <td>{{ formatDateTime(item.updatedAt || item.createdAt) }}</td>
 
               </tr>
             </tbody>
           </table>
         </div>
+        <TablePagination v-model:page="page" v-model:page-size="pageSize" :total="total" label="采购需求" />
       </div>
 
       <div v-if="showOrderForm && currentRequest" class="modal-mask" data-business-form>
@@ -351,5 +364,5 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
         </div>
       </div>
     </div>
-  </MainLayout>
+  </component>
 </template>

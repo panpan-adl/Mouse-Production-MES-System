@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
 import { materialApi, type Material } from '@/api/mes'
@@ -36,6 +36,13 @@ const filteredMaterials = computed(() => {
   })
 })
 
+const page = ref(1)
+const pageSize = ref(10)
+const pageCount = computed(() => Math.max(1, Math.ceil(filteredMaterials.value.length / pageSize.value)))
+const pagedMaterials = computed(() => filteredMaterials.value.slice((page.value - 1) * pageSize.value, page.value * pageSize.value))
+watch([keyword, typeFilter, pageSize], () => { page.value = 1 })
+watch(pageCount, count => { page.value = Math.min(page.value, count) })
+
 const lowStockCount = computed(() =>
   materials.value.filter((item) => Number(item.currentStock || 0) < Number(item.safetyStock || 0)).length
 )
@@ -47,6 +54,7 @@ async function loadMaterials() {
   message.value = ''
   try {
     materials.value = await materialApi.list()
+    page.value = Math.min(page.value, pageCount.value)
   } catch (error: any) {
     message.value = error.message || '物料加载失败'
   } finally {
@@ -156,7 +164,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
             <option value="2">半成品</option>
             <option value="3">成品</option>
           </select>
-          <button class="btn-secondary" @click="loadMaterials"><RefreshCw class="w-4 h-4" />刷新</button>
+          <button class="btn-secondary" @click="page = 1; loadMaterials()"><RefreshCw class="w-4 h-4" />刷新</button>
         </div>
 
         <p v-if="message" class="mb-4 text-sm text-blue-600">{{ message }}</p>
@@ -179,7 +187,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
             <tbody>
               <tr v-if="loading"><td colspan="9" class="empty-cell">正在加载物料...</td></tr>
               <tr v-else-if="filteredMaterials.length === 0"><td colspan="9" class="empty-cell">暂无物料数据</td></tr>
-              <tr v-for="item in filteredMaterials" v-else :key="item.id">
+              <tr v-for="item in pagedMaterials" v-else :key="item.id">
                 <td class="font-medium text-gray-900">{{ item.materialCode }}</td>
                 <td>{{ item.materialName }}</td>
                 <td>{{ typeText(item.materialType) }}</td>
@@ -198,6 +206,15 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
             </tbody>
           </table>
         </div>
+        <nav class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4 text-sm text-gray-500" aria-label="物料档案分页">
+          <span aria-live="polite">共 {{ filteredMaterials.length }} 条<span v-if="filteredMaterials.length">，当前 {{ (page - 1) * pageSize + 1 }}–{{ Math.min(page * pageSize, filteredMaterials.length) }} 条</span></span>
+          <div class="flex flex-wrap items-center gap-3">
+            <label class="flex items-center gap-2">每页<select v-model.number="pageSize" :disabled="loading" class="rounded-lg border px-2 py-2" aria-label="物料每页条数"><option :value="10">10 条</option><option :value="20">20 条</option><option :value="50">50 条</option></select></label>
+            <button type="button" class="btn-secondary" :disabled="loading || page === 1" @click="page--">上一页</button>
+            <span>{{ page }} / {{ pageCount }} 页</span>
+            <button type="button" class="btn-secondary" :disabled="loading || page >= pageCount" @click="page++">下一页</button>
+          </div>
+        </nav>
       </div>
 
       <div v-if="showForm" class="modal-mask" data-business-form>
