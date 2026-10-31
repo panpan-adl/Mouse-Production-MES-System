@@ -44,7 +44,7 @@ def prepare(source):
         +"DELETE FROM t_user WHERE user_code='103999' AND username='mcworker2';UPDATE t_material SET current_stock=0;SET FOREIGN_KEY_CHECKS=1;",database)
     sql('DELETE p FROM mm_product_material p JOIN t_material m ON m.id=p.material_id WHERE m.material_type=2',database)
     # Capture a NEW current-time baseline after resetting the disposable database. No historical backdating.
-    for name in ['rectification.sql','stage34_intelligence.sql','four_tier_acceptance.sql']:
+    for name in ['rectification.sql','stage34_intelligence.sql','four_tier_acceptance.sql','purchase_request_flow.sql']:
         sql((ROOT/'04-database'/name).read_text(encoding='utf-8'),database)
     sql((ROOT/'04-database/four_tier_acceptance.sql').read_text(encoding='utf-8'),database)
     state=dict(database=database,source_database=source,backup=str(backup),port=8093,source_business_writes=False)

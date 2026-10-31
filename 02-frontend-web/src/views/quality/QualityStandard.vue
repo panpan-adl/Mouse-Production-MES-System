@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import MainLayout from '@/components/MainLayout.vue'
 import { Eye, Power, RefreshCw, Search, X } from 'lucide-vue-next'
 import { qualityStandardApi, type QualityStandard } from '@/api/mes'
 
+const router = useRouter()
 const loading = ref(false)
 const detailLoading = ref(false)
 const message = ref('')
@@ -129,15 +131,20 @@ function formatDate(value?: string) {
 <template>
   <MainLayout>
     <div class="space-y-6 animate-fadeIn">
+      <div>
+        <button type="button" class="btn-secondary" @click="router.push('/quality/tasks')">← 返回质检任务</button>
+      </div>
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p class="text-sm text-gray-500">质量基础资料</p>
           <h1 class="mt-1 text-2xl font-bold text-gray-900">质检标准</h1>
         </div>
+        <div class="flex flex-wrap items-center gap-3">
         <button class="btn-secondary" @click="loadStandards">
           <RefreshCw class="h-4 w-4" />
           刷新
         </button>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 gap-4 md:grid-cols-3">

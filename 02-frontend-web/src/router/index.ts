@@ -79,7 +79,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/quality/tasks',
     name: 'QualityTask',
-    redirect: '/manufacturing',
+    component: () => import('@/views/quality/QualityTask.vue'),
     meta: { requiresAuth: true },
   },
   {
@@ -109,14 +109,14 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/inventory/in',
     name: 'InventoryIn',
-    redirect: '/purchase/receipts',
-    meta: { requiresAuth: true },
+    component: () => import('@/views/foundation/MesOperations.vue'),
+    meta: { requiresAuth: true, title: '入库单据', mesTab: 'documents', documentKinds: ['PURCHASE_RECEIPT','LINE_RETURN','PRODUCTION_RECEIPT'], description: '汇总采购收货、生产退料与产成品入库，按业务类型筛选和办理。' },
   },
   {
     path: '/inventory/out',
     name: 'InventoryOut',
-    redirect: '/inventory/shipments',
-    meta: { requiresAuth: true },
+    component: () => import('@/views/foundation/MesOperations.vue'),
+    meta: { requiresAuth: true, title: '出库单据', mesTab: 'documents', documentKinds: ['LINE_ISSUE','SALES_SHIPMENT'], description: '汇总生产领料与销售发货，按业务类型筛选和办理。' },
   },
   {
     path: '/inventory/material-requests',

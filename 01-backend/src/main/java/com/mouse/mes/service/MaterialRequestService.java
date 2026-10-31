@@ -21,5 +21,7 @@ public interface MaterialRequestService {
 
     MaterialRequest markPurchaseOrdered(Long id);
 
+    com.mouse.mes.entity.PurchaseOrder createPurchaseOrder(Long id, com.mouse.mes.dto.PurchaseOrderRequest request, Long actor);
+
     void delete(Long id);
 }

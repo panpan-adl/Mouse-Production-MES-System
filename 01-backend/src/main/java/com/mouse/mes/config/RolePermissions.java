@@ -24,7 +24,7 @@ public final class RolePermissions {
         if(path.startsWith("/api/auth/"))return true;
         if(path.startsWith("/api/foundation/"))return true; // Fine-grained catalog checks are in its controller.
         if(path.startsWith("/api/fulfillment/"))return role==5;
-        if(path.startsWith("/api/material-requests"))return path.endsWith("/purchase-ordered")?role==6:Set.of(1,2,3,5).contains(role);
+        if(path.startsWith("/api/material-requests"))return (path.endsWith("/purchase-ordered")||path.endsWith("/purchase-order"))?role==6:Set.of(1,2,3,5).contains(role);
         if(path.startsWith("/api/production-tasks/")&&(path.endsWith("/claim")||path.endsWith("/start")||path.endsWith("/report")))return Set.of(1,2,3).contains(role);
         if(path.startsWith("/api/production-reports"))return Set.of(1,2,3).contains(role) && (role!=3 || method.equals("POST"));
         if(path.startsWith("/api/production-")||path.startsWith("/api/work-order")||path.startsWith("/api/boms"))return Set.of(1,2).contains(role);

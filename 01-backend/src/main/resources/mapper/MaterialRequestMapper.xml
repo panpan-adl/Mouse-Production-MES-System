@@ -2,19 +2,19 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mouse.mes.mapper.MaterialRequestMapper">
     <select id="findAll" resultType="com.mouse.mes.entity.MaterialRequest">
-        SELECT * FROM t_material_request WHERE is_deleted = 0 ORDER BY updated_at DESC, id DESC
+        SELECT r.*, p.id purchase_order_id, p.po_no purchase_order_no FROM t_material_request r LEFT JOIN mm_purchase_request_order link ON link.request_id=r.id LEFT JOIN t_purchase_order p ON p.id=link.po_id WHERE r.is_deleted = 0 ORDER BY r.updated_at DESC, r.id DESC
     </select>
 
     <select id="findById" parameterType="java.lang.Long" resultType="com.mouse.mes.entity.MaterialRequest">
-        SELECT * FROM t_material_request WHERE id = #{id} AND is_deleted = 0
+        SELECT r.*, p.id purchase_order_id, p.po_no purchase_order_no FROM t_material_request r LEFT JOIN mm_purchase_request_order link ON link.request_id=r.id LEFT JOIN t_purchase_order p ON p.id=link.po_id WHERE r.id = #{id} AND r.is_deleted = 0
     </select>
 
     <select id="findByRequestNo" parameterType="java.lang.String" resultType="com.mouse.mes.entity.MaterialRequest">
-        SELECT * FROM t_material_request WHERE request_no = #{requestNo} AND is_deleted = 0
+        SELECT r.*, p.id purchase_order_id, p.po_no purchase_order_no FROM t_material_request r LEFT JOIN mm_purchase_request_order link ON link.request_id=r.id LEFT JOIN t_purchase_order p ON p.id=link.po_id WHERE r.request_no = #{requestNo} AND r.is_deleted = 0
     </select>
 
     <select id="findByStatus" parameterType="java.lang.String" resultType="com.mouse.mes.entity.MaterialRequest">
-        SELECT * FROM t_material_request WHERE request_status = #{requestStatus} AND is_deleted = 0 ORDER BY updated_at DESC, id DESC
+        SELECT r.*, p.id purchase_order_id, p.po_no purchase_order_no FROM t_material_request r LEFT JOIN mm_purchase_request_order link ON link.request_id=r.id LEFT JOIN t_purchase_order p ON p.id=link.po_id WHERE r.request_status = #{requestStatus} AND r.is_deleted = 0 ORDER BY r.updated_at DESC, r.id DESC
     </select>
 
     <insert id="insert" parameterType="com.mouse.mes.entity.MaterialRequest" useGeneratedKeys="true" keyProperty="id">

@@ -28,6 +28,7 @@ def migrate(database):
     before = counts()
     sql((ROOT/'04-database/four_tier_acceptance.sql').read_text(encoding='utf-8'), database)
     sql((ROOT/'04-database/four_tier_acceptance.sql').read_text(encoding='utf-8'), database)
+    sql((ROOT/'04-database/purchase_request_flow.sql').read_text(encoding='utf-8'), database)
     assert counts() == before, 'Business record counts changed unexpectedly'
     state = dict(database=database, backup=str(backup), applied_twice=True, preserved_counts=before)
     (ROOT/'.runtime'/f'four-tier-migration-{database}.json').write_text(json.dumps(state,indent=2),encoding='utf-8')

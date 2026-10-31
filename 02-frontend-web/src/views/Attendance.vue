@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Calendar, Clock, Edit3, Plus, RefreshCw, Search, Users, X } from 'lucide-vue-next'
 import { attendanceApi, type Attendance } from '@/api/attendance'
@@ -105,6 +105,14 @@ const filteredRows = computed(() => {
   })
 })
 
+const page = ref(1)
+const pageSize = ref(10)
+const pageCount = computed(() => Math.max(1, Math.ceil(filteredRows.value.length / pageSize.value)))
+const pagedRows = computed(() => filteredRows.value.slice((page.value - 1) * pageSize.value, page.value * pageSize.value))
+
+watch([keyword, statusFilter, dateFilter, pageSize], () => { page.value = 1 })
+watch(pageCount, (count) => { page.value = Math.min(page.value, count) })
+
 const summaryRows = computed(() => attendanceRows.value)
 const presentCount = computed(() => summaryRows.value.filter((row) => [1, 2, 3].includes(row.status)).length)
 const absentCount = computed(() => summaryRows.value.filter((row) => row.status === 0).length)
@@ -136,11 +144,13 @@ async function loadAll() {
 }
 
 async function queryAttendance() {
+  page.value = 1
   await loadAll()
   message.value = '已按当前条件查询考勤数据'
 }
 
 async function refreshAttendance() {
+  page.value = 1
   await loadAll()
 }
 
@@ -493,7 +503,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
               <tr v-else-if="filteredRows.length === 0">
                 <td :colspan="canManageAttendance ? 10 : 9" class="empty-cell">暂无符合条件的考勤数据</td>
               </tr>
-              <tr v-for="row in filteredRows" v-else :key="rowKey(row)">
+              <tr v-for="row in pagedRows" v-else :key="rowKey(row)">
                 <td class="font-medium text-gray-900">{{ row.userCode }}</td>
                 <td class="font-medium text-gray-900">{{ row.userName }}</td>
                 <td>
@@ -527,6 +537,21 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
               </tr>
             </tbody>
           </table>
+        </div>
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-gray-600">
+          <span>共 {{ filteredRows.length }} 条 · 第 {{ page }} / {{ pageCount }} 页</span>
+          <div class="flex flex-wrap items-center gap-3">
+            <label class="flex items-center gap-2">
+              每页
+              <select v-model.number="pageSize" :disabled="loading" class="rounded-lg border px-2 py-2" aria-label="考勤每页条数">
+                <option :value="10">10 条</option>
+                <option :value="20">20 条</option>
+                <option :value="50">50 条</option>
+              </select>
+            </label>
+            <button type="button" class="btn-secondary" :disabled="loading || page === 1" @click="page--">上一页</button>
+            <button type="button" class="btn-secondary" :disabled="loading || page >= pageCount" @click="page++">下一页</button>
+          </div>
         </div>
       </div>
 

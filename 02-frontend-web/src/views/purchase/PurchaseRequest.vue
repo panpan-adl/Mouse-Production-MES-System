@@ -2,11 +2,13 @@
 import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { canVisit } from '@/utils/permissions'
 import MainLayout from '@/components/MainLayout.vue'
+import PurchaseNavigation from '@/components/PurchaseNavigation.vue'
 import { FilePlus2, RefreshCw, Search, X } from 'lucide-vue-next'
 import {
   materialRequestApi,
-  purchaseOrderApi,
   supplierApi,
   type MaterialRequest,
   type Supplier,
@@ -16,11 +18,15 @@ import { useAuthStore } from '@/stores/auth'
 type RequestStatus = '' | 'PENDING_CHECK' | 'ENOUGH' | 'SHORTAGE' | 'PURCHASE_REQUESTED' | 'PURCHASE_ORDERED'
 
 const authStore = useAuthStore()
+const route = useRoute(), router = useRouter()
+const canOpenRequests = computed(() => canVisit(Number(authStore.effectiveRoleId), '/inventory/material-requests') && authStore.hasMenu('/inventory/material-requests'))
+const canSend = computed(() => [1,2,3,5,9].includes(Number(authStore.effectiveRoleId)))
+const canOrder = computed(() => [6,9].includes(Number(authStore.effectiveRoleId)))
 const loading = ref(false)
 const saving = ref(false)
 const message = ref('')
 const keyword = ref('')
-const statusFilter = ref<RequestStatus>('PURCHASE_REQUESTED')
+const statusFilter = ref<RequestStatus>('')
 const requests = ref<MaterialRequest[]>([])
 const suppliers = ref<Supplier[]>([])
 const showOrderForm = ref(false)
@@ -50,13 +56,10 @@ const filteredRequests = computed(() => {
 
 const pendingPurchaseCount = computed(() => requests.value.filter((item) => item.requestStatus === 'PURCHASE_REQUESTED').length)
 const orderedCount = computed(() => requests.value.filter((item) => item.requestStatus === 'PURCHASE_ORDERED').length)
-const shortageTotal = computed(() =>
-  requests.value
-    .filter((item) => item.requestStatus === 'PURCHASE_REQUESTED')
-    .reduce((sum, item) => sum + Number(item.shortageQuantity || 0), 0)
-)
+const unsentCount = computed(() => requests.value.filter(item => item.requestStatus === 'SHORTAGE').length)
 
 onMounted(async () => {
+  if (route.query.requestId) keyword.value = String(route.query.requestNo || '')
   await Promise.all([loadRequests(), loadSuppliers()])
 })
 
@@ -141,35 +144,31 @@ async function createPurchaseOrder() {
   try {
     const unitPrice = Number(orderForm.unitPrice || 0)
     const amount = shortageQuantity * unitPrice
-    await purchaseOrderApi.create({
-      poNo: `PO-${Date.now()}`,
+    const created = await materialRequestApi.createOrder(currentRequest.value.id, {
       supplierId: Number(orderForm.supplierId),
-      orderDate: new Date().toISOString().slice(0, 10),
-      expectedDate: orderForm.expectedDate,
-      totalAmount: amount,
-      status: 'DRAFT',
+      expectedDate: orderForm.expectedDate || undefined,
       remark: orderForm.remark,
-      createdBy: authStore.currentUser?.id || 1,
-      items: [
-        {
-          materialId: Number(currentRequest.value.materialId),
-          quantity: shortageQuantity,
-          unitPrice,
-          amount,
-          receivedQuantity: 0,
-          remark: `由物料请求 ${currentRequest.value.requestNo} 转采购`,
-        },
-      ],
+      items: [{ materialId: Number(currentRequest.value.materialId), quantity: shortageQuantity, unitPrice, amount }],
     })
-    await materialRequestApi.markPurchaseOrdered(currentRequest.value.id)
     message.value = `已根据 ${currentRequest.value.requestNo} 生成采购订单，需求状态已更新为“已转采购单”。`
     completeDrafts();showOrderForm.value = false
-    await loadRequests()
+    await router.push({ path: '/purchase/order', query: { orderId: created.id, fromRequest: currentRequest.value.id } })
   } catch (error: any) {
     message.value = error.message || '生成采购订单失败'
   } finally {
     saving.value = false
   }
+}
+
+async function sendPurchase(item: MaterialRequest) {
+  if (!item.id || saving.value) return
+  saving.value = true
+  try {
+    await materialRequestApi.requestPurchase(item.id)
+    await loadRequests()
+    message.value = '已发送采购请求，采购员可在此选择供应商并生成订单。'
+  } catch (error: any) { message.value = error.message || '发送采购失败' }
+  finally { saving.value = false }
 }
 
 function formatDateTime(value?: string) {
@@ -185,6 +184,7 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
 
 <template>
   <MainLayout>
+    <PurchaseNavigation group="orders" />
     <div class="space-y-6 animate-fadeIn">
       <div class="flex items-center justify-between">
         <div>
@@ -197,6 +197,11 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
         </button>
       </div>
 
+      <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900 space-y-2">
+        <p>业务流程：登记物料请求 → 仓库核对缺口并发送采购 → 采购员选择供应商生成订单 → 审批 → 收货检验与入库。</p>
+        <router-link v-if="canOpenRequests" class="link-btn" to="/inventory/material-requests">去登记／处理物料请求</router-link>
+        <p v-else>采购需求由生产或仓库岗位提交；尚未发送的缺料请求也在下方显示，供跟进处理。</p>
+      </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <button class="stat-card text-left" @click="statusFilter = 'PURCHASE_REQUESTED'">
           <p class="stat-label">待采购下单</p>
@@ -206,9 +211,9 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
           <p class="stat-label">已转采购单</p>
           <p class="stat-value text-gray-700">{{ orderedCount }}</p>
         </button>
-        <button class="stat-card text-left" @click="statusFilter = 'PURCHASE_REQUESTED'">
-          <p class="stat-label">待采购缺口总量</p>
-          <p class="stat-value text-red-600">{{ shortageTotal }}</p>
+        <button class="stat-card text-left" @click="statusFilter = 'SHORTAGE'">
+          <p class="stat-label">待发送缺料请求</p>
+          <p class="stat-value text-red-600">{{ unsentCount }}</p>
         </button>
       </div>
 
@@ -237,6 +242,7 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
           <table class="data-table min-w-[1080px]">
             <thead>
               <tr>
+                <th>操作</th>
                 <th>请求编号</th>
                 <th>来源任务</th>
                 <th>产品</th>
@@ -245,8 +251,8 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
                 <th>当前库存</th>
                 <th>缺口</th>
                 <th>状态</th>
-                <th>发送时间</th>
-                <th class="text-right">操作</th>
+                <th>更新时间</th>
+
               </tr>
             </thead>
             <tbody>
@@ -254,9 +260,29 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
                 <td colspan="10" class="empty-cell">正在加载采购需求...</td>
               </tr>
               <tr v-else-if="filteredRequests.length === 0">
-                <td colspan="10" class="empty-cell">暂无采购需求</td>
+                <td colspan="10" class="empty-cell">
+                  <p>{{ requests.length ? '当前筛选下没有记录，可切换全部状态查看。' : '尚未登记物料请求，请先由生产或仓库岗位登记需求并核对库存。' }}</p>
+                  <button v-if="requests.length" class="link-btn mt-2" @click="statusFilter = ''; keyword = ''">查看全部需求</button>
+                  <router-link v-else-if="canOpenRequests" class="link-btn mt-2" to="/inventory/material-requests">登记物料请求</router-link>
+                </td>
               </tr>
               <tr v-for="item in filteredRequests" v-else :key="item.id">
+                <td class="text-left">
+                  <button
+                    v-if="item.requestStatus === 'PURCHASE_REQUESTED' && canOrder"
+                    class="link-btn"
+                    :disabled="saving"
+                    @click="openCreateOrder(item)"
+                  >
+                    <FilePlus2 class="inline-block w-4 h-4 mr-1" />
+                    生成采购单
+                  </button>
+                  <router-link v-else-if="item.purchaseOrderId" class="link-btn" :to="{ path: '/purchase/order', query: { orderId: item.purchaseOrderId } }">查看订单</router-link>
+                  <button v-else-if="item.requestStatus === 'SHORTAGE' && canSend" class="link-btn" :disabled="saving" @click="sendPurchase(item)">发送采购请求</button>
+                  <span v-else-if="item.requestStatus === 'SHORTAGE'" class="text-gray-500">等待仓库发送采购</span>
+                  <span v-else-if="item.requestStatus === 'PURCHASE_ORDERED'" class="text-gray-500">历史转单记录未关联订单，请核对</span>
+                  <span v-else class="text-gray-400">{{ item.requestStatus === 'ENOUGH' ? '库存充足，无需采购' : '等待处理' }}</span>
+                </td>
                 <td class="font-medium text-gray-900">{{ item.requestNo }}</td>
                 <td>{{ item.sourceTaskNo || '-' }}</td>
                 <td>{{ item.productName || '-' }}</td>
@@ -268,18 +294,7 @@ const completeDrafts=useFormDrafts({showOrderForm:{open:showOrderForm,fields:{or
                 </td>
                 <td><span :class="statusClass(item.requestStatus)">{{ statusText(item.requestStatus) }}</span></td>
                 <td>{{ formatDateTime(item.updatedAt || item.createdAt) }}</td>
-                <td class="text-right">
-                  <button
-                    v-if="item.requestStatus === 'PURCHASE_REQUESTED'"
-                    class="link-btn"
-                    :disabled="saving"
-                    @click="openCreateOrder(item)"
-                  >
-                    <FilePlus2 class="inline-block w-4 h-4 mr-1" />
-                    生成采购单
-                  </button>
-                  <span v-else class="text-gray-400">-</span>
-                </td>
+
               </tr>
             </tbody>
           </table>

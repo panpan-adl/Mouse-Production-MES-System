@@ -88,13 +88,28 @@ public class MaterialRequestController {
         }
     }
 
+    @PostMapping("/{id}/purchase-order")
+    public Object createPurchaseOrder(@PathVariable Long id, @RequestBody com.mouse.mes.dto.PurchaseOrderRequest body,
+                                     jakarta.servlet.http.HttpServletRequest request) {
+        try {
+            var identity = new com.fasterxml.jackson.databind.ObjectMapper().convertValue(request.getAttribute("userInfo"), com.mouse.mes.dto.LoginResponse.class);
+            return JsonResult.success(materialRequestService.createPurchaseOrder(id, body, identity.getId()));
+        } catch (RuntimeException e) {
+            return JsonResult.error(e.getMessage());
+        }
+    }
+
     @DeleteMapping("/{id}")
     public JsonResult<Void> delete(@PathVariable Long id) {
         MaterialRequest existing = materialRequestService.findById(id);
         if (existing == null) {
             return JsonResult.error("物料请求不存在");
         }
-        materialRequestService.delete(id);
-        return JsonResult.success();
+        try {
+            materialRequestService.delete(id);
+            return JsonResult.success();
+        } catch (RuntimeException e) {
+            return JsonResult.error(e.getMessage());
+        }
     }
 }

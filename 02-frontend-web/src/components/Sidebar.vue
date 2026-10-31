@@ -26,8 +26,12 @@ import UserAvatar from './UserAvatar.vue'
 import { sidebarCollapsed } from '@/stores/layout'
 import { foundationGroups } from '@/utils/foundationNavigation'
 import { canVisit } from '@/utils/permissions'
+import { productionSections } from '@/utils/productionNavigation'
+import { warehouseSections } from '@/utils/warehouseNavigation'
+import { systemSections } from '@/utils/systemNavigation'
 
 interface ChildMenuItem {
+  relatedPaths?: string[]
   path: string
   name: string
   icon: any
@@ -104,9 +108,8 @@ const allMenuItems = ref<MenuItem[]>([
     name: '质量管理',
     icon: CheckCircle,
     children: [
-      { path: '/quality/tasks', name: '质检任务', icon: ClipboardCheck },
+      { path: '/quality/tasks', name: '质检任务', icon: ClipboardCheck, relatedPaths: ['/quality/standard', ...foundationGroups.filter(group => group.module === '质量管理').flatMap(group => group.keys.map(key => `/foundation/${key}`))] },
       { path: '/quality/check', name: '质检记录', icon: CheckCircle },
-      { path: '/quality/standard', name: '质检标准', icon: FileText },
     ],
   },
   {
@@ -154,7 +157,7 @@ const allMenuItems = ref<MenuItem[]>([
 
 // Each domain opens its own configuration group rather than one global directory.
 for (const group of foundationGroups) {
-  if (['基础配置中心', '仓库管理'].includes(group.module)) continue
+  if (['基础配置中心', '仓库管理', '质量管理'].includes(group.module)) continue
   const menu = allMenuItems.value.find(item => item.name === group.module)
   menu?.children?.push({ path: `/foundation/${group.keys[0]}`, name: group.title, icon: Settings })
 }
@@ -177,13 +180,19 @@ allMenuItems.value.find(item=>item.name==='生产管理')?.children?.push(manufa
 allMenuItems.value.find(item=>item.name==='系统管理')?.children?.unshift(sharedEntry)
 allMenuItems.value.push({ name: '智能与提醒', icon: Bot, children: assistantEntries })
 
+// Move the existing status page, retaining its worker-only access rules.
+const productionMenu=allMenuItems.value.find(item=>item.name==='生产管理')!
+const equipmentMenu=allMenuItems.value.find(item=>item.name==='设备管理')!
+const statusIndex=productionMenu.children!.findIndex(child=>child.path==='/production/equipment-status')
+if(statusIndex>=0)equipmentMenu.children!.push(...productionMenu.children!.splice(statusIndex,1))
+
 const moduleOrder = ['首页','销售订单','采购管理','生产管理','质量管理','仓库管理','设备管理','考勤管理','财务看板','系统管理','智能与提醒']
 allMenuItems.value.sort((a,b)=>moduleOrder.indexOf(a.name)-moduleOrder.indexOf(b.name))
 const childOrder: Record<string,string[]> = {
   销售订单: ['客户管理','订单列表'],
   采购管理: ['供应商管理','采购需求','采购订单','采购收货','供应商退货'],
   生产管理: ['产品与工艺','班组与排班配置','生产计划','生产工单','班组排班计划','生产任务','生产报工','制造与质量放行','设备状态管理'],
-  质量管理: ['检验与缺陷配置','质检标准','质检任务','质检记录'],
+  质量管理: ['质检任务','质检记录'],
   仓库管理: ['仓库设置','库区设置','库位设置','物料管理','仓库库存','入库管理','出库管理','生产领料','生产退料','产成品入库','装箱管理','销售发货','库存与批次追溯','物料请求'],
   设备管理: ['设备台账','设备点检配置','定期保养计划','设备维修管理'],
   系统管理: ['通用基础资料','部门管理','员工管理','岗位与权限管理','组织与系统配置','日志管理'],
@@ -196,7 +205,7 @@ for(const item of allMenuItems.value){
 const roleMenus: Record<number, string[]> = {
   1: ['首页', '生产管理', '质量管理', '仓库管理', '设备管理', '考勤管理'],
   2: ['首页', '生产管理', '设备管理', '考勤管理'],
-  3: ['首页','仓库管理', '生产管理', '考勤管理'],
+  3: ['首页','仓库管理', '生产管理', '设备管理', '考勤管理'],
   4: ['首页', '质量管理', '考勤管理'],
   5: ['首页', '仓库管理', '采购管理', '考勤管理'],
   6: ['首页', '采购管理', '仓库管理', '考勤管理'],
@@ -211,6 +220,7 @@ const roleChildMenus: Record<number, Record<string, string[]>> = {
   3: {
     生产管理: ['生产工单', '生产任务', '设备状态管理','班组排班计划'],
     仓库管理: ['物料请求'],
+    设备管理: ['设备状态管理'],
   },
   5: {
     仓库管理: ['仓库库存', '仓库设置', '库区设置', '库位设置', '物料管理', '入库管理', '出库管理', '物料请求','生产领料','生产退料','产成品入库','装箱管理','销售发货','库存与批次追溯'],
@@ -220,7 +230,7 @@ const roleChildMenus: Record<number, Record<string, string[]>> = {
     采购管理: ['采购需求', '采购订单', '供应商管理','采购收货','供应商退货'],
   },
   8: {
-    设备管理: ['设备维修管理', '定期保养计划'],
+    设备管理: ['设备台账', '设备维修管理', '定期保养计划'],
   },
 }
 
@@ -250,8 +260,46 @@ function visibleChildren(item: MenuItem) {
   const allowedChildren = roleId ? roleChildMenus[roleId]?.[item.name] : undefined
   if (!item.children) return []
   const roleVisibleChildren = item.children.filter(child=>canVisit(roleId,child.path)&&(roleId===9||!child.roles||child.roles.includes(roleId)))
-  if (!allowedChildren) return roleVisibleChildren.filter(child=>authStore.hasMenu(child.path))
-  return roleVisibleChildren.filter((child) => (allowedChildren.includes(child.name)||child.path.startsWith('/foundation/')||child.path==='/manufacturing')&&authStore.hasMenu(child.path))
+  const accessible = roleVisibleChildren.filter(child => (!allowedChildren || allowedChildren.includes(child.name) || child.path.startsWith('/foundation/') || child.path === '/manufacturing') && authStore.hasMenu(child.path))
+  if (item.name === '系统管理') {
+    return systemSections.flatMap(section => {
+      const tabs = section.tabs.filter(tab => canVisit(roleId, tab.path) && authStore.hasMenu(tab.path))
+      if (!tabs.length) return []
+      const current = tabs.find(tab => tab.path === route.path) || tabs[0]
+      return [{ path: current.path, name: section.title, icon: section.title === '组织与人员' ? Users : section.title === '日志管理' ? FileText : Settings, relatedPaths: section.tabs.map(tab => tab.path) }]
+    })
+  }
+  if (item.name === '生产管理' || item.name === '设备管理') {
+    const sections=productionSections.filter(section=>section.module===item.name)
+    const merged=sections.flatMap(section=>{
+      const paths=section.tabs.map(tab=>tab.path)
+      const members=paths.flatMap(path=>accessible.filter(child=>child.path===path))
+      if(!members.length)return []
+      const current=members.find(child=>child.path===route.path)||members[0]
+      return [{...current,name:section.title,relatedPaths:paths}]
+    })
+    const groupedPaths=sections.flatMap(section=>section.tabs.map(tab=>tab.path))
+    return [...merged,...accessible.filter(child=>!groupedPaths.includes(child.path))]
+  }
+  if (item.name === '仓库管理') {
+    return warehouseSections.flatMap(section => {
+      const members = section.tabs.flatMap(tab => accessible.filter(child => child.path === tab.path))
+      if (!members.length) return []
+      const current = members.find(child => child.path === route.path) || members[0]
+      return [{ ...current, name: section.title, relatedPaths: section.tabs.map(tab => tab.path) }]
+    })
+  }
+  if (item.name !== '采购管理') return accessible
+  return [
+    { name: '供应商管理', paths: ['/purchase/supplier'] },
+    { name: '采购申请与订单', paths: ['/purchase/requests', '/purchase/order'] },
+    { name: '采购收货与退货', paths: ['/purchase/receipts', '/purchase/returns'] },
+  ].flatMap(group => {
+    const members = group.paths.flatMap(path => accessible.filter(child => child.path === path))
+    if (!members.length) return []
+    const current = members.find(child => child.path === route.path) || members[0]
+    return [{ ...current, name: group.name, relatedPaths: members.map(child => child.path) }]
+  })
 }
 
 function isChildActive(item: MenuItem) {
@@ -259,6 +307,7 @@ function isChildActive(item: MenuItem) {
 }
 
 function childActive(child:ChildMenuItem){
+  if (child.relatedPaths?.includes(route.path)) return true
   const group=foundationGroups.find(group=>group.title===child.name)
   return group?group.keys.some(key=>route.path===`/foundation/${key}`):route.path===child.path||route.path.startsWith(child.path+'/')
 }

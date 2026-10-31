@@ -1,4 +1,5 @@
 /* Quiet, paper-like workspace. Business status colors retain their meaning. */
+/* Shared actions and dialogs follow the same paper palette as their pages. */
 :root{--mes-paper:#faf9f6;--mes-ink:#37352f;--mes-muted:#919089;--mes-line:#e9e7e2;--mes-nav:#f4f3ef;--mes-radius:10px;--mes-shadow:none;--mes-blue:#526b83}
 .notion-workspace{background:var(--mes-paper);color:var(--mes-ink);color-scheme:light}
 .notion-workspace .workspace-content{width:100%;max-width:1480px;margin:0 auto;padding:42px 48px 32px;animation:none}
@@ -67,3 +68,27 @@
 @media(min-width:1700px){.notion-workspace .workspace-content{padding-left:64px;padding-right:64px}}
 @media(max-width:1100px){.notion-workspace .workspace-content{padding:30px 24px}.notion-workspace .environment-notice{margin:18px 24px 0}}
 @media(max-width:700px){.notion-workspace .workspace-content{padding:24px 14px}.notion-workspace .workspace-header{padding:0 12px}.notion-workspace .workspace-content h1{font-size:23px}.notion-workspace .environment-notice{margin:14px 14px 0}.notion-workspace .workspace-footer{padding:18px 14px}.notion-workspace .sidebar-small .sidebar-identity{padding:6px;border:0;margin:12px 11px}.notion-workspace .mes-sidebar.sidebar-large{box-shadow:12px 0 40px #37352f18}}
+/* Shared detail, create and edit dialogs, including legacy overlays. */
+.notion-workspace :is(.modal-mask,[role="dialog"].fixed.inset-0,.fixed.inset-0[class*="bg-black"]){background:rgb(55 53 47 / 28%);backdrop-filter:blur(3px);padding:24px;overflow-y:auto;overscroll-behavior:contain;box-shadow:none;border:0;border-radius:0}
+.notion-workspace :is(.modal-card,.modal-mask>section,.modal-mask>form,.modal-mask>div.bg-white,[role="dialog"].fixed.inset-0>form,[role="dialog"].fixed.inset-0>section,.fixed.inset-0[class*="bg-black"]>div.bg-white,.fixed.inset-0[class*="bg-black"]>section,.fixed.inset-0[class*="bg-black"]>form){background:#fff;color:var(--mes-ink);border:1px solid var(--mes-line);border-radius:10px;box-shadow:0 16px 56px #37352f1a;padding:28px;max-height:calc(100dvh - 48px);overflow-y:auto;font-size:14px;line-height:1.65;color-scheme:light}
+.notion-workspace :is(.modal-mask,[role="dialog"].fixed.inset-0,.fixed.inset-0[class*="bg-black"]) :is(h2,h3){color:var(--mes-ink);font-size:20px;font-weight:600;letter-spacing:-.025em}
+.notion-workspace :is(.modal-mask,[role="dialog"].fixed.inset-0,.fixed.inset-0[class*="bg-black"]) :is(label,.field-label){color:#6f6c65;font-size:13px;font-weight:500}
+.notion-workspace :is(.modal-mask,[role="dialog"].fixed.inset-0,.fixed.inset-0[class*="bg-black"]) :is(.mt-6.flex.justify-end,.mt-4.flex.justify-end){border-top:1px solid var(--mes-line);padding-top:20px;margin-top:24px}
+.notion-workspace .workspace-content :is(.btn-primary,button.bg-blue-500,button.bg-blue-600,a.bg-blue-600){background:#45433e;border-color:#45433e;color:#fff;border-radius:5px;box-shadow:none}
+.notion-workspace .workspace-content :is(.btn-primary,button.bg-blue-500,button.bg-blue-600,a.bg-blue-600):hover{background:#302e29;border-color:#302e29;box-shadow:none}
+.notion-workspace .workspace-content .btn-secondary{background:#fff;color:#6f6c65;border:1px solid #dedbd4;border-radius:5px;box-shadow:none}
+.notion-workspace .workspace-content .btn-secondary:hover{background:#f4f3ef;border-color:#c9c5bb}
+.notion-workspace .workspace-content .icon-btn{background:transparent;color:#96938b;border-color:transparent;border-radius:5px;box-shadow:none}
+.notion-workspace .workspace-content .icon-btn:hover{background:#f0eee8;color:#494740}
+.notion-workspace .workspace-content :is(input,textarea)::placeholder{color:#aaa59b}
+.notion-workspace .workspace-content :is(.tag-green,.text-green-600,.text-green-700){color:#53745c}
+.notion-workspace .workspace-content .tag-green{background:#eaf1e9}
+.notion-workspace .workspace-content :is(.tag-red,.text-red-600,.text-red-700){color:#a96057}
+.notion-workspace .workspace-content .tag-red{background:#f8eae7}
+.notion-workspace .workspace-content .tag-gray{background:#efeee9;color:#858178}
+@media(max-width:700px){
+.notion-workspace :is(.modal-mask,[role="dialog"].fixed.inset-0,.fixed.inset-0[class*="bg-black"]){padding:12px}
+.notion-workspace :is(.modal-card,.modal-mask>section,.modal-mask>form,.modal-mask>div.bg-white,[role="dialog"].fixed.inset-0>form,[role="dialog"].fixed.inset-0>section,.fixed.inset-0[class*="bg-black"]>div.bg-white,.fixed.inset-0[class*="bg-black"]>section,.fixed.inset-0[class*="bg-black"]>form){padding:20px;max-height:calc(100dvh - 24px)}
+}
+/* Page stack spacing must not offset fixed overlays from the viewport edge. */
+.notion-workspace .workspace-content :is(.modal-mask,[role="dialog"].fixed.inset-0,.fixed.inset-0[class*="bg-black"]){margin:0}

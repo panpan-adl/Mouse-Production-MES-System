@@ -85,6 +85,8 @@ export interface PurchaseReceiveRequest {
 }
 
 export interface MaterialRequest {
+  purchaseOrderId?: number
+  purchaseOrderNo?: string
   requiredDate?: string
   id?: number
   requestNo?: string
@@ -398,6 +400,7 @@ export const purchaseOrderApi = {
 }
 
 export const materialRequestApi = {
+  createOrder: (id: number, data: Partial<PurchaseOrder>) => request.post<PurchaseOrder>(`/material-requests/${id}/purchase-order`, data),
   list: () => request.get<MaterialRequest[]>('/material-requests'),
   byStatus: (requestStatus: string) => request.get<MaterialRequest[]>(`/material-requests/status/${requestStatus}`),
   get: (id: number) => request.get<MaterialRequest>(`/material-requests/${id}`),

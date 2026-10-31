@@ -292,7 +292,7 @@ const completeDrafts=useFormDrafts({showCreateForm:{open:showCreateForm,fields:{
     <div class="space-y-6 animate-fadeIn">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">设备维修管理</h1>
+          <h1 class="text-2xl font-bold text-gray-900">设备维修</h1>
           <p class="text-gray-500 mt-1">{{ isMaintainer ? '设备维护员只处理分配给自己的维修工单。' : '统一管理维修申请、派工、执行记录与费用，已完成记录直接形成维护账单。' }}</p>
         </div>
         <button v-if="[8,9].includes(authStore.effectiveRoleId)&&!isMaintainer" class="btn-primary" @click="openCreate"><Plus class="w-4 h-4" />新增维修单</button>

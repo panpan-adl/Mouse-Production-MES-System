@@ -5,13 +5,19 @@ import { Bell, Settings, Menu, ChevronRight } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import UserAvatar from './UserAvatar.vue'
 import { sidebarCollapsed } from '@/stores/layout'
+import { productionSections } from '@/utils/productionNavigation'
+import { warehouseSections } from '@/utils/warehouseNavigation'
+import { systemSections } from '@/utils/systemNavigation'
 
 const router = useRouter()
 const route = useRoute()
 const pageLabels:Record<string,string>={'/dashboard':'生产全景看板','/mes':'MES运营中心','/manufacturing':'制造与质量放行','/equipment/maintenance':'设备维修管理','/fulfillment':'生产与仓储流程总览','/system/logs':'日志管理','/system/user':'员工管理','/system/role':'岗位与权限管理','/system/department':'部门管理','/automation':'自动任务与提醒','/notifications':'通知中心','/user/profile':'个人中心','/attendance':'考勤管理','/production/task':'生产任务','/inventory/stock':'库存管理'}
 const domains:Record<string,string>={foundation:'基础配置',production:'生产管理',quality:'质量管理',inventory:'仓储管理',purchase:'采购管理',equipment:'设备管理',system:'系统管理',order:'销售管理',cfo:'财务看板'}
-const pageTitle=computed(()=>String(route.meta.title||'')||pageLabels[route.path]||domains[route.path.split('/')[1]]||'业务工作台')
-const sectionTitle=computed(()=>domains[route.path.split('/')[1]]||'工作空间')
+const productionSection=computed(()=>productionSections.find(section=>section.tabs.some(tab=>tab.path===route.path)))
+const warehouseSection=computed(()=>route.path==='/purchase/receipts'?undefined:warehouseSections.find(section=>section.tabs.some(tab=>tab.path===route.path)))
+const systemSection=computed(()=>systemSections.find(section=>section.tabs.some(tab=>tab.path===route.path)))
+const pageTitle=computed(()=>systemSection.value?.title||warehouseSection.value?.title||productionSection.value?.title||String(route.meta.title||'')||pageLabels[route.path]||domains[route.path.split('/')[1]]||'业务工作台')
+const sectionTitle=computed(()=>(systemSection.value?'系统管理':'')||(warehouseSection.value?'仓库管理':'')||productionSection.value?.module||domains[route.path.split('/')[1]]||'工作空间')
 const todayLabel=new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'})
 const authStore = useAuthStore()
 onMounted(()=>Promise.all([authStore.refreshProfile(),authStore.loadNotifications(),authStore.refreshMenuAccess(),authStore.refreshSettings()]).catch(()=>{}))

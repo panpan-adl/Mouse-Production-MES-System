@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import MainLayout from '@/components/MainLayout.vue'
+import PurchaseNavigation from '@/components/PurchaseNavigation.vue'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
 import {
   materialApi,
+  materialRequestApi,
+  type MaterialRequest,
   locationApi,
   purchaseOrderApi,
   supplierApi,
@@ -52,6 +56,17 @@ const editingOrderId = ref<number>()
 const receivingOrder = ref<PurchaseOrder | null>(null)
 const detailOrder = ref<PurchaseOrder | null>(null)
 const detailItem = ref<PurchaseOrderItem | null>(null)
+const route = useRoute()
+const sourceRequests = ref<MaterialRequest[]>([])
+const sourceRequest = computed(() => sourceRequests.value.find(r => r.purchaseOrderId === detailOrder.value?.id))
+function openLinkedOrder() {
+  const id = Number(route.query.orderId)
+  if (!id) return
+  const order = orders.value.find(o => o.id === id)
+  if (order) { keyword.value = order.poNo; openDetail(order) }
+  else message.value = '关联采购订单不存在或不可查看。'
+}
+watch(() => route.query.orderId, openLinkedOrder)
 const isWarehouseManager = computed(() => authStore.effectiveRoleId === 5)
 
 const emptyItem = (): PurchaseOrderItem => ({
@@ -97,6 +112,8 @@ const receivedCount = computed(() => orders.value.filter((item) => arrivalStatus
 
 onMounted(async () => {
   await Promise.all([loadOrders(), loadSuppliers(), loadMaterials(), loadWarehouses(), loadLocations()])
+  try { sourceRequests.value = await materialRequestApi.list() } catch { /* Source lookup must not hide the order. */ }
+  openLinkedOrder()
 })
 
 async function loadOrders() {
@@ -526,6 +543,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
 
 <template>
   <MainLayout>
+    <PurchaseNavigation group="orders" />
     <div class="space-y-6 animate-fadeIn">
       <div class="flex items-center justify-between">
         <div>
@@ -650,6 +668,10 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
             </div>
           </div>
 
+          <div v-if="sourceRequest" class="rounded-xl bg-blue-50 p-4 mb-4 text-sm text-blue-900">
+            <p>来源需求：{{ sourceRequest.requestNo }}；生产任务：{{ sourceRequest.sourceTaskNo }}；物料：{{ sourceRequest.materialName }}</p>
+            <router-link v-if="authStore.hasMenu('/purchase/requests')" class="link-btn" :to="{ path: '/purchase/requests', query: { requestId: sourceRequest.id, requestNo: sourceRequest.requestNo } }">查看来源采购需求</router-link>
+          </div>
           <div v-if="!hasDetails(detailOrder)" class="rounded-xl border border-dashed border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {{ isWarehouseManager ? '这张采购单在数据库中没有采购明细，仓管员不能补录，请联系采购员维护明细后再办理收货。' : '这张采购单在数据库中没有采购明细，不能确认收货。请点击“补录明细”保存物料、数量和单价。' }}
           </div>
@@ -688,6 +710,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
 
           <div class="flex justify-end gap-3 mt-6">
             <button class="btn-secondary" @click="showDetail = false">关闭</button>
+            <router-link v-if="authStore.hasMenu('/purchase/receipts')" class="btn-secondary" :to="{ path: '/purchase/receipts', query: { sourceId: detailOrder.id } }">查看关联收货／办理入库</router-link>
             <button v-if="canReceive(detailOrder)" class="btn-primary" @click="openReceive(detailOrder)">确认收货</button>
             <button v-else-if="needsStatusSync(detailOrder)" class="btn-primary" :disabled="saving" @click="syncReceivedStatus(detailOrder)">同步为已到货</button>
             <button v-else-if="!isWarehouseManager && arrivalStatus(detailOrder) === 'NOT_RECEIVED'" class="btn-primary" @click="openEdit(detailOrder)">补录明细</button>

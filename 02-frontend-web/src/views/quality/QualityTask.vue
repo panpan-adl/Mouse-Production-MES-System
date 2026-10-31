@@ -2,10 +2,16 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import MainLayout from '@/components/MainLayout.vue'
-import { AlertCircle, CheckCircle, ClipboardCheck, RefreshCw, Search } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
+import { canVisit } from '@/utils/permissions'
+import { foundationGroups } from '@/utils/foundationNavigation'
+import { AlertCircle, CheckCircle, ClipboardCheck, RefreshCw, Search, Settings, FileText } from 'lucide-vue-next'
 import { productionTaskApi, qcInspectionApi, type ProductionTask, type QcInspection } from '@/api/mes'
 
 const router = useRouter()
+const auth = useAuthStore()
+const configurationPath = computed(() => foundationGroups.find(group => group.module === '质量管理')?.keys
+  .map(key => `/foundation/${key}`).find(path => canVisit(auth.effectiveRoleId, path) && auth.hasMenu(path)))
 const loading = ref(false)
 const message = ref('')
 const keyword = ref('')
@@ -132,10 +138,20 @@ function getErrorMessage(error: unknown) {
           <h1 class="mt-1 text-2xl font-bold text-gray-900">质检任务</h1>
           <p class="mt-2 text-gray-500">这里处理“还没形成质检结论”的待检任务，以及返工、不合格、报废等需要继续跟进的异常任务。</p>
         </div>
-        <button class="btn-secondary" :disabled="loading" @click="loadData">
-          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
-          刷新
-        </button>
+        <div class="flex flex-wrap items-center gap-3">
+          <button v-if="configurationPath" class="btn-secondary" @click="router.push(configurationPath)">
+            <Settings class="h-4 w-4" />
+            检验与缺陷配置
+          </button>
+          <button v-if="canVisit(auth.effectiveRoleId, '/quality/standard') && auth.hasMenu('/quality/standard')" class="btn-secondary" @click="router.push('/quality/standard')">
+            <FileText class="h-4 w-4" />
+            质检标准
+          </button>
+          <button class="btn-secondary" :disabled="loading" @click="loadData">
+            <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
+            刷新
+          </button>
+        </div>
       </div>
 
       <p v-if="message" class="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{{ message }}</p>

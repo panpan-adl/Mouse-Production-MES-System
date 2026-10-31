@@ -51,7 +51,7 @@ const flowPaths = [
           <path :d="`M${project(210,180)} L${project(820,180)}`" stroke="#dac9a5" stroke-width="16" opacity=".65" />
           <path :d="`M${project(210,180)} L${project(820,180)}`" stroke="#fff9e9" stroke-width="1" stroke-dasharray="9 8" />
           <path v-for="(p,i) in flowPaths" :key="i" :d="`M${project(p[0],p[1],3)} L${project(p[2],p[3],3)}`" class="material-route" marker-end="url(#factory-arrow)" />
-          <g v-for="(zone,index) in zones" :key="zone.id" role="button" tabindex="0" :aria-label="`${zone.name}，点击筛选相关工单`" :aria-pressed="selectedZone===zone.id" class="factory-zone" :class="{selected:selectedZone===zone.id}" @click="selectZone(zone)" @keydown.enter.prevent="selectZone(zone)" @keydown.space.prevent="selectZone(zone)">
+          <g v-for="zone in zones" :key="zone.id" role="button" tabindex="0" :aria-label="`${zone.name}，点击筛选相关工单`" :aria-pressed="selectedZone===zone.id" class="factory-zone" :class="{selected:selectedZone===zone.id}" @click="selectZone(zone)" @keydown.enter.prevent="selectZone(zone)" @keydown.space.prevent="selectZone(zone)">
             <polygon :points="face(zone.x-7,zone.y-7,zone.w+14,zone.d+14,1)" :fill="zone.color" fill-opacity=".13" :stroke="zone.color" stroke-width="1" stroke-dasharray="4 3" class="zone-outline" />
             <polygon :points="face(zone.x,zone.y,zone.w,zone.d,4)" fill="#faf7ee" stroke="#d4c5a9" />
             <template v-if="zone.type==='warehouse'">
@@ -73,12 +73,15 @@ const flowPaths = [
               </g>
               <path :d="`M${project(zone.x+20,zone.y+84,5)} L${project(zone.x+zone.w-20,zone.y+84,5)}`" :stroke="zone.color" stroke-width="3" stroke-dasharray="6 5" />
             </template>
-            <g :transform="`translate(${project(zone.x+zone.w/2,zone.y+zone.d+8,0).replace(',', ' ')})`">
-              <rect x="-49" y="0" width="98" height="34" rx="5" fill="#fffdf7" stroke="#e3d8c5" />
-              <text text-anchor="middle" y="14" class="zone-label">{{zone.name}}</text><text text-anchor="middle" y="27" class="zone-number">{{String(index+1).padStart(2,'0')}} · {{zone.subtitle}}</text>
-            </g>
           </g>
           <g :transform="`translate(${project(55,310,0).replace(',', ' ')})`"><path d="M0 0 v-34 M-5 -28 l5 -6 5 6" stroke="#aa916d" fill="none"/><text x="-4" y="14" font-size="10" fill="#aa916d">N</text></g>
+          <!-- Labels render after every model so foreground machines cannot cover them. -->
+          <g class="zone-label-layer" aria-hidden="true">
+            <g v-for="(zone,index) in zones" :key="zone.id" class="zone-label-card" :transform="`translate(${project(zone.x+zone.w/2,zone.y+zone.d+8,0).replace(',', ' ')})`" @click.stop="selectZone(zone)">
+              <rect x="-53" y="0" width="106" height="36" rx="5" fill="#fffdf7" stroke="#e3d8c5" />
+              <text text-anchor="middle" y="15" class="zone-label">{{zone.name}}</text><text text-anchor="middle" y="29" class="zone-number">{{String(index+1).padStart(2,'0')}} · {{zone.subtitle}}</text>
+            </g>
+          </g>
         </g>
       </svg>
       <div class="scene-controls"><button aria-label="缩小车间" :disabled="zoom<=.8" @click="zoom=Math.max(.8,zoom-.1)"><ZoomOut :size="16"/></button><button aria-label="重置车间视图" @click="zoom=1"><RotateCcw :size="15"/></button><button aria-label="放大车间" :disabled="zoom>=1.4" @click="zoom=Math.min(1.4,zoom+.1)"><ZoomIn :size="16"/></button></div>
@@ -93,6 +96,7 @@ const flowPaths = [
 </template>
 
 <style scoped>
+.zone-label-card{cursor:pointer}.zone-label-card:hover rect{stroke:#b78a55;fill:#fff8e9}
 .factory-scene{background:linear-gradient(145deg,#fffefb,#f6f0e4);border:1px solid #e5dac8;border-radius:16px;overflow:hidden;min-width:0;display:flex;flex-direction:column}
 header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:23px 24px 0;z-index:1}.scene-kicker{font-size:9px;letter-spacing:.18em;color:#b39b7d}h2{font-size:19px;letter-spacing:.025em;font-weight:600;color:#554735;margin-top:7px}.scene-mode{font-size:10px;color:#8e866f;display:flex;align-items:center;gap:6px;white-space:nowrap}.scene-mode i{width:5px;height:5px;background:#8b9b79;border-radius:50%}
 .scene-canvas{position:relative;flex:1;min-height:320px;display:flex;align-items:center;overflow:hidden}.scene-canvas>svg{width:100%;position:relative;z-index:1;min-height:300px}.scene-watermark{position:absolute;top:20px;left:24px;color:#e9dfcc;font-size:50px;line-height:.8;font-weight:700;letter-spacing:-.05em}.scene-watermark span{font-size:10px;letter-spacing:.3em;font-weight:400}

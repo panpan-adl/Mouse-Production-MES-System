@@ -7,6 +7,8 @@ import java.util.Date;
 
 @Data
 public class MaterialRequest {
+    private Long purchaseOrderId;
+    private String purchaseOrderNo;
     /** 物料请求ID。 */
     private Long id;
 

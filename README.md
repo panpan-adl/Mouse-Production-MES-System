@@ -53,3 +53,8 @@
 ## 四档功能验收环境
 
 四档功能整改与实际测试结果见 [最终验收记录](05-docs/四档功能整改与最终验收-20261030.md)。本机已准备独立演示入口 <http://127.0.0.1:5175/login>，重启使用 `08-environment/Start-Four-Tier-Demo.ps1`，停止使用 `08-environment/Stop-Four-Tier-Demo.ps1`。它使用新建隔离库，不替换原站点数据；完整重建步骤见验收记录。升级已有库前运行 `python 07-tools-barcodes/four_tier_database.py --database 实际数据库名`，该工具先备份，再执行幂等增量迁移。
+
+
+## 采购需求与订单关联
+
+采购需求默认展示全部状态。仓库核对缺料并发送采购后，采购员通过“生成采购单”创建草稿订单，成功后自动打开关联订单；需求、订单和收货页面提供来源跳转。转单由服务端事务完成，并发重试只生成一张订单。已有数据库升级前先备份，再执行 `04-database/purchase_request_flow.sql`；不根据备注猜测或补造旧单据关联。隔离验收脚本为 `07-tools-barcodes/verify_purchase_request_flow.py`。

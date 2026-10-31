@@ -1,0 +1,42 @@
+/* Shared business surfaces, including dialogs rendered beside MainLayout.
+   Login and decorative factory illustrations keep their own visual treatment. */
+body:has(.notion-workspace){--business-accent:#92734c;--business-accent-hover:#795d3c;--business-soft:#f3ede2;--business-line:#e5dfd4;--business-muted:#958b7c}
+:is(.notion-workspace,body:has(.notion-workspace)) :is(.btn-primary,button.bg-blue-600,a.bg-blue-600){background:var(--business-accent);border:1px solid var(--business-accent);color:#fffdf8;border-radius:7px;box-shadow:none;font-size:13px;font-weight:500}
+:is(.notion-workspace,body:has(.notion-workspace)) :is(.btn-primary,button.bg-blue-600,a.bg-blue-600):hover{background:var(--business-accent-hover);border-color:var(--business-accent-hover);box-shadow:none}
+:is(.notion-workspace,body:has(.notion-workspace)) :is(.btn-secondary,.btn-ghost,.icon-btn){border-radius:7px;box-shadow:none;color:#7e705d;font-size:13px}
+:is(.notion-workspace,body:has(.notion-workspace)) .btn-secondary{background:#fffdf9;border:1px solid var(--business-line)}
+:is(.notion-workspace,body:has(.notion-workspace)) :is(.btn-secondary,.btn-ghost,.icon-btn):hover{background:#f3eee5;color:#6d5638;border-color:#cdb99b}
+:is(.notion-workspace,body:has(.notion-workspace)) :is(.link-btn,.text-blue-600,.text-blue-700){color:#92734c}
+:is(.notion-workspace,body:has(.notion-workspace)) :is(a,button).text-blue-600:hover{color:#6d5131}
+:is(.notion-workspace,body:has(.notion-workspace)) :is(.tag-green,.tag-blue,.tag-yellow,.tag-red,.tag-gray){display:inline-flex;align-items:center;padding:3px 9px;border:1px solid transparent;border-radius:6px;font-size:11px;line-height:1.6;font-weight:500;white-space:nowrap}
+:is(.notion-workspace,body:has(.notion-workspace)) :is(.tag-green,.bg-green-100,.bg-green-50){background:#eaf0e5;color:#617953;border-color:#dce5d4}
+:is(.notion-workspace,body:has(.notion-workspace)) :is(.tag-blue,.bg-blue-100,.bg-blue-50){background:#eee7dc;color:#8c704b;border-color:#e3d7c4}
+:is(.notion-workspace,body:has(.notion-workspace)) :is(.tag-yellow,.bg-yellow-100,.bg-amber-50){background:#f6eedb;color:#9b7c40;border-color:#eadfbd}
+:is(.notion-workspace,body:has(.notion-workspace)) :is(.tag-red,.bg-red-100,.bg-red-50){background:#f5e8e3;color:#a46757;border-color:#ead6ce}
+:is(.notion-workspace,body:has(.notion-workspace)) .tag-gray{background:#f0eee9;color:#8d867b;border-color:#e5e1d9}
+body:has(.notion-workspace) .modal-mask{background:#39332966;backdrop-filter:blur(3px);padding:24px}
+body:has(.notion-workspace) .modal-mask .modal-card{background:#fffdf9;color:#514a40;border:1px solid #e5dfd4;border-radius:14px;box-shadow:0 18px 65px #332a1d24;padding:24px;max-height:calc(100dvh - 48px);scrollbar-width:thin;scrollbar-color:#d3c7b5 transparent}
+body:has(.notion-workspace) .modal-card :is(h1,h2,h3){color:#665239;letter-spacing:0;overflow-wrap:anywhere}
+body:has(.notion-workspace) .modal-card :is(h1,h2){font-size:19px;line-height:1.5;font-weight:600}
+body:has(.notion-workspace) .modal-card h3{font-size:14px;font-weight:600}
+body:has(.notion-workspace) .modal-card :is(.text-gray-900,.text-gray-800,.text-slate-800){color:#514a40}
+body:has(.notion-workspace) .modal-card :is(.text-gray-500,.text-gray-400,.text-slate-400){color:#9a8f7e}
+body:has(.notion-workspace) .modal-card :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea){background:#fff;border:1px solid #dfd7ca;border-radius:7px;color:#514a40;font-size:13px;box-shadow:none;min-height:38px;color-scheme:light}
+body:has(.notion-workspace) .modal-card :is(input,select,textarea):focus{outline:none;border-color:#b39872;box-shadow:0 0 0 3px #b398721a}
+body:has(.notion-workspace) .modal-card :is(input,textarea)::placeholder{color:#b1a795}
+body:has(.notion-workspace) .modal-card :is(.bg-gray-50,.bg-slate-50){background:#f7f3eb}
+body:has(.notion-workspace) .modal-card :is([class*=border-gray],[class*=border-slate]){border-color:#e8e1d6}
+body:has(.notion-workspace) .modal-card table{font-size:12px;width:100%}
+body:has(.notion-workspace) .modal-card th{background:#f5f0e7;color:#95856d;font-weight:500}
+body:has(.notion-workspace) .modal-card td{color:#665c4e;border-color:#eee7dd}
+body:has(.notion-workspace) .modal-card :focus-visible{outline:2px solid #b39872;outline-offset:3px}
+.notion-workspace .workspace-content :is(.bg-gradient-to-r,.bg-gradient-to-br){background:linear-gradient(110deg,#f1e9da,#faf7f0);color:#715b3d;border:1px solid #e5dccb;box-shadow:none}
+.notion-workspace .workspace-content :is(.bg-gradient-to-r,.bg-gradient-to-br) :is(h1,h2,h3,.text-white){color:#715b3d}
+.notion-workspace .workspace-content :is(.bg-gradient-to-r,.bg-gradient-to-br) [class*=text-blue-]{color:#9b876a}
+.notion-workspace .mes-module-tabs{background:#f1ede5;border-color:#e5dfd4;border-radius:9px}
+.notion-workspace .mes-module-tabs button{color:#998b77}
+.notion-workspace .mes-module-tabs button.bg-blue-600{background:#fffdf8!important;color:#80633e;border-color:#e5d8c3;box-shadow:0 1px 4px #6652390b!important}
+.notion-workspace .module-heading-mark{background:#eee6d8;color:#97774d;border-color:#e4d7c1;border-radius:9px}
+.notion-workspace .mes-hero-label{color:#b09a7b}
+.notion-workspace .user-avatar{background:#eee6d8;color:#9a7c54}
+@media(max-width:640px){body:has(.notion-workspace) .modal-mask{padding:12px}body:has(.notion-workspace) .modal-mask .modal-card{padding:18px;max-height:calc(100dvh - 24px);border-radius:11px}}

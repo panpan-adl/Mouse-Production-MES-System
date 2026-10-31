@@ -43,6 +43,10 @@ admin=next(p['id'] for p in people if p['roleId']==9)
 now=datetime.datetime.now();today=now.date()
 unit=get('units')[0]['uom_name']
 top('customers',lambda i:dict(customer_name=['华东智联科技','苏州云帆电子','杭州启明办公','深圳星河数码','南京锐捷商贸','合肥科创信息','成都远航科技','武汉蓝海电子','长沙联创办公','厦门海辰科技'][i-1],contact_person='演示联系人'+str(i),phone='1380000'+str(i).zfill(4),address='演示客户地址'))
+# Complete demo customer email addresses without replacing existing contact data.
+from fill_demo_customer_emails import fill_customer_emails
+fill_customer_emails(DB)
+
 top('suppliers',lambda i:dict(supplier_name='演示供应商·'+['精密塑胶','电路板','微动开关','光学传感','线材连接','电子元件','包装材料','紧固件','喷涂材料','五金模具'][i-1],contact_person='供应联系'+str(i),contact_phone='1390000'+str(i).zfill(4)))
 top('products',lambda i:dict(product_name='演示M'+str(i)+'无线办公鼠标',model='M'+str(i),unit=unit,cost_price=35+i,selling_price=89+i,specification='2.4G / USB'))
 top('equipment',lambda i:dict(equipment_name=['注塑成型机','自动锁螺丝机','激光打标机','按键寿命测试台','光学定位测试台','自动包装机','超声波焊接机','回流焊设备','精密点胶机','外观视觉检测台'][i-1]+'（演示）',model='MES-E'+str(i),location='鼠标制造演示车间'))

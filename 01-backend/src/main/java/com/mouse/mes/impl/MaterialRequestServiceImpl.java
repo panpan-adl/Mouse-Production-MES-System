@@ -21,6 +21,7 @@ import java.util.Objects;
 public class MaterialRequestServiceImpl implements MaterialRequestService {
 
     @Autowired private org.springframework.jdbc.core.JdbcTemplate db;
+    @Autowired private com.mouse.mes.service.PurchaseOrderService purchaseOrders;
     private static final String STATUS_ENOUGH = "ENOUGH";
     private static final String STATUS_SHORTAGE = "SHORTAGE";
     private static final String STATUS_PURCHASE_REQUESTED = "PURCHASE_REQUESTED";
@@ -80,10 +81,13 @@ public class MaterialRequestServiceImpl implements MaterialRequestService {
     @Override
     @Transactional
     public MaterialRequest update(MaterialRequest materialRequest) {
+        db.queryForList("SELECT id FROM mm_guard WHERE id=1 FOR UPDATE");
         MaterialRequest existing = materialRequestMapper.findById(materialRequest.getId());
         if (existing == null) {
             throw new RuntimeException("物料请求不存在");
         }
+        if (STATUS_PURCHASE_REQUESTED.equals(existing.getRequestStatus()) || STATUS_PURCHASE_ORDERED.equals(existing.getRequestStatus()))
+            throw new IllegalArgumentException("已发送采购的需求不可改写，请查看采购进度");
         if (materialRequest.getSourceTaskId() != null) existing.setSourceTaskId(materialRequest.getSourceTaskId());
         if (materialRequest.getSourceTaskNo() != null) existing.setSourceTaskNo(materialRequest.getSourceTaskNo());
         if (materialRequest.getProductName() != null) existing.setProductName(materialRequest.getProductName());
@@ -103,10 +107,12 @@ public class MaterialRequestServiceImpl implements MaterialRequestService {
     @Override
     @Transactional
     public MaterialRequest requestPurchase(Long id) {
+        db.queryForList("SELECT id FROM mm_guard WHERE id=1 FOR UPDATE");
         MaterialRequest existing = materialRequestMapper.findById(id);
         if (existing == null) {
             throw new RuntimeException("物料请求不存在");
         }
+        if (STATUS_PURCHASE_ORDERED.equals(existing.getRequestStatus())) throw new IllegalArgumentException("该需求已转采购单，请查看关联订单");
         fillMaterialInfoAndStock(existing, false);
         if (existing.getShortageQuantity() == null || existing.getShortageQuantity().compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("当前库存充足，不需要发送采购请求");
@@ -124,14 +130,56 @@ public class MaterialRequestServiceImpl implements MaterialRequestService {
         if (existing == null) {
             throw new RuntimeException("物料请求不存在");
         }
+        if (existing.getPurchaseOrderId() == null) throw new IllegalArgumentException("请通过生成采购订单完成转单，不能单独修改转单状态");
         existing.setRequestStatus(STATUS_PURCHASE_ORDERED);
         existing.setUpdatedAt(new Date());
         materialRequestMapper.update(existing);
         return materialRequestMapper.findById(id);
     }
 
+    /** Lock before creating the order: provenance and status commit together, including retries. */
     @Override
+    @Transactional
+    public com.mouse.mes.entity.PurchaseOrder createPurchaseOrder(Long id, com.mouse.mes.dto.PurchaseOrderRequest input, Long actor) {
+        db.queryForList("SELECT id FROM mm_guard WHERE id=1 FOR UPDATE");
+        MaterialRequest source = materialRequestMapper.findById(id);
+        if (source == null) throw new IllegalArgumentException("物料请求不存在");
+        if (source.getPurchaseOrderId() != null) return purchaseOrders.findById(source.getPurchaseOrderId());
+        if (!STATUS_PURCHASE_REQUESTED.equals(source.getRequestStatus())) throw new IllegalArgumentException("请先由仓库核对缺口并发送采购请求");
+        fillMaterialInfoAndStock(source, false);
+        if (source.getShortageQuantity().signum() <= 0) throw new IllegalArgumentException("当前库存已充足，请重新核对需求，无需采购");
+        var lines = input.getItems();
+        if (lines == null || lines.size() != 1 || lines.get(0).getUnitPrice() == null || lines.get(0).getUnitPrice().signum() < 0)
+            throw new IllegalArgumentException("请填写有效的采购单价");
+        var line = new com.mouse.mes.entity.PurchaseOrderItem();
+        line.setMaterialId(source.getMaterialId());
+        line.setQuantity(source.getShortageQuantity());
+        line.setUnitPrice(lines.get(0).getUnitPrice());
+        line.setAmount(line.getQuantity().multiply(line.getUnitPrice()));
+        var order = new com.mouse.mes.dto.PurchaseOrderRequest();
+        order.setPoNo("PO-MR-" + id);
+        order.setSupplierId(input.getSupplierId());
+        order.setOrderDate(new Date());
+        order.setExpectedDate(input.getExpectedDate());
+        order.setStatus("DRAFT");
+        order.setCreatedBy(actor);
+        order.setRemark("来源物料请求 " + source.getRequestNo() + "；" + Objects.toString(input.getRemark(), ""));
+        order.setItems(List.of(line));
+        var created = purchaseOrders.create(order);
+        db.update("INSERT INTO mm_purchase_request_order(request_id,po_id) VALUES(?,?)", id, created.getId());
+        source.setRequestStatus(STATUS_PURCHASE_ORDERED);
+        source.setUpdatedAt(new Date());
+        materialRequestMapper.update(source);
+        return created;
+    }
+
+    @Override
+    @Transactional
     public void delete(Long id) {
+        db.queryForList("SELECT id FROM mm_guard WHERE id=1 FOR UPDATE");
+        MaterialRequest existing = materialRequestMapper.findById(id);
+        if (existing != null && (STATUS_PURCHASE_REQUESTED.equals(existing.getRequestStatus()) || STATUS_PURCHASE_ORDERED.equals(existing.getRequestStatus())))
+            throw new IllegalArgumentException("已发送采购的需求不能删除，须保留来源记录");
         materialRequestMapper.delete(id);
     }
 

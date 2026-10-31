@@ -16,6 +16,7 @@ import {
   type Warehouse,
 } from '@/api/mes'
 import { useAuthStore } from '@/stores/auth'
+import { canVisit } from '@/utils/permissions'
 
 type RequestStatus = '' | 'PENDING_CHECK' | 'ENOUGH' | 'SHORTAGE' | 'PURCHASE_REQUESTED' | 'PURCHASE_ORDERED'
 
@@ -342,7 +343,8 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form,selecte
                 <td>{{ warehouseText(item.warehouseId) }}</td>
                 <td><span :class="statusClass(item.requestStatus)">{{ statusText(item.requestStatus) }}</span></td>
                 <td class="text-right space-x-2">
-                  <button class="link-btn" :disabled="saving" @click="refreshRequest(item)">刷新判断</button>
+                  <button v-if="!['PURCHASE_REQUESTED','PURCHASE_ORDERED'].includes(item.requestStatus || '')" class="link-btn" :disabled="saving" @click="refreshRequest(item)">刷新判断</button>
+                  <router-link v-if="['PURCHASE_REQUESTED','PURCHASE_ORDERED'].includes(item.requestStatus || '') && canVisit(Number(authStore.effectiveRoleId), '/purchase/requests') && authStore.hasMenu('/purchase/requests')" class="link-btn" :to="{ path: '/purchase/requests', query: { requestId: item.id, requestNo: item.requestNo } }">查看采购进度</router-link>
                   <button v-if="canSendPurchaseRequest(item)" class="link-btn" :disabled="saving" @click="sendPurchaseRequest(item)">
                     <Send class="inline-block w-4 h-4 mr-1" />
                     发送采购请求

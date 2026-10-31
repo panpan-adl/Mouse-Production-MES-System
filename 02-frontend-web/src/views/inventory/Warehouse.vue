@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
 import {
@@ -38,6 +38,13 @@ const warehouseForm = reactive<Warehouse>({
   remark: '',
 })
 
+const inventoryPage = ref(1)
+const inventoryPageSize = ref(10)
+const inventoryPageCount = computed(() => Math.max(1, Math.ceil(inventoryList.value.length / inventoryPageSize.value)))
+const pagedInventory = computed(() => inventoryList.value.slice((inventoryPage.value - 1) * inventoryPageSize.value, inventoryPage.value * inventoryPageSize.value))
+watch(inventoryPageSize, () => { inventoryPage.value = 1 })
+watch(inventoryPageCount, count => { inventoryPage.value = Math.min(inventoryPage.value, count) })
+
 const totalQuantity = computed(() => inventoryList.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0))
 
 onMounted(loadAll)
@@ -55,6 +62,7 @@ async function loadAll() {
     warehouses.value = warehouseData
     materials.value = materialData
     inventoryList.value = inventoryData
+    inventoryPage.value = 1
     lowStockList.value = lowData
   } catch (error: any) {
     message.value = error.message || '仓库库存数据加载失败'
@@ -67,6 +75,7 @@ async function searchInventory() {
   loading.value = true
   try {
     inventoryList.value = await inventoryApi.search(filters)
+    inventoryPage.value = 1
   } catch (error: any) {
     message.value = error.message || '库存查询失败'
   } finally {
@@ -165,7 +174,7 @@ const completeDrafts=useFormDrafts({showWarehouseForm:{open:showWarehouseForm,fi
 
       <p v-if="message" class="text-sm text-blue-600">{{ message }}</p>
 
-      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 xl:grid-cols-3 items-start gap-6">
         <div class="panel xl:col-span-2">
           <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-5">
             <div>
@@ -203,7 +212,7 @@ const completeDrafts=useFormDrafts({showWarehouseForm:{open:showWarehouseForm,fi
               <tbody>
                 <tr v-if="loading"><td colspan="6" class="empty-cell">正在加载库存...</td></tr>
                 <tr v-else-if="inventoryList.length === 0"><td colspan="6" class="empty-cell">暂无库存数据</td></tr>
-                <tr v-for="item in inventoryList" v-else :key="item.id">
+                <tr v-for="item in pagedInventory" v-else :key="item.id">
                   <td>{{ materialName(item.materialId) }}</td>
                   <td>{{ warehouseName(item.warehouseId) }}</td>
                   <td>{{ item.locationId || '-' }}</td>
@@ -214,6 +223,15 @@ const completeDrafts=useFormDrafts({showWarehouseForm:{open:showWarehouseForm,fi
               </tbody>
             </table>
           </div>
+          <nav class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4 text-sm text-gray-500" aria-label="库存查询分页">
+            <span aria-live="polite">共 {{ inventoryList.length }} 条<span v-if="inventoryList.length">，当前 {{ (inventoryPage - 1) * inventoryPageSize + 1 }}–{{ Math.min(inventoryPage * inventoryPageSize, inventoryList.length) }} 条</span></span>
+            <div class="flex flex-wrap items-center gap-3">
+              <label class="flex items-center gap-2">每页<select v-model.number="inventoryPageSize" :disabled="loading" class="rounded-lg border px-2 py-2" aria-label="库存每页条数"><option :value="10">10 条</option><option :value="20">20 条</option><option :value="50">50 条</option></select></label>
+              <button type="button" class="btn-secondary" :disabled="loading || inventoryPage === 1" @click="inventoryPage--">上一页</button>
+              <span>{{ inventoryPage }} / {{ inventoryPageCount }} 页</span>
+              <button type="button" class="btn-secondary" :disabled="loading || inventoryPage >= inventoryPageCount" @click="inventoryPage++">下一页</button>
+            </div>
+          </nav>
         </div>
 
         <div class="space-y-6">

@@ -5,6 +5,7 @@ import './style.css'
 import './immersive.css'
 import './sky-theme.css'
 import './notion-theme.css'
+import './business-theme.css'
 import App from './App.vue'
 import { installBusinessFormValidation } from '@/utils/businessFormValidation'
 
