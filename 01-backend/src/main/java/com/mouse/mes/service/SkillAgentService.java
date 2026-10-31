@@ -31,8 +31,8 @@ public class SkillAgentService {
         if(q.matches("(?s).*(补货|采购建议).*"))return "replenishment";
         if(q.matches("(?s).*(点检|保养|维护待办).*"))return "maintenance";
         if(q.matches("(?s).*(追溯|工单|订单编号|计划单).*"))return "trace";
-        if(q.matches("(?s).*(缺料|齐套|安全库存).*"))return "shortage";
-        if(q.matches("(?s).*(库存|出入库|原材料|半成品|成品).*"))return "inventory";
+        if(q.matches("(?s).*(缺料|齐套|安全库存|库存不足|低于.*库存|原料.*不够).*"))return "shortage";
+        if(q.matches("(?s).*(库存|出入库|原材料|半成品|成品|盘点|结存|余额).*"))return "inventory";
         return "";
     }
     public Map<String,Object> message(Map<String,Object> body,long actor,int role) throws Exception {

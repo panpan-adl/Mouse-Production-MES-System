@@ -15,6 +15,9 @@ public class MaterialServiceImpl implements MaterialService {
     @Autowired
     private MaterialMapper materialMapper;
 
+    @Autowired private com.mouse.mes.service.MaterialOriginService materialOrigin;
+    @Autowired private com.mouse.mes.service.FulfillmentService fulfillment;
+
     @Override
     public List<Material> findAll() {
         return materialMapper.findAll();
@@ -36,7 +39,9 @@ public class MaterialServiceImpl implements MaterialService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public Material create(Material material) {
+        fulfillment.lock();
         material.setCreateTime(new Date());
         material.setUpdateTime(new Date());
         if (material.getStatus() == null) {
@@ -46,6 +51,7 @@ public class MaterialServiceImpl implements MaterialService {
             material.setCurrentStock(0);
         }
         materialMapper.insert(material);
+        materialOrigin.created(material.getId());
         return material;
     }
 

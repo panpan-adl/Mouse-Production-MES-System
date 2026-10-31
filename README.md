@@ -48,3 +48,8 @@
 已有阶段数据库在备份后应用`04-database/mes_completion.sql`；原业务库不可执行重建脚本。完整隔离复验使用`08-environment/Verify-MES-Completion.ps1`，在8085运行并创建测试业务数据。系统原有业务库与演示验收库分别使用5173和5174。
 
 新增入口、操作顺序、83项业务验收与已知边界见[功能补齐与验收说明](05-docs/第三四阶段交付/MouseMES功能补齐与验收说明.md)。微信小程序尚未进行真机验收，前端构建和接口验收不能替代真实设备验证。
+
+
+## 四档功能验收环境
+
+四档功能整改与实际测试结果见 [最终验收记录](05-docs/四档功能整改与最终验收-20261030.md)。本机已准备独立演示入口 <http://127.0.0.1:5175/login>，重启使用 `08-environment/Start-Four-Tier-Demo.ps1`，停止使用 `08-environment/Stop-Four-Tier-Demo.ps1`。它使用新建隔离库，不替换原站点数据；完整重建步骤见验收记录。升级已有库前运行 `python 07-tools-barcodes/four_tier_database.py --database 实际数据库名`，该工具先备份，再执行幂等增量迁移。

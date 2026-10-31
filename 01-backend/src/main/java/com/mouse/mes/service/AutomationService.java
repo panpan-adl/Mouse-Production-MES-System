@@ -42,10 +42,34 @@ public class AutomationService {
         }));
     }
     public Map<String,Object> state(){
-        return Map.of("rules",db.queryForList("SELECT * FROM mm_auto_rule"),"events",db.queryForList("SELECT e.*,w.code work_order_code,t.task_no FROM mm_auto_event e JOIN mm_task_context c ON c.task_id=e.task_id JOIN mm_work_order w ON w.id=c.work_order_id JOIN t_production_task t ON t.id=e.task_id ORDER BY e.id DESC LIMIT 200"),"todos",db.queryForList("SELECT q.*,w.code work_order_code,t.task_no,TIMESTAMPDIFF(MICROSECOND,e.created_at,q.created_at)/1000000.0 creation_seconds FROM mm_qc_todo q LEFT JOIN mm_auto_event e ON e.id=q.event_id JOIN mm_work_order w ON w.id=q.work_order_id JOIN t_production_task t ON t.id=q.task_id ORDER BY q.id DESC LIMIT 200"));
+        return Map.of("rules",db.queryForList("SELECT * FROM mm_auto_rule"),"events",db.queryForList("SELECT e.*,w.code work_order_code,t.task_no FROM mm_auto_event e JOIN mm_task_context c ON c.task_id=e.task_id JOIN mm_work_order w ON w.id=c.work_order_id JOIN t_production_task t ON t.id=e.task_id ORDER BY e.id DESC LIMIT 200"),"todos",db.queryForList("SELECT q.*,w.code work_order_code,t.task_no,IF(EXISTS(SELECT 1 FROM mm_qc_comparison r WHERE r.task_id=q.task_id),'MANUAL','AUTO') creation_mode,IF(EXISTS(SELECT 1 FROM mm_qc_comparison r WHERE r.task_id=q.task_id),NULL,TIMESTAMPDIFF(MICROSECOND,e.created_at,q.created_at)/1000000.0) creation_seconds FROM mm_qc_todo q LEFT JOIN mm_auto_event e ON e.id=q.event_id JOIN mm_work_order w ON w.id=q.work_order_id JOIN t_production_task t ON t.id=q.task_id ORDER BY q.id DESC LIMIT 200"));
     }
     public void toggle(boolean enabled){db.update("UPDATE mm_auto_rule SET enabled=? WHERE code='REPORT_QC'",enabled?1:0);}
     public void retry(long id){int changed=db.update("UPDATE mm_auto_event e JOIN mm_auto_rule r ON r.code=e.rule_code SET e.status='PENDING',e.error=NULL WHERE e.id=? AND e.status IN ('FAILED','SKIPPED') AND e.attempts<3 AND r.enabled=1",id);if(changed==0)throw new IllegalArgumentException("仅可重试已启用规则的失败/跳过事件，最多三次");}
     public List<Map<String,Object>> suggestions(){return db.queryForList("SELECT m.id material_id,m.material_code,m.material_name,m.unit,m.safety_stock,COALESCE(SUM(i.quantity),0) current_quantity,GREATEST(0,m.safety_stock-COALESCE(SUM(i.quantity),0)) suggested_quantity,COALESCE(MAX(r.status),'SUGGESTED') status FROM t_material m LEFT JOIN t_inventory i ON i.material_id=m.id AND i.is_deleted=0 LEFT JOIN mm_replenishment r ON r.material_id=m.id WHERE m.status=1 GROUP BY m.id HAVING current_quantity<m.safety_stock ORDER BY suggested_quantity DESC");}
     public void confirm(long material,long actor){tx.executeWithoutResult(s->{var rows=db.queryForList("SELECT id FROM t_material WHERE id=? FOR UPDATE",material);if(rows.isEmpty()||suggestions().stream().noneMatch(r->((Number)r.get("material_id")).longValue()==material))throw new IllegalArgumentException("物料不存在或当前无需补货");db.update("INSERT INTO mm_replenishment(material_id,status,confirmed_by,confirmed_at) VALUES(?,'CONFIRMED',?,NOW()) ON DUPLICATE KEY UPDATE status='CONFIRMED',confirmed_by=?,confirmed_at=NOW()",material,actor,actor);});}
+
+    public List<Map<String,Object>> comparisonTasks(){
+        return db.queryForList("SELECT e.task_id,w.code work_order_code,t.task_no FROM mm_auto_event e JOIN t_production_task t ON t.id=e.task_id JOIN mm_task_context c ON c.task_id=t.id JOIN mm_work_order w ON w.id=c.work_order_id WHERE e.rule_code='REPORT_QC' AND e.status='SKIPPED' AND e.error='规则已停用' AND t.task_status=3 AND NOT EXISTS(SELECT 1 FROM mm_qc_todo q WHERE q.task_id=t.id) ORDER BY e.id DESC LIMIT 100");
+    }
+    public Map<String,Object> comparison(){
+        return Map.of("manual",db.queryForList("SELECT r.*,t.task_no,w.code work_order_code,TIMESTAMPDIFF(MICROSECOND,r.started_at,r.finished_at)/1000000.0 elapsed_seconds FROM mm_qc_comparison r JOIN t_production_task t ON t.id=r.task_id JOIN mm_task_context c ON c.task_id=t.id JOIN mm_work_order w ON w.id=c.work_order_id ORDER BY r.id DESC LIMIT 50"),
+            "automatic",db.queryForList("SELECT q.task_id,t.task_no,w.code work_order_code,e.created_at started_at,q.created_at finished_at,TIMESTAMPDIFF(MICROSECOND,e.created_at,q.created_at)/1000000.0 elapsed_seconds FROM mm_qc_todo q JOIN mm_auto_event e ON e.id=q.event_id JOIN t_production_task t ON t.id=q.task_id JOIN mm_work_order w ON w.id=q.work_order_id WHERE e.status='SUCCEEDED' AND NOT EXISTS(SELECT 1 FROM mm_qc_comparison r WHERE r.task_id=q.task_id) ORDER BY q.id DESC LIMIT 50"),"tasks",comparisonTasks());
+    }
+    public void beginComparison(long task,long actor){tx.executeWithoutResult(s->{
+        db.queryForList("SELECT id FROM mm_guard WHERE id=1 FOR UPDATE");
+        if(comparisonTasks().stream().noneMatch(r->((Number)r.get("task_id")).longValue()==task))throw new IllegalArgumentException("请先停用报工质检规则，并选择已完整报工、尚未生成待办的工序");
+        db.update("INSERT IGNORE INTO mm_qc_comparison(task_id,mode,started_by) VALUES(?,'MANUAL',?)",task,actor);
+    });}
+    public void finishComparison(long task,long actor){tx.executeWithoutResult(s->{
+        db.queryForList("SELECT id FROM mm_guard WHERE id=1 FOR UPDATE");
+        var runs=db.queryForList("SELECT * FROM mm_qc_comparison WHERE task_id=? AND mode='MANUAL' FOR UPDATE",task);
+        if(runs.isEmpty()||((Number)runs.get(0).get("started_by")).longValue()!=actor)throw new IllegalArgumentException("请由开始计时的质检员完成本次人工操作");
+        if(runs.get(0).get("finished_at")!=null)return;
+        if(comparisonTasks().stream().noneMatch(r->((Number)r.get("task_id")).longValue()==task))throw new IllegalArgumentException("此工序已处理或不再需要生成待办，请刷新");
+        Integer templates=db.queryForObject("SELECT COUNT(*) FROM mm_qc_template q JOIN mm_task_context c ON c.operation_id=q.operation_id JOIN t_production_task t ON t.id=c.task_id WHERE c.task_id=? AND q.product_id=t.product_id AND q.kind='PROCESS' AND q.phase IN ('FINAL','LAST') AND EXISTS(SELECT 1 FROM mm_qc_line l WHERE l.template_id=q.id)",Integer.class,task);
+        if(templates==null||templates==0)throw new IllegalArgumentException("请先配置有效的过程检验模板");
+        db.update("INSERT INTO mm_qc_todo(event_id,task_id,work_order_id) SELECT e.id,e.task_id,c.work_order_id FROM mm_auto_event e JOIN mm_task_context c ON c.task_id=e.task_id WHERE e.rule_code='REPORT_QC' AND e.task_id=?",task);
+        db.update("UPDATE mm_qc_comparison SET finished_at=NOW(6),todo_id=(SELECT id FROM mm_qc_todo WHERE task_id=?) WHERE task_id=? AND mode='MANUAL'",task,task);
+    });}
 }

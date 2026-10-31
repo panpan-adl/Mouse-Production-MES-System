@@ -42,6 +42,8 @@ public class BusinessQueryService {
         if(from!=null&&(!from.isBefore(to)||to.isAfter(LocalDate.now().plusDays(1).atStartOfDay())))throw new IllegalArgumentException("日期范围无效或包含未来日期");
         if(kind.equals("SHORTAGE")&&(from!=null))throw new IllegalArgumentException("缺料查询使用当前库存，请清除历史日期");
         if(kind.equals("SHORTAGE")&&warehouse!=null&&scalar("SELECT COUNT(*) FROM t_warehouse WHERE id=? AND warehouse_code='WH-A100-LINE'",warehouse).signum()>0)throw new IllegalArgumentException("线边库存已经分配给工单，不作为其他工单的可用库存，请选择外部仓库");
+        Map<Long,Long> origins=new HashMap<>();for(var origin:db.queryForList("SELECT material_id,ledger_id FROM mm_material_origin"))origins.put(((Number)origin.get("material_id")).longValue(),((Number)origin.get("ledger_id")).longValue());
+        boolean historyIncomplete=false;
         List<Map<String,Object>> rows=new ArrayList<>();
         for(var m:materials){long mid=((Number)m.get("id")).longValue();
             if(kind.equals("SHORTAGE")){
@@ -55,17 +57,21 @@ public class BusinessQueryService {
                 if(from!=null){
                     r.put("in_quantity",scalar("SELECT COALESCE(SUM(quantity),0) FROM t_inventory_transaction WHERE material_id=? AND warehouse_id=? AND transaction_type='IN' AND created_at>=? AND created_at<?",mid,wid,from,to));
                     r.put("out_quantity",scalar("SELECT COALESCE(SUM(quantity),0) FROM t_inventory_transaction WHERE material_id=? AND warehouse_id=? AND transaction_type='OUT' AND created_at>=? AND created_at<?",mid,wid,from,to));
-                    boolean known=!from.isBefore(captured);r.put("opening_quantity",known?balance(mid,wid,from,watermark):null);r.put("closing_quantity",known?balance(mid,wid,to,watermark):null);
+                    boolean anchored=!from.isBefore(captured),born=origins.containsKey(mid);boolean known=anchored||born;historyIncomplete|=!known;
+                    r.put("opening_quantity",anchored?balance(mid,wid,from,watermark):born?originBalance(mid,wid,from,origins.get(mid)):null);
+                    r.put("closing_quantity",anchored?balance(mid,wid,to,watermark):born?originBalance(mid,wid,to,origins.get(mid)):null);
+                    r.put("balance_basis",anchored?"库存基线及后续流水":born?"新建物料零库存起点及完整流水":"缺少可信历史起点");
                 }rows.add(r);
             }
         }
-        result.put("rows",rows);result.put("baselineAt",captured.toString());result.put("evidence",from!=null&&from.isBefore(captured)?"查询起点早于可信基线，期初/期末无法核实；出入库为已有流水合计，不能证明历史流水完整。":"当前余额来自库存台账；历史余额由基线加后续流水核算。");
+        result.put("rows",rows);result.put("baselineAt",captured.toString());result.put("evidence",historyIncomplete?"部分物料缺少查询起点的可信历史；对应期初/期末无法核实，请查看逐行依据。":"当前余额来自库存台账；历史余额由可信基线或新建物料零库存起点及完整流水核算。");
         String ledgerWhere=" WHERE 1=1";List<Object> ledgerArgs=new ArrayList<>();if(from!=null){ledgerWhere+=" AND t.created_at>=? AND t.created_at<?";ledgerArgs.add(from);ledgerArgs.add(to);}if(warehouse!=null){ledgerWhere+=" AND t.warehouse_id=?";ledgerArgs.add(warehouse);}
         Set<Long> mids=new HashSet<>();for(var m:materials)mids.add(((Number)m.get("id")).longValue());
         // IDs below originate exclusively from the parameterized catalog query, never from model output.
         String ids=mids.isEmpty()?"0":String.join(",",mids.stream().map(String::valueOf).toList());ledgerWhere+=" AND t.material_id IN ("+ids+")";
-        result.put("sources",db.queryForList("SELECT t.transaction_no,t.source_order_no,t.transaction_type,t.quantity,t.created_at,m.material_name,m.unit,w.warehouse_name FROM t_inventory_transaction t JOIN t_material m ON m.id=t.material_id JOIN t_warehouse w ON w.id=t.warehouse_id"+ledgerWhere+" ORDER BY t.id DESC LIMIT 201",ledgerArgs.toArray()));result.put("sourceLimit",200);return result;
+        result.put("sources",db.queryForList("SELECT t.transaction_no,t.source_order_no,t.transaction_type,t.quantity,t.created_at,m.material_name,m.unit,w.warehouse_name,b.lot_no,p.location_name FROM t_inventory_transaction t LEFT JOIN t_lot b ON b.id=t.lot_id LEFT JOIN t_location p ON p.id=t.location_id JOIN t_material m ON m.id=t.material_id JOIN t_warehouse w ON w.id=t.warehouse_id"+ledgerWhere+" ORDER BY t.id DESC LIMIT 201",ledgerArgs.toArray()));result.put("sourceLimit",200);return result;
     }
+    private BigDecimal originBalance(long material,long warehouse,LocalDateTime at,long watermark){return scalar("SELECT COALESCE(SUM(IF(transaction_type='IN',quantity,-quantity)),0) FROM t_inventory_transaction WHERE id>? AND material_id=? AND warehouse_id=? AND created_at<?",watermark,material,warehouse,at);}
     private BigDecimal balance(long material,long warehouse,LocalDateTime at,long watermark){return scalar("SELECT COALESCE(SUM(quantity),0) FROM mm_inventory_baseline WHERE material_id=? AND warehouse_id=?",material,warehouse).add(scalar("SELECT COALESCE(SUM(IF(transaction_type='IN',quantity,-quantity)),0) FROM t_inventory_transaction WHERE id>? AND material_id=? AND warehouse_id=? AND created_at<?",watermark,material,warehouse,at));}
     private void trace(Map<String,String> f,Map<String,Object> out){
         String code=text(f,"document");if(code.isEmpty())throw new IllegalArgumentException("请提供准确工单、计划或销售订单编号");

@@ -4,8 +4,10 @@ import com.mouse.mes.entity.Location;
 import com.mouse.mes.mapper.LocationMapper;
 import com.mouse.mes.mapper.WarehouseMapper;
 import com.mouse.mes.service.LocationService;
+import com.mouse.mes.service.LocationUsageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
@@ -24,6 +26,9 @@ public class LocationServiceImpl implements LocationService {
      */
     @Autowired
     private WarehouseMapper warehouseMapper;
+
+    @Autowired
+    private LocationUsageService locationUsage;
 
     /**
      * 查询全部未删除库位。
@@ -69,6 +74,7 @@ public class LocationServiceImpl implements LocationService {
      * 修改库位。
      */
     @Override
+    @Transactional
     public Location update(Location location) {
         Location existing = locationMapper.findById(location.getId());
         if (existing == null) {
@@ -78,6 +84,7 @@ public class LocationServiceImpl implements LocationService {
         validateLocation(location);
         location.setUpdatedAt(new Date());
         locationMapper.update(location);
+        locationUsage.syncFoundationStatus(location.getId());
         return locationMapper.findById(location.getId());
     }
 
@@ -85,8 +92,11 @@ public class LocationServiceImpl implements LocationService {
      * 删除库位。
      */
     @Override
+    @Transactional
     public void delete(Long id) {
+        locationUsage.requireUnused(id);
         locationMapper.delete(id);
+        locationUsage.removeFoundationMirror(id);
     }
 
     /**

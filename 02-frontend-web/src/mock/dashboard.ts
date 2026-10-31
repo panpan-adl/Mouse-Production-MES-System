@@ -79,6 +79,8 @@ export interface RealtimeAlert {
 }
 
 export interface DashboardData {
+  equipmentStatus?: {label:string;value:number}[]
+  equipmentDetails?: {id:number;equipment_name:string;status:string;availability:string}[]
   materialSafety?: {id:number;material_name:string;unit:string;safety_stock:number;current_quantity:number}[]
   filters: DashboardFilters
   updatedAt: string

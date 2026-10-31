@@ -66,23 +66,37 @@ public class IntelligenceService {
         if(rows.size()==1)f.put(field,rows.get(0).get("id").toString());else clarify.add((rows.isEmpty()?"未找到":"存在多个匹配")+" "+field+"："+q+"。请使用精确名称或编号。候选："+rows);
     }
     private Map<String,Object> local(String q,Map<String,String> previous){
+        q=q.replace("十一月","11月").replace("十二月","12月").replace("十月","10月").replace("九月","9月").replace("八月","8月").replace("七月","7月").replace("六月","6月").replace("五月","5月").replace("四月","4月").replace("三月","3月").replace("二月","2月").replace("一月","1月").replace("月份","月");
         Map<String,Object> r=new LinkedHashMap<>();
-        if(q.matches(".*(追溯|工单|订单|计划单).*"))r.put("kind","TRACE");else if(q.matches(".*(缺料|齐套|安全库存|补货).*")){r.put("kind","SHORTAGE");r.put("from",null);r.put("to",null);}else if(q.matches(".*(库存|出入库|入库|出库|原材料|半成品|成品).*"))r.put("kind","INVENTORY");
+        if(q.matches(".*(追溯|工单|订单|计划单).*"))r.put("kind","TRACE");else if(q.matches(".*(缺料|齐套|安全库存|补货|库存不足|低于.*库存|原料.*不够).*")){r.put("kind","SHORTAGE");r.put("from",null);r.put("to",null);}else if(q.matches(".*(库存|出入库|入库|出库|原材料|半成品|成品|盘点|结存|余额).*"))r.put("kind","INVENTORY");
         if(q.contains("全部仓库"))r.put("warehouse",null);if(q.contains("全部物料"))r.put("material",null);
-        if(q.contains("原材料"))r.put("type","1");else if(q.contains("半成品"))r.put("type","2");else if(q.contains("成品"))r.put("type","3");
+        if(q.contains("原材料")||q.replace("原料仓", "").contains("原料"))r.put("type","1");else if(q.contains("半成品"))r.put("type","2");else if(q.contains("成品"))r.put("type","3");
         LocalDate from=null,to=null,now=LocalDate.now();
-        if(q.contains("上个月")){from=now.minusMonths(1).withDayOfMonth(1);to=from.plusMonths(1).minusDays(1);}else if(q.contains("本月")||q.contains("这个月")){from=now.withDayOfMonth(1);to=now;}else if(q.contains("昨天")||q.contains("昨日")){from=now.minusDays(1);to=from;}else if(q.contains("今天")||q.contains("今日")){from=now;to=now;}
+        if(q.contains("上个月")||q.contains("上月")){from=now.minusMonths(1).withDayOfMonth(1);to=from.plusMonths(1).minusDays(1);}else if(q.contains("本月")||q.contains("这个月")){from=now.withDayOfMonth(1);to=now;}else if(q.contains("昨天")||q.contains("昨日")){from=now.minusDays(1);to=from;}else if(q.contains("今天")||q.contains("今日")){from=now;to=now;}
+        if(q.contains("本周")){from=now.with(java.time.temporal.TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));to=now;}
+        Matcher recent=Pattern.compile("(?:近|最近)([1-9][0-9]{0,2})天").matcher(q);if(recent.find()){from=now.minusDays(Integer.parseInt(recent.group(1))-1L);to=now;}
         Matcher month=Pattern.compile("(?:(\\d{4})年)?(\\d{1,2})月").matcher(q);if(month.find()){int year=month.group(1)==null?now.getYear():Integer.parseInt(month.group(1));from=LocalDate.of(year,Integer.parseInt(month.group(2)),1);to=from.withDayOfMonth(from.lengthOfMonth());if(to.isAfter(now)&&!from.isAfter(now))to=now;}
         Matcher dates=Pattern.compile("\\d{4}-\\d{2}-\\d{2}").matcher(q);if(dates.find()){from=LocalDate.parse(dates.group());to=dates.find()?LocalDate.parse(dates.group()):from;}
+        Matcher day=Pattern.compile("(?:(\\d{4})年)?(\\d{1,2})月(\\d{1,2})[日号]?").matcher(q);if(day.find()){from=LocalDate.of(day.group(1)==null?now.getYear():Integer.parseInt(day.group(1)),Integer.parseInt(day.group(2)),Integer.parseInt(day.group(3)));to=from;if(day.find())to=LocalDate.of(day.group(1)==null?from.getYear():Integer.parseInt(day.group(1)),Integer.parseInt(day.group(2)),Integer.parseInt(day.group(3)));}
         if(from!=null){r.put("from",from.toString());r.put("to",to.toString());}if(q.contains("当前")||q.contains("清除日期")){r.put("from",null);r.put("to",null);}
         for(var spec:List.of(new String[]{"material","t_material","material_code","material_name"},new String[]{"warehouse","t_warehouse","warehouse_code","warehouse_name"},new String[]{"product","t_product",null,"product_name"})){
             var values=db.queryForList("SELECT id,"+spec[3]+" name"+(spec[2]==null?"":","+spec[2]+" code")+" FROM "+spec[1]);List<Map<String,Object>> matches=new ArrayList<>();for(var v:values){String name=v.get("name").toString();if(q.contains(name)||(v.containsKey("code")&&q.contains(v.get("code").toString())))matches.add(v);}
-            if(matches.size()==1)r.put(spec[0],matches.get(0).get("id").toString());else if(matches.size()>1)r.put("clarification","问题包含多个"+spec[0]+"，请一次查询一个明确对象。");
+            var allMatches=new ArrayList<>(matches);matches.removeIf(a->allMatches.stream().anyMatch(b->a!=b&&b.get("name").toString().contains(a.get("name").toString())&&!a.get("name").equals(b.get("name"))));if(matches.size()==1)r.put(spec[0],matches.get(0).get("id").toString());else if(matches.size()>1)r.put("clarification","问题包含多个"+spec[0]+"，请一次查询一个明确对象。");
         }
-        for(var product:db.queryForList("SELECT id,model,product_code FROM t_product WHERE status=1")){String modelText=Objects.toString(product.get("model"),"");if(!modelText.isBlank()&&q.toUpperCase().contains(modelText.toUpperCase()))r.put("product",product.get("id").toString());}
+        for(var product:db.queryForList("SELECT id,model,product_code FROM t_product WHERE status=1")){String modelText=Objects.toString(product.get("model"),"");if(!r.containsKey("product")&&!r.containsKey("warehouse")&&!modelText.isBlank()&&q.toUpperCase().contains(modelText.toUpperCase()))r.put("product",product.get("id").toString());}
         if(q.contains("原料仓")&&!r.containsKey("warehouse"))r.put("warehouse","原料仓");
-        Matcher doc=Pattern.compile("(?i)(?:MO|WO|SO|PL|PLAN|S2)-[A-Za-z0-9_-]+").matcher(q);if(doc.find())r.put("document",doc.group());
-        Matcher entity=Pattern.compile("(?:物料|仓库|产品)[:：]([^，。\\s]+)").matcher(q);while(entity.find()){String full=entity.group();r.put(full.startsWith("物料")?"material":full.startsWith("仓库")?"warehouse":"product",entity.group(1));}
+        if(!r.containsKey("material")){
+            String business=q.replaceFirst("^(?:库存查询|缺料查询|追溯查询)[:：]", "");
+            Matcher named=Pattern.compile("(?:[0-9]{1,2}月|本月|这个月|上个月|上月|当前|今天)(?:的)?([\\p{IsHan}A-Za-z0-9·._-]{2,40}?)(?:的)?(?:库存|结存|余额|入库|出库)").matcher(business);
+            String candidate=null;
+            if(named.find())candidate=named.group(1);
+            else {Matcher plain=Pattern.compile("^(?:请帮我|请|查询|查看|盘点|统计|看看|一下)*([\\p{IsHan}A-Za-z0-9·._-]{2,40}?)(?:的)?(?:库存|结存|余额)(?:情况|数量)?[？?。]*$").matcher(business);if(plain.find())candidate=plain.group(1);}
+            if(candidate!=null&&!candidate.matches("原材料|原料|成品|半成品|全部物料|所有物料|全部|所有")
+                &&!(r.containsKey("warehouse")&&(candidate.endsWith("仓")||candidate.endsWith("仓库")))
+                &&!(r.containsKey("product")&&candidate.matches(".*(?:原材料|原料|成品|半成品)")))r.put("material",candidate);
+        }
+        Matcher doc=Pattern.compile("(?i)(?:MO|WO|SO|PL|PLAN|PP|S2)-[A-Za-z0-9_-]+").matcher(q);if(doc.find())r.put("document",doc.group());
+        Matcher entity=Pattern.compile("(?:物料|仓库|产品)[:：]([^，。\\s]+)").matcher(q);while(entity.find()){String full=entity.group();r.put(full.startsWith("物料")?"material":full.startsWith("仓库")?"warehouse":"product",entity.group(1).replaceFirst("的?(?:出入库|出库|入库|库存|结存|余额)(?:情况|记录|数量)?$", ""));}
         if(!previous.containsKey("kind")&&!r.containsKey("kind"))r.put("clarification","可查询库存、缺料或追溯。示例：本月原材料库存；物料：精确名称；追溯 MO-完整工单号。");return r;
     }
     public List<Map<String,Object>> history(long actor){return db.queryForList("SELECT id,question,mode,status,input_tokens,output_tokens,elapsed_ms,created_at FROM mm_query_audit WHERE user_id=? ORDER BY created_at DESC LIMIT 30",actor);}

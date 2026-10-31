@@ -87,7 +87,11 @@ public class LocationController {
         if (existing == null) {
             return JsonResult.error("库位不存在");
         }
-        locationService.delete(id);
-        return JsonResult.success();
+        try {
+            locationService.delete(id);
+            return JsonResult.success();
+        } catch (IllegalArgumentException exception) {
+            return JsonResult.error(exception.getMessage());
+        }
     }
 }

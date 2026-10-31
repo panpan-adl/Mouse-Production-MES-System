@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import {computed,nextTick,onMounted,ref} from 'vue'
+import {computed,nextTick,onMounted,ref,watch} from 'vue'
+import {useRoute} from 'vue-router'
+import MesRobot from '@/components/MesRobot.vue'
 import {Bot,Sparkles,Send,Plus,Check,Clock3,ArrowRight,ShieldCheck} from 'lucide-vue-next'
 import MainLayout from '@/components/MainLayout.vue'
+import BusinessQueryPanel from '@/components/BusinessQueryPanel.vue'
 import QueryTable from '@/components/QueryTable.vue'
 import request from '@/utils/request'
 type Row=Record<string,any>
@@ -10,6 +13,7 @@ const question=ref(''),selected=ref(''),busy=ref(false),error=ref(''),session=re
 const names:Row={PENDING:'等待确认',SUCCEEDED:'已完成',CLARIFICATION:'待补充',FAILED:'执行失败',CANCELLED:'已取消',EXPIRED:'已过期',STALE:'需重新核对'}
 const maintenanceColumns=[{key:'code',label:'计划编码'},{key:'name',label:'计划名称'},{key:'equipment_name',label:'设备'},{key:'plan_type',label:'类型'},{key:'due_date',label:'到期日'},{key:'status',label:'状态'},{key:'owner_name',label:'负责人'}]
 const activeSkill=computed(()=>catalog.value.skills.find((s:Row)=>s.id===selected.value))
+const route=useRoute()
 async function refresh(){runs.value=await request.get<Row[]>('/agent/runs')}
 async function add(run:Row){const index=messages.value.findIndex(m=>m.id===run.id);if(index<0)messages.value.push(run);else messages.value[index]=run;await refresh();await nextTick();bottom.value?.parentElement?.scrollTo({top:bottom.value.parentElement.scrollHeight,behavior:'smooth'})}
 async function load(){try{catalog.value=await request.get('/agent/skills');await refresh()}catch(e:any){error.value=e.message}}
@@ -18,11 +22,14 @@ function reset(){messages.value=[];session.value='';previous.value='';error.valu
 function choose(skill:Row){selected.value=skill.id;question.value=skill.example}
 async function action(url:string){if(busy.value)return;busy.value=true;error.value='';try{await add(await request.post<Row>(url))}catch(e:any){error.value=e.message}finally{busy.value=false}}
 async function restore(id:string){if(busy.value)return;busy.value=true;error.value='';try{const run=await request.get<Row>('/agent/runs/'+id);if(run.reply.sessionId){session.value=run.reply.sessionId;previous.value=run.skill_id}await add(run)}catch(e:any){error.value=e.message}finally{busy.value=false}}
-onMounted(load)
+async function openLinkedTask(){const id=route.query.run;if(typeof id==='string'&&/^[a-f0-9-]{36}$/.test(id))await restore(id)}
+onMounted(async()=>{await load();await openLinkedTask()})
+watch(()=>route.query.run,openLinkedTask)
 </script>
 
 <template><MainLayout><div class="agent-page max-w-7xl mx-auto space-y-5">
-  <section class="agent-hero"><div class="agent-emblem"><Bot :size="30"/></div><div><p class="agent-eyebrow">MOUSE MES / SKILL AGENT</p><h1>你的制造业务协作助手</h1><p class="text-slate-500 text-sm mt-2">描述任务，由技能连接真实业务数据；需要写入时，先核对再确认。</p></div><span class="agent-mode"><i></i>{{catalog.model.mode==='remote'?(catalog.model.configured?'大模型已配置':'等待大模型配置'):'本地技能模式'}}</span></section>
+  <section class="agent-hero"><div class="agent-emblem"><MesRobot/></div><div><p class="agent-eyebrow">MOUSE MES / SKILL AGENT</p><h1>你的制造业务协作助手</h1><p class="text-slate-500 text-sm mt-2">描述任务，由技能连接真实业务数据；需要写入时，先核对再确认。</p></div><span class="agent-mode"><i></i>{{catalog.model.mode==='remote'?(catalog.model.configured?'大模型已配置':'等待大模型配置'):'本地技能模式'}}</span></section>
+  <BusinessQueryPanel/>
   <div class="agent-grid">
     <aside class="space-y-4">
       <section class="bg-white border rounded-xl p-4"><div class="flex items-center gap-2 mb-4"><Sparkles :size="17" class="text-blue-600"/><h2 class="font-semibold">技能库</h2><span class="text-xs text-slate-500 ml-auto">{{catalog.skills.length}} 项可用</span></div>

@@ -1,15 +1,32 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { canVisit } from '@/utils/permissions'
 import MainLayout from '@/components/MainLayout.vue'
+const OperationsWorkspace = defineAsyncComponent(()=>import('@/views/foundation/MesOperations.vue'))
+const FulfillmentOverview = defineAsyncComponent(()=>import('@/views/foundation/Fulfillment.vue'))
+const homeRoute = useRoute(), homeRouter = useRouter(), homeAuth = useAuthStore()
+const homeTabs = computed(()=>[
+  {key:'panorama',label:'生产全景',path:'/dashboard'},
+  {key:'operations',label:'运营工作台',path:'/mes'},
+  {key:'flow',label:'生产与仓储流程',path:'/fulfillment'},
+].filter(tab=>canVisit(Number(homeAuth.effectiveRoleId),tab.path)&&homeAuth.hasMenu(tab.path)))
+const homeView = computed(()=>homeTabs.value.some(tab=>tab.key===homeRoute.query.view)?String(homeRoute.query.view):'panorama')
+function selectHomeView(view:string){
+  const {view:oldView,tab:oldTab,...query}=homeRoute.query
+  homeRouter.replace({path:'/dashboard',query:{...query,...(view==='panorama'?{}:{view})}})
+}
 import DashboardHeader from '@/components/dashboard/DashboardHeader.vue'
 import DashboardKpiRow from '@/components/dashboard/DashboardKpiRow.vue'
 import HourlyOutputChart from '@/components/dashboard/HourlyOutputChart.vue'
 import WorkOrderStatusChart from '@/components/dashboard/WorkOrderStatusChart.vue'
 import MaterialReadiness from '@/components/dashboard/MaterialReadiness.vue'
-import ProductionFlow from '@/components/dashboard/ProductionFlow.vue'
+import WarmProductionCockpit from '@/components/dashboard/WarmProductionCockpit.vue'
 import ActiveWorkOrderTable from '@/components/dashboard/ActiveWorkOrderTable.vue'
 import QualityAnalysis from '@/components/dashboard/QualityAnalysis.vue'
 import StockSafetyChart from '@/components/dashboard/StockSafetyChart.vue'
+import EquipmentStatusChart from '@/components/dashboard/EquipmentStatusChart.vue'
 import InventoryOverview from '@/components/dashboard/InventoryOverview.vue'
 import RealtimeAlertList from '@/components/dashboard/RealtimeAlertList.vue'
 import { getProductionDashboard } from '@/api/dashboard'
@@ -100,21 +117,31 @@ onBeforeUnmount(() => {
 
 <template>
   <MainLayout>
-    <div class="panorama-page">
+    <nav class="home-view-tabs" aria-label="首页业务视图">
+      <button v-for="tab in homeTabs" :key="tab.key" :aria-current="homeView===tab.key?'page':undefined" :class="{active:homeView===tab.key}" @click="selectHomeView(tab.key)">{{tab.label}}</button>
+    </nav>
+    <OperationsWorkspace v-if="homeView==='operations'" embedded />
+    <FulfillmentOverview v-else-if="homeView==='flow'" embedded />
+    <div v-else class="panorama-page">
       <DashboardHeader :filters="filters" :current-time="currentTime" :updated-at="dashboard?.updatedAt || ''" @update:filters="updateFilters" @refresh="loadDashboard" @fullscreen="toggleFullscreen" />
       <p v-if="loadError" role="alert" class="p-4 bg-red-50 text-red-700 rounded">{{loadError}}</p>
-      <p class="dashboard-caption">生产概况与关键业务指标<span>按选定日期与班次统计 · 库存为当前余额</span></p>
+      <p class="dashboard-caption">从一件物料，到一只鼠标。<span>按选定日期与班次统计 · 库存为当前余额</span></p>
       <DashboardKpiRow v-if="dashboard" :kpis="dashboard.kpis" />
       <template v-if="dashboard">
-        <div class="overview-row"><HourlyOutputChart :key="`hourly-${resizeKey}`" :data="dashboard.hourlyOutput" /><WorkOrderStatusChart :data="dashboard.workOrderStatus" /></div>
-        <ProductionFlow :nodes="dashboard.flowNodes" :active-node="activeNode" @select-node="activeNode = $event" />
+        <WarmProductionCockpit :data="dashboard" :active-node="activeNode" @select="activeNode=$event"/>
+        <div class="execution-section-title"><div><span>PRODUCTION EXECUTION</span><h2>生产执行与业务洞察</h2></div><button v-if="activeNode" @click="activeNode=''">查看全部工单 ×</button><small v-else>全景统览 · 明细追踪</small></div>
         <div class="execution-row"><ActiveWorkOrderTable :rows="filteredWorkOrders" /><div class="execution-insights"><MaterialReadiness :readiness-rate="dashboard.materialReadinessRate" :shortages="dashboard.materialShortages" /><QualityAnalysis :key="`quality-${resizeKey}`" :trend="dashboard.qualityTrend" :defects="dashboard.defectRanks" /></div></div>
         <div class="insight-row"><StockSafetyChart :rows="dashboard.materialSafety||[]" /><InventoryOverview :inventory="dashboard.inventory" /><RealtimeAlertList :alerts="dashboard.alerts" /></div>
+        <details class="dashboard-details"><summary>展开产量趋势、工单分布与设备明细</summary><div class="overview-row"><HourlyOutputChart :key="`hourly-${resizeKey}`" :data="dashboard.hourlyOutput" /><WorkOrderStatusChart :data="dashboard.workOrderStatus" /></div><EquipmentStatusChart :rows="dashboard.equipmentStatus||[]" :details="dashboard.equipmentDetails||[]" /></details>
       </template>
     </div>
   </MainLayout>
 </template>
 <style scoped>
+.home-view-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;padding-bottom:12px;border-bottom:1px solid #e9e7e2}
+.home-view-tabs button{padding:9px 16px;border-radius:7px;font-size:13px;color:#8a867e;transition:background .15s}
+.home-view-tabs button:hover{background:#efede7;color:#494740}
+.home-view-tabs button.active{background:#e7e5df;color:#37352f;font-weight:600}
 .panorama-page{display:flex;flex-direction:column;gap:22px;min-width:0}
 .dashboard-caption{display:flex;justify-content:space-between;color:#788aa0;font-size:11px;margin-top:-7px;gap:10px;flex-wrap:wrap}
 .dashboard-caption>span{color:#98a5b6;font-size:10px}
@@ -157,4 +184,13 @@ onBeforeUnmount(() => {
 .panorama-page :deep(.insight-row .bg-slate-700){background:#edf1f6}
 @media(max-width:1200px){.panorama-page :deep(.kpi-row){grid-template-columns:repeat(3,minmax(0,1fr))}.execution-row{grid-template-columns:minmax(0,1fr)}.execution-insights{grid-template-columns:repeat(2,minmax(0,1fr))}.insight-row{grid-template-columns:repeat(2,minmax(0,1fr))}.insight-row>:last-child{grid-column:1/-1}}
 @media(max-width:800px){.overview-row,.execution-insights,.insight-row{grid-template-columns:minmax(0,1fr)}.panorama-page :deep(.flow-grid){grid-template-columns:repeat(3,minmax(0,1fr))}.panorama-page :deep(.panel){padding:15px}.panorama-page :deep(.kpi-row){grid-template-columns:repeat(2,minmax(0,1fr))}.panorama-page :deep(.kpi-card){padding:14px;min-height:95px}.panorama-page :deep(.kpi-value strong){font-size:24px}.panorama-page{gap:17px}.panorama-page :deep(.header-controls .control-input){width:100px}.panorama-page :deep(.time-box){display:none}}
+.panorama-page{padding:24px;background:radial-gradient(ellipse at 50% 15%,#f4eddf 0,transparent 60%),#f8f5ef;border:1px solid #ede5d9;border-radius:18px;gap:20px}
+.dashboard-caption{color:#a18b6c;font-size:12px;margin-top:-6px}.dashboard-caption>span{color:#b6a58e}
+.panorama-page :deep(.dashboard-header h1){color:#574631;font-size:28px;letter-spacing:.025em}.panorama-page :deep(.eyebrow){color:#b18a58;letter-spacing:.2em}.panorama-page :deep(.control-input){background:#fffdf8;border-color:#e5d9c5;color:#8a7659;border-radius:7px;font-size:11px}.panorama-page :deep(.time-box),.panorama-page :deep(.icon-button){background:#fffdf8;border-color:#e5d9c5;color:#aa8b63}.panorama-page :deep(.time-box strong){color:#8e7350}
+.panorama-page :deep(.kpi-card){background:#fffdf9;border-color:#e8dfd1;box-shadow:none;border-radius:12px;min-height:99px;padding:17px 19px}.panorama-page :deep(.kpi-card::before){background:#c29a68!important;width:2px}.panorama-page :deep(.kpi-label){color:#a69379}.panorama-page :deep(.kpi-value strong){color:#725639;font-size:29px}.panorama-page :deep(.kpi-value span){color:#af9b7c}.panorama-page :deep(.kpi-blue),.panorama-page :deep(.kpi-green),.panorama-page :deep(.kpi-yellow),.panorama-page :deep(.kpi-red){--kpi-accent:#b78a55}
+.panorama-page :deep(.panel){background:#fffdf9;border-color:#e9e0d3;box-shadow:none;border-radius:14px}.panorama-page :deep(.panel-title h2){color:#80684a}.panorama-page :deep(.panel-title span){color:#b5a28b}.panorama-page :deep(.status-row),.panorama-page :deep(.alert-row){background:#f8f3e9}.panorama-page :deep(th){background:#f7f2e8;color:#a18b6c}.panorama-page :deep(td){border-color:#f0e9de}.panorama-page :deep(.order-id){color:#947045}
+.execution-section-title{display:flex;justify-content:space-between;align-items:end;margin-top:8px;gap:12px}.execution-section-title span{font-size:8px;letter-spacing:.2em;color:#b8a58c}.execution-section-title h2{font-size:17px;color:#756044;margin-top:5px;font-weight:500}.execution-section-title small,.execution-section-title button{font-size:10px;color:#b0936c}
+.execution-row{grid-template-columns:minmax(0,1fr)}.execution-insights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.dashboard-details{border:1px solid #e9e0d3;border-radius:12px;padding:18px;background:#fffdf9}.dashboard-details summary{cursor:pointer;font-size:12px;color:#a1835b}.dashboard-details[open] summary{margin-bottom:20px}.dashboard-details>.overview-row{margin-bottom:20px}
+@media(max-width:800px){.panorama-page{padding:14px;border-radius:12px}.panorama-page :deep(.dashboard-header h1){font-size:24px}}
 </style>

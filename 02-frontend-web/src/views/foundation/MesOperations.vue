@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/auth'
 import { barcodeSvg } from '@/utils/barcode'
 import QRCode from 'qrcode'
 type Row=Record<string,any>
+defineProps<{ embedded?: boolean }>()
 const route=useRoute()
 const dedicated=computed(()=>Boolean(route.meta.mesTab))
 const dedicatedKind=computed(()=>String(route.meta.documentKind||''))
@@ -125,7 +126,7 @@ onBeforeUnmount(()=>images.value.forEach(URL.revokeObjectURL))
 const completeDrafts=useFormDrafts({modal:{open:modal,fields:{form,docLines}, record:()=>(form as Record<string,any>).id || selected.value?.id}})
 </script>
 
-<template><MainLayout>
+<template><component :is="embedded ? 'div' : MainLayout">
   <div class="mes-hero-label">MANUFACTURING OPERATIONS</div><div class="module-heading"><div class="module-heading-mark" aria-hidden="true">MES</div><div><h1 class="text-2xl font-bold mb-1">{{pageTitle}}</h1><p class="text-gray-500">{{pageDescription}}</p></div></div>
   <div v-if="!dedicated" class="mes-module-tabs" role="tablist" aria-label="运营功能"><button v-for="t in tabs" role="tab" :aria-selected="tab===t[0]" :key="t[0]" class="px-3 py-2 rounded-lg border" :class="tab===t[0]?'bg-blue-600 text-white':'bg-white'" @click="tab=t[0]">{{t[1]}}</button></div>
   <p v-if="!ready&&!error" class="p-5 text-sm text-gray-500">正在加载业务资料…</p>
@@ -193,4 +194,4 @@ const completeDrafts=useFormDrafts({modal:{open:modal,fields:{form,docLines}, re
     <select v-if="modal==='child'" v-model="form.child_id" required class="border rounded p-2 w-full"><option v-for="p in rows.filter(p=>p.status==='CONFIRMED'&&!p.parent_id&&p.id!==form.id)" :key="p.id" :value="p.id">{{p.code}}</option></select>
     <div class="flex justify-end gap-4"><button type="button" @click="modal=''">取消</button><button :disabled="busy" class="bg-blue-600 text-white rounded px-5 py-2">{{busy?'正在处理…':'保存并校验'}}</button></div>
   </form></div>
-</MainLayout></template>
+</component></template>

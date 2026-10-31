@@ -24,6 +24,8 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import UserAvatar from './UserAvatar.vue'
 import { sidebarCollapsed } from '@/stores/layout'
+import { foundationGroups } from '@/utils/foundationNavigation'
+import { canVisit } from '@/utils/permissions'
 
 interface ChildMenuItem {
   path: string
@@ -37,20 +39,34 @@ interface MenuItem {
   name: string
   icon: any
   children?: ChildMenuItem[]
-  expanded?: boolean
 }
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const collapsed = sidebarCollapsed
+// Menu entries are computed copies; keep interactive state in a reactive store.
+const expandedMenus = ref<Record<string, boolean>>({})
+
+function menuExpanded(item: MenuItem) {
+  return expandedMenus.value[item.name] ?? isChildActive(item)
+}
+
+function toggleMenu(item: MenuItem) {
+  if (collapsed.value) {
+    collapsed.value = false
+    expandedMenus.value[item.name] = true
+    return
+  }
+  expandedMenus.value[item.name] = !menuExpanded(item)
+}
 
 const allMenuItems = ref<MenuItem[]>([
   {path:'/assistant',name:'Skill业务智能体',icon:Bot},
   {path:'/mes',name:'MES运营中心',icon:Package},
   {path:'/automation',name:'自动任务与提醒',icon:ClipboardCheck},
   { path: '/', name: '首页', icon: LayoutDashboard },
-  { path: '/foundation/workshops', name: '基础配置中心', icon: Settings },
+  { path: '/foundation/units', name: '基础配置中心', icon: Settings },
   { path: '/manufacturing', name: '制造与质量放行', icon: ClipboardCheck },
   { path: '/fulfillment', name: '生产与仓储流程总览', icon: Package },
   {
@@ -98,6 +114,9 @@ const allMenuItems = ref<MenuItem[]>([
     icon: Package,
     children: [
       { path: '/inventory/warehouse', name: '仓库库存', icon: Package },
+      { path: '/foundation/warehouses', name: '仓库设置', icon: Package },
+      { path: '/foundation/areas', name: '库区设置', icon: Package },
+      { path: '/foundation/locations', name: '库位设置', icon: Package },
       { path: '/inventory/material', name: '物料管理', icon: Package },
       { path: '/inventory/in', name: '入库管理', icon: ShoppingCart },
       { path: '/inventory/out', name: '出库管理', icon: ShoppingCart },
@@ -133,6 +152,47 @@ const allMenuItems = ref<MenuItem[]>([
   },
 ])
 
+// Each domain opens its own configuration group rather than one global directory.
+for (const group of foundationGroups) {
+  if (['基础配置中心', '仓库管理'].includes(group.module)) continue
+  const menu = allMenuItems.value.find(item => item.name === group.module)
+  menu?.children?.push({ path: `/foundation/${group.keys[0]}`, name: group.title, icon: Settings })
+}
+
+// Consolidate cross-module shortcuts and put operational modules in workflow order.
+const takeEntry = (path: string): ChildMenuItem => {
+  const index = allMenuItems.value.findIndex(item => item.path === path)
+  const [entry] = allMenuItems.value.splice(index, 1)
+  return { path, name: entry.name, icon: entry.icon }
+}
+takeEntry('/mes')
+takeEntry('/fulfillment')
+const assistantEntries = [takeEntry('/assistant'), takeEntry('/automation')]
+const sharedEntry = takeEntry('/foundation/units')
+sharedEntry.name = '通用基础资料'
+sharedEntry.roles = [1,2,4,5,6,7,8,11]
+const manufacturingEntry = takeEntry('/manufacturing')
+manufacturingEntry.roles = [1,2,3,4]
+allMenuItems.value.find(item=>item.name==='生产管理')?.children?.push(manufacturingEntry)
+allMenuItems.value.find(item=>item.name==='系统管理')?.children?.unshift(sharedEntry)
+allMenuItems.value.push({ name: '智能与提醒', icon: Bot, children: assistantEntries })
+
+const moduleOrder = ['首页','销售订单','采购管理','生产管理','质量管理','仓库管理','设备管理','考勤管理','财务看板','系统管理','智能与提醒']
+allMenuItems.value.sort((a,b)=>moduleOrder.indexOf(a.name)-moduleOrder.indexOf(b.name))
+const childOrder: Record<string,string[]> = {
+  销售订单: ['客户管理','订单列表'],
+  采购管理: ['供应商管理','采购需求','采购订单','采购收货','供应商退货'],
+  生产管理: ['产品与工艺','班组与排班配置','生产计划','生产工单','班组排班计划','生产任务','生产报工','制造与质量放行','设备状态管理'],
+  质量管理: ['检验与缺陷配置','质检标准','质检任务','质检记录'],
+  仓库管理: ['仓库设置','库区设置','库位设置','物料管理','仓库库存','入库管理','出库管理','生产领料','生产退料','产成品入库','装箱管理','销售发货','库存与批次追溯','物料请求'],
+  设备管理: ['设备台账','设备点检配置','定期保养计划','设备维修管理'],
+  系统管理: ['通用基础资料','部门管理','员工管理','岗位与权限管理','组织与系统配置','日志管理'],
+}
+for(const item of allMenuItems.value){
+  const order=childOrder[item.name]
+  if(order)item.children?.sort((a,b)=>order.indexOf(a.name)-order.indexOf(b.name))
+}
+
 const roleMenus: Record<number, string[]> = {
   1: ['首页', '生产管理', '质量管理', '仓库管理', '设备管理', '考勤管理'],
   2: ['首页', '生产管理', '设备管理', '考勤管理'],
@@ -153,7 +213,7 @@ const roleChildMenus: Record<number, Record<string, string[]>> = {
     仓库管理: ['物料请求'],
   },
   5: {
-    仓库管理: ['仓库库存', '物料管理', '入库管理', '出库管理', '物料请求','生产领料','生产退料','产成品入库','装箱管理','销售发货','库存与批次追溯'],
+    仓库管理: ['仓库库存', '仓库设置', '库区设置', '库位设置', '物料管理', '入库管理', '出库管理', '物料请求','生产领料','生产退料','产成品入库','装箱管理','销售发货','库存与批次追溯'],
     采购管理: ['采购订单','采购收货','供应商退货'],
   },
   6: {
@@ -167,14 +227,20 @@ const roleChildMenus: Record<number, Record<string, string[]>> = {
 const roleMenuItems = computed(() => {
   const roleId = authStore.effectiveRoleId
   if (!roleId || !roleMenus[roleId]) return []
-  return allMenuItems.value.filter((item) => roleId === 9 || item.name==='Skill业务智能体' || item.name==='MES运营中心' || (item.name === '自动任务与提醒' && [1,2,4,6,8].includes(roleId)) || (item.name === '生产与仓储流程总览' && [1,2,3,4,5,6,7,8,10].includes(roleId)) || roleMenus[roleId].includes(item.name) || (item.name === '基础配置中心' && [1,2,4,5,6,7,8,11].includes(roleId)) || (item.name === '制造与质量放行' && [1,2,3,4].includes(roleId)))
+  return allMenuItems.value.filter(item => roleId===9 || roleMenus[roleId].includes(item.name) || ['业务总览','智能与提醒','系统管理'].includes(item.name) || (item.name==='生产管理'&&[1,2,3,4].includes(roleId)))
 })
 
 const menuItems=computed(()=>roleMenuItems.value.map(item=>{
   if(item.path?.startsWith('/foundation')&&!authStore.hasMenu(item.path)){
-    const granted=authStore.menuPaths?.find(p=>p.startsWith('/foundation/'))
+    const granted=authStore.menuPaths?.find(p=>['/foundation/units','/foundation/categories'].includes(p))
     if(granted)return {...item,path:granted}
   }
+  if(item.children)return {...item,children:item.children.map(child=>{
+    const group=foundationGroups.find(group=>child.name===group.title)
+    if(!group)return child
+    const granted=group.keys.find(key=>authStore.hasMenu(`/foundation/${key}`))
+    return granted?{...child,path:`/foundation/${granted}`}:child
+  })}
   return item
 }).filter(item=>item.path?authStore.hasMenu(item.path):visibleChildren(item).length>0))
 const currentUser = computed(() => authStore.currentUser)
@@ -183,13 +249,18 @@ function visibleChildren(item: MenuItem) {
   const roleId = authStore.effectiveRoleId
   const allowedChildren = roleId ? roleChildMenus[roleId]?.[item.name] : undefined
   if (!item.children) return []
-  const roleVisibleChildren = item.children.filter((child) => roleId === 9 || !child.roles || (roleId && child.roles.includes(roleId)))
+  const roleVisibleChildren = item.children.filter(child=>canVisit(roleId,child.path)&&(roleId===9||!child.roles||child.roles.includes(roleId)))
   if (!allowedChildren) return roleVisibleChildren.filter(child=>authStore.hasMenu(child.path))
-  return roleVisibleChildren.filter((child) => allowedChildren.includes(child.name)&&authStore.hasMenu(child.path))
+  return roleVisibleChildren.filter((child) => (allowedChildren.includes(child.name)||child.path.startsWith('/foundation/')||child.path==='/manufacturing')&&authStore.hasMenu(child.path))
 }
 
 function isChildActive(item: MenuItem) {
-  return visibleChildren(item).some((child) => route.path === child.path || route.path.startsWith(child.path + '/'))
+  return visibleChildren(item).some(child => childActive(child))
+}
+
+function childActive(child:ChildMenuItem){
+  const group=foundationGroups.find(group=>group.title===child.name)
+  return group?group.keys.some(key=>route.path===`/foundation/${key}`):route.path===child.path||route.path.startsWith(child.path+'/')
 }
 
 function navigate(path?: string) {
@@ -246,20 +317,20 @@ function handleLogout() {
                 'w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
                 isChildActive(item) ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'
               ]"
-              @click="collapsed ? (collapsed=false,item.expanded=true) : item.expanded=!item.expanded"
-              :title="item.name" :aria-expanded="Boolean(item.expanded||isChildActive(item))"
+              @click="toggleMenu(item)"
+              :title="item.name" :aria-expanded="menuExpanded(item)"
             >
               <component :is="item.icon" class="w-5 h-5 mr-3 shrink-0" />
               <span v-if="!collapsed" class="flex-1 text-left">{{ item.name }}</span>
-              <ChevronRight v-if="!collapsed" :class="['w-4 h-4 transition-transform', item.expanded || isChildActive(item) ? 'rotate-90' : '']" />
+              <ChevronRight v-if="!collapsed" :class="['w-4 h-4 transition-transform', menuExpanded(item) ? 'rotate-90' : '']" />
             </button>
-            <div v-if="!collapsed && (item.expanded || isChildActive(item))" class="mt-1 space-y-1 ml-4">
+            <div v-if="!collapsed && menuExpanded(item)" class="mt-1 space-y-1 ml-4">
               <button
                 v-for="child in visibleChildren(item)"
                 :key="child.path"
                 :class="[
                   'w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all',
-                  route.path === child.path ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'
+                  childActive(child) ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'
                 ]"
                 @click="navigate(child.path)"
               >

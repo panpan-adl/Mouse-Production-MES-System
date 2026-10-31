@@ -24,6 +24,9 @@ public class IntelligenceController {
     @PostMapping("/automation/rule") public Object rule(@RequestBody Map<String,Boolean> body,HttpServletRequest r){allow(r,1,2,9);automation.toggle(Boolean.TRUE.equals(body.get("enabled")));return JsonResult.success();}
     @PostMapping("/automation/retry/{id}") public Object retry(@PathVariable long id,HttpServletRequest r){allow(r,1,2,4,9);automation.retry(id);return JsonResult.success();}
     @PostMapping("/automation/process") public Object process(HttpServletRequest r){allow(r,1,2,4,9);for(int i=0;i<20&&automation.process();i++){}return JsonResult.success(automation.state());}
+    @GetMapping("/automation/comparisons") public Object comparisons(HttpServletRequest r){allow(r,1,2,4,9);return JsonResult.success(automation.comparison());}
+    @PostMapping("/automation/comparisons/{task}/start") public Object beginComparison(@PathVariable long task,HttpServletRequest r){allow(r,4,9);automation.beginComparison(task,user(r).getId());return JsonResult.success();}
+    @PostMapping("/automation/comparisons/{task}/complete") public Object finishComparison(@PathVariable long task,HttpServletRequest r){allow(r,4,9);automation.finishComparison(task,user(r).getId());return JsonResult.success();}
     @GetMapping("/automation/suggestions") public Object suggestions(HttpServletRequest r){allow(r,1,2,5,6,9);return JsonResult.success(automation.suggestions());}
     @PostMapping("/automation/suggestions/{id}/confirm") public Object confirm(@PathVariable long id,HttpServletRequest r){allow(r,6,9);automation.confirm(id,user(r).getId());return JsonResult.success();}
     @ExceptionHandler(SecurityException.class) @ResponseStatus(org.springframework.http.HttpStatus.FORBIDDEN) public Object denied(Exception e){return JsonResult.error(403,e.getMessage());}

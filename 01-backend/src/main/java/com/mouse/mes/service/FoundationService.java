@@ -26,6 +26,8 @@ public class FoundationService {
     public record Resource(String key, String label, String table, List<Field> fields, List<Integer> roles,
                            String unique, String where, Map<String,Object> extra) {}
     @org.springframework.beans.factory.annotation.Autowired private AssignableStaffService assignableStaff;
+    @org.springframework.beans.factory.annotation.Autowired private MaterialOriginService materialOrigin;
+    @org.springframework.beans.factory.annotation.Autowired private LocationUsageService locationUsage;
     private final JdbcTemplate db;
     private final ObjectMapper json;
     @org.springframework.beans.factory.annotation.Autowired
@@ -92,8 +94,10 @@ public class FoundationService {
     @Transactional
     public Map<String,Object> save(String key,Long id,Map<String,Object> input,long actor) {
         fulfillment.lock();
+        boolean creating=id==null;
         input=new LinkedHashMap<>(input);mesRules.defaults(key,input);
         Resource r=definition(key);Map<String,Object> values=new LinkedHashMap<>();
+        if(key.equals("locations")&&input.get("status")==null)input.put("status",id==null?1:get(key,id).get("status"));
         for(Field f:r.fields())if(isGeneratedCode(key,f)) {
             if(id!=null)input.put(f.name(),get(key,id).get(f.name()));
             else input.put(f.name(),generatedCode(key));
@@ -114,11 +118,12 @@ public class FoundationService {
         mesRules.validate(key,id,values);
         if(id==null) { values.putAll(r.extra());if(key.equals("check-records"))values.put("actor_id",actor);id=insert(r.table(),values); }
         else { final List<Object> args=new ArrayList<>(values.values());args.add(id);db.update("UPDATE "+r.table()+" SET "+String.join(",",values.keySet().stream().map(n->n+"=?").toList())+" WHERE id=?",args.toArray()); }
+        if(key.equals("materials")&&creating)materialOrigin.created(id);
         if(key.equals("locations")) {
             long warehouse=number(db.queryForMap("SELECT warehouse_id FROM mm_area WHERE id=?",values.get("area_id")).get("warehouse_id"));
             var matches=db.queryForList("SELECT id FROM t_location WHERE warehouse_id=? AND location_code=?",warehouse,values.get("code"));
-            if(matches.isEmpty()) db.update("INSERT INTO t_location(warehouse_id,location_code,location_name,status,is_deleted) VALUES(?,?,?,'1',0)",warehouse,values.get("code"),values.get("name"));
-            else db.update("UPDATE t_location SET location_name=? WHERE id=?",values.get("name"),matches.get(0).get("id"));
+            if(matches.isEmpty()) db.update("INSERT INTO t_location(warehouse_id,location_code,location_name,status,is_deleted) VALUES(?,?,?,?,0)",warehouse,values.get("code"),values.get("name"),values.get("status"));
+            else db.update("UPDATE t_location SET location_name=?,status=? WHERE id=?",values.get("name"),values.get("status"),matches.get(0).get("id"));
         }
         if(key.equals("check-records") && text(values.get("result")).equals("FAIL")) {
             Map<String,Object> plan=get("checks",number(values.get("plan_id")));Map<String,Object> equipment=get("equipment",number(plan.get("equipment_id")));
@@ -202,7 +207,7 @@ public class FoundationService {
         fail(key.equals("maintenance-plans")&&count("SELECT COUNT(*) FROM mm_maintenance_occurrence WHERE plan_id=?",id)>0,"已有保养任务的计划不可删除，请停用");
         Resource resource=definition(key);Map<String,Object> existing=get(key,id);
         fail(key.equals("check-records"),"点检记录不可删除");
-        fail(key.equals("locations"),"库位保留历史引用，请勿删除");
+        if(key.equals("locations"))locationUsage.retireFoundationMirror(id);
         for(Resource other:catalog.values())for(Field field:other.fields())if(key.equals(field.ref()))fail(count("SELECT COUNT(*) FROM "+other.table()+" WHERE "+field.name()+"=?",id)>0,"记录已被"+other.label()+"引用，不能删除");
         if(key.equals("users"))throw new IllegalArgumentException("不支持删除账号");
         if(key.equals("materials"))for(String t:List.of("t_inventory","t_bom","t_stock_in_item","t_stock_out_item"))fail(count("SELECT COUNT(*) FROM "+t+" WHERE material_id=?",id)>0,"物料已有业务记录");
