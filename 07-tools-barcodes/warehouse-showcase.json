@@ -1,0 +1,77 @@
+{
+  "batches": [
+    {
+      "orderId": 1,
+      "planId": 3,
+      "workId": 3,
+      "workCode": "MO-000005",
+      "quantity": 100,
+      "phase": "complete",
+      "purchaseId": 2,
+      "purchaseReceiptId": 2,
+      "issueId": 3,
+      "returnLine": {
+        "material_id": 2,
+        "lot_id": 2,
+        "quantity": 1,
+        "location_id": 2
+      },
+      "returnId": 4,
+      "reissueId": 5,
+      "receiptIds": [
+        6,
+        7
+      ],
+      "shipmentId": 8
+    },
+    {
+      "orderId": 2,
+      "planId": 4,
+      "workId": 4,
+      "workCode": "MO-000006",
+      "quantity": 80,
+      "phase": "complete",
+      "purchaseId": 3,
+      "purchaseReceiptId": 9,
+      "issueId": 10,
+      "returnLine": {
+        "material_id": 2,
+        "lot_id": 2,
+        "quantity": 1,
+        "location_id": 2
+      },
+      "returnId": 11,
+      "reissueId": 12,
+      "receiptIds": [
+        13,
+        14
+      ],
+      "shipmentId": 15
+    },
+    {
+      "orderId": 3,
+      "planId": 5,
+      "workId": 5,
+      "workCode": "MO-000007",
+      "quantity": 120,
+      "phase": "complete",
+      "purchaseId": 4,
+      "purchaseReceiptId": 16,
+      "issueId": 17,
+      "returnLine": {
+        "material_id": 2,
+        "lot_id": 2,
+        "quantity": 1,
+        "location_id": 2
+      },
+      "returnId": 18,
+      "reissueId": 19,
+      "receiptIds": [
+        20,
+        21
+      ],
+      "shipmentId": 22
+    }
+  ],
+  "thresholdRule": "前两种物料按当前余量+50设置演示预警，其他为余量25%且至少10；后续由物料安全库存配置维护"
+}

@@ -1,0 +1,35 @@
+{
+  "DEMO-EQ-01": {
+    "equipmentId": 2,
+    "name": "鼠标装配电批",
+    "checkPlanId": 2,
+    "checkRecordId": 1,
+    "maintenanceId": 1,
+    "target": "FINISHED"
+  },
+  "DEMO-EQ-02": {
+    "equipmentId": 3,
+    "name": "壳体点胶机",
+    "maintenanceId": 2,
+    "target": "PENDING"
+  },
+  "DEMO-EQ-03": {
+    "equipmentId": 4,
+    "name": "自动贴标机",
+    "maintenanceId": 3,
+    "target": "PROCESSING"
+  },
+  "DEMO-EQ-04": {
+    "equipmentId": 5,
+    "name": "USB功能检测仪",
+    "maintenanceId": 4,
+    "target": "FINISHED",
+    "periodicPlanId": 1
+  },
+  "DEMO-EQ-05": {
+    "equipmentId": 6,
+    "name": "包装电子秤",
+    "periodicPlanId": 2
+  },
+  "periodicCompletedId": 5
+}

@@ -1,0 +1,687 @@
+[
+  {
+    "path": "/production/work-orders",
+    "name": "生产工单",
+    "roles": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      9
+    ]
+  },
+  {
+    "path": "/manufacturing",
+    "name": "制造与质量放行",
+    "roles": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      9
+    ]
+  },
+  {
+    "path": "/production/schedules",
+    "name": "班组排班计划",
+    "roles": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      8,
+      9,
+      11
+    ]
+  },
+  {
+    "path": "/purchase/receipts",
+    "name": "采购收货",
+    "roles": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/inventory/shipments",
+    "name": "销售发货",
+    "roles": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/purchase/returns",
+    "name": "供应商退货",
+    "roles": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/inventory/production-issue",
+    "name": "生产领料",
+    "roles": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/inventory/production-return",
+    "name": "生产退料",
+    "roles": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/inventory/product-receipts",
+    "name": "产成品入库",
+    "roles": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/inventory/packages",
+    "name": "装箱管理",
+    "roles": [
+      1,
+      2,
+      5,
+      7,
+      9
+    ]
+  },
+  {
+    "path": "/mes",
+    "name": "MES运营中心",
+    "roles": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "path": "/dashboard",
+    "name": "ProductionPanoramaDashboard",
+    "roles": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "path": "/intelligence",
+    "name": "/intelligence",
+    "roles": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/assistant",
+    "name": "Skill业务智能体",
+    "roles": [
+      9
+    ]
+  },
+  {
+    "path": "/automation",
+    "name": "自动任务与提醒",
+    "roles": [
+      1,
+      2,
+      4,
+      6,
+      8,
+      9
+    ]
+  },
+  {
+    "path": "/inventory/trace",
+    "name": "库存与批次追溯",
+    "roles": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/fulfillment",
+    "name": "生产与仓储流程总览",
+    "roles": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/user/profile",
+    "name": "UserProfile",
+    "roles": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "path": "/notifications",
+    "name": "Notifications",
+    "roles": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "path": "/production/plan",
+    "name": "生产计划",
+    "roles": [
+      1,
+      2,
+      9
+    ]
+  },
+  {
+    "path": "/production/task",
+    "name": "生产任务",
+    "roles": [
+      1,
+      2,
+      3,
+      9
+    ]
+  },
+  {
+    "path": "/production/equipment-status",
+    "name": "设备状态管理",
+    "roles": [
+      1,
+      2,
+      3,
+      9
+    ]
+  },
+  {
+    "path": "/production/report",
+    "name": "生产报工",
+    "roles": [
+      1,
+      2,
+      9
+    ]
+  },
+  {
+    "path": "/quality/tasks",
+    "name": "质检任务",
+    "roles": [
+      1,
+      4,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/quality/check",
+    "name": "质检记录",
+    "roles": [
+      1,
+      4,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/quality/standard",
+    "name": "QualityStandard",
+    "roles": [
+      1,
+      4,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/inventory/warehouse",
+    "name": "仓库库存",
+    "roles": [
+      1,
+      5,
+      6,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/inventory/material",
+    "name": "物料管理",
+    "roles": [
+      1,
+      5,
+      6,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/inventory/in",
+    "name": "入库管理",
+    "roles": [
+      1,
+      5,
+      6,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/inventory/out",
+    "name": "出库管理",
+    "roles": [
+      1,
+      5,
+      6,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/inventory/material-requests",
+    "name": "物料需求",
+    "roles": [
+      1,
+      2,
+      3,
+      5,
+      6,
+      9
+    ]
+  },
+  {
+    "path": "/purchase/requests",
+    "name": "采购需求",
+    "roles": [
+      5,
+      6,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/purchase/order",
+    "name": "采购订单",
+    "roles": [
+      5,
+      6,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/purchase/supplier",
+    "name": "供应商管理",
+    "roles": [
+      5,
+      6,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/order/customer",
+    "name": "客户管理",
+    "roles": [
+      7,
+      9
+    ]
+  },
+  {
+    "path": "/order/list",
+    "name": "订单列表",
+    "roles": [
+      7,
+      9
+    ]
+  },
+  {
+    "path": "/equipment/list",
+    "name": "设备台账",
+    "roles": [
+      1,
+      2,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/equipment/maintenance",
+    "name": "设备维修管理",
+    "roles": [
+      1,
+      2,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/equipment/repair-tasks",
+    "name": "EquipmentRepairTasks",
+    "roles": [
+      1,
+      2,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/equipment/periodic",
+    "name": "定期保养计划",
+    "roles": [
+      1,
+      2,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/equipment/bills",
+    "name": "EquipmentMaintenanceBills",
+    "roles": [
+      1,
+      2,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/system/user",
+    "name": "员工管理",
+    "roles": [
+      9,
+      11
+    ]
+  },
+  {
+    "path": "/system/role",
+    "name": "岗位与权限管理",
+    "roles": [
+      9,
+      11
+    ]
+  },
+  {
+    "path": "/system/department",
+    "name": "部门管理",
+    "roles": [
+      9,
+      11
+    ]
+  },
+  {
+    "path": "/system/logs",
+    "name": "日志管理",
+    "roles": [
+      9,
+      11
+    ]
+  },
+  {
+    "path": "/attendance",
+    "name": "考勤管理",
+    "roles": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "path": "/admin",
+    "name": "AdminDashboard",
+    "roles": [
+      9
+    ]
+  },
+  {
+    "path": "/prod-manager",
+    "name": "ProdManagerDashboard",
+    "roles": [
+      1,
+      9
+    ]
+  },
+  {
+    "path": "/workshop-manager",
+    "name": "WorkshopManagerDashboard",
+    "roles": [
+      2,
+      9
+    ]
+  },
+  {
+    "path": "/worker",
+    "name": "WorkerDashboard",
+    "roles": [
+      3,
+      9
+    ]
+  },
+  {
+    "path": "/qc-manager",
+    "name": "QCManagerDashboard",
+    "roles": [
+      4,
+      9
+    ]
+  },
+  {
+    "path": "/warehouse-manager",
+    "name": "WarehouseManagerDashboard",
+    "roles": [
+      5,
+      9
+    ]
+  },
+  {
+    "path": "/purchase-manager",
+    "name": "PurchaseManagerDashboard",
+    "roles": [
+      6,
+      9
+    ]
+  },
+  {
+    "path": "/sales-manager",
+    "name": "SalesManagerDashboard",
+    "roles": [
+      7,
+      9
+    ]
+  },
+  {
+    "path": "/equipment-manager",
+    "name": "EquipmentManagerDashboard",
+    "roles": [
+      8,
+      9
+    ]
+  },
+  {
+    "path": "/cfo",
+    "name": "财务看板",
+    "roles": [
+      9,
+      10
+    ]
+  },
+  {
+    "path": "/foundation/units",
+    "name": "基础配置中心",
+    "roles": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "path": "/foundation/warehouses",
+    "name": "仓库设置",
+    "roles": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "path": "/foundation/areas",
+    "name": "库区设置",
+    "roles": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "path": "/foundation/locations",
+    "name": "库位设置",
+    "roles": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  }
+]

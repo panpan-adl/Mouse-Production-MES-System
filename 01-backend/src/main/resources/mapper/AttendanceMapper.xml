@@ -13,7 +13,7 @@
     <select id="findByAttendanceDate" parameterType="String" resultType="com.mouse.mes.entity.Attendance">
         SELECT * FROM t_attendance WHERE attendance_date = #{attendanceDate} ORDER BY user_id
     </select>
-    <insert id="insert" parameterType="com.mouse.mes.entity.Attendance">
+    <insert id="insert" parameterType="com.mouse.mes.entity.Attendance" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO t_attendance (user_id, user_name, attendance_date, check_in_time, check_out_time, work_hours, status, remark, create_time)
         VALUES (#{userId}, #{userName}, #{attendanceDate}, #{checkInTime}, #{checkOutTime}, #{workHours}, #{status}, #{remark}, #{createTime})
     </insert>

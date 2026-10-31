@@ -29,6 +29,8 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired private com.mouse.mes.service.EmployeeHistoryService employeeHistory;
+
     @Value("${upload.path:uploads/avatars}")
     private String uploadPath;
 
@@ -57,11 +59,19 @@ public class UserController {
         return userService.create(user);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     @PutMapping("/{id}")
     public User updateUser(@PathVariable Long id, @RequestBody User user) {
+        User before=userService.findById(id);
+        if(before==null)throw new IllegalArgumentException("员工不存在");
         user.setId(id);
-        return userService.update(user);
+        User after=userService.update(user);
+        employeeHistory.record(before,after);
+        return after;
     }
+
+    @GetMapping("/{id}/history")
+    public Object employeeHistory(@PathVariable Long id){return employeeHistory.history(id);}
 
     @DeleteMapping("/{id}")
     public JsonResult<Void> deleteUser(@PathVariable Long id) {

@@ -1,14 +1,10 @@
 <script setup lang="ts">
-import { computed, inject, type Ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { canVisit } from '@/utils/permissions'
-import { warehouseDocumentPaths, warehouseSections } from '@/utils/warehouseNavigation'
+import { warehouseSections } from '@/utils/warehouseNavigation'
 const route=useRoute(),auth=useAuthStore()
-const inbound = inject<{ selected: Ref<string>; disabled: Ref<boolean>; select: (kind: string) => void } | null>('warehouseInbound', null)
-const localInbound = computed(() => ['/inventory/in','/inventory/out'].includes(route.path) && inbound)
-const inboundKind = (path: string) => Object.keys(warehouseDocumentPaths).find(kind => warehouseDocumentPaths[kind] === path) || ''
-
 // Procurement retains its own receipts navigation; warehouse overview links to it.
 const section=computed(()=>route.path==='/purchase/receipts'?undefined:warehouseSections.find(s=>s.tabs.some(t=>t.path===route.path)))
 const tabs=computed(()=>section.value?.tabs.filter(t=>canVisit(Number(auth.effectiveRoleId),t.path)&&auth.hasMenu(t.path))||[])
@@ -17,8 +13,7 @@ const tabs=computed(()=>section.value?.tabs.filter(t=>canVisit(Number(auth.effec
   <section v-if="section" class="warehouse-navigation" :aria-label="section.title">
     <h1>{{section.title}}</h1><p>{{section.description}}</p>
     <nav v-if="tabs.length>1" :aria-label="`${section.title}功能`">
-      <template v-if="localInbound"><button v-for="tab in tabs.filter(t=>t.path!=='/inventory/packages')" :key="tab.path" type="button" :disabled="inbound?.disabled.value" :class="{active:inbound?.selected.value===inboundKind(tab.path)}" :aria-pressed="inbound?.selected.value===inboundKind(tab.path)" @click="inbound?.select(inboundKind(tab.path))">{{tab.label}}</button><router-link v-if="tabs.some(t=>t.path==='/inventory/packages')" to="/inventory/packages">装箱作业</router-link></template>
-      <template v-else><router-link v-for="tab in tabs" :key="tab.path" :to="tab.path.startsWith('/foundation/')?{path:tab.path,query:route.query}:tab.path" :class="{active:route.path===tab.path}" :aria-current="route.path===tab.path?'page':undefined">{{tab.label}}</router-link></template>
+      <router-link v-for="tab in tabs" :key="tab.path" :to="tab.path.startsWith('/foundation/')?{path:tab.path,query:route.query}:tab.path" :class="{active:route.path===tab.path}" :aria-current="route.path===tab.path?'page':undefined">{{tab.label}}</router-link>
     </nav>
   </section>
 </template>

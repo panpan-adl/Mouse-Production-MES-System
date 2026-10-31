@@ -22,6 +22,9 @@ export interface User {
 }
 
 export interface Notification {
+  source?: 'notice' | 'security' | 'business'
+  recordId?: number
+  targetPath?: string
   id: number
   title: string
   content: string
@@ -59,6 +62,7 @@ export const useAuthStore = defineStore('auth', () => {
   const currentUser = ref<User | null>(savedUser)
   const effectiveRoleId=computed(()=>currentUser.value?.permissionRoleId||currentUser.value?.roleId||0)
   const notifications = ref<Notification[]>([])
+  const notificationLoading=ref(false),notificationError=ref('')
   const menuPaths=ref<string[]|null>(null)
   const settings=ref<Record<string,string>>({APP_NAME:'Mouse MES',DEFAULT_DURATION_MINUTES:'60'})
   async function refreshSettings(){const rows=await request.get<{code:string;value:string}[]>('/mes/settings');settings.value=Object.fromEntries(rows.map(r=>[r.code,r.value]));if(settings.value.APP_NAME)document.title=settings.value.APP_NAME}
@@ -127,20 +131,17 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function loadNotifications() {
-    if (!currentUser.value) { notifications.value = []; return }
-    const token=currentUser.value.token
-    const [rows, alerts] = await Promise.all([request.get<Notification[]>('/mes/notices'),request.get<Notification[]>('/account/alerts')])
-    if(currentUser.value?.token!==token)return
-    notifications.value = [...alerts.map(n=>({...n,id:-n.id})),...rows].map(n=>({...n,isRead:Boolean(n.isRead)})).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))
+    if(!currentUser.value){notifications.value=[];return}
+    const token=currentUser.value.token;notificationLoading.value=true;notificationError.value=''
+    try {
+      const [rows,alerts,business]=await Promise.all([request.get<Notification[]>('/mes/notices'),request.get<Notification[]>('/account/alerts'),Number(effectiveRoleId.value)===9?request.get<Notification[]>('/mes/business-notices'):Promise.resolve([] as Notification[])])
+      if(currentUser.value?.token!==token)return
+      notifications.value=[...business.map(n=>({...n,source:'business' as const,recordId:n.id,id:-1000000000-n.id})),...alerts.map(n=>({...n,source:'security' as const,recordId:n.id,id:-n.id})),...rows.map(n=>({...n,source:'notice' as const,recordId:n.id}))].map(n=>({...n,isRead:Boolean(n.isRead)})).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))
+    }catch(e:any){if(currentUser.value?.token===token)notificationError.value=e.message||'通知读取失败，请刷新重试'}finally{notificationLoading.value=false}
   }
-  async function markNotificationAsRead(id: number) {
-    await request.post(id<0 ? `/account/alerts/${-id}/read` : `/mes/notices/${id}/read`)
-    await loadNotifications()
-  }
-  async function markAllAsRead() {
-    for (const notice of notifications.value.filter(n => !n.isRead)) await request.post(notice.id<0 ? `/account/alerts/${-notice.id}/read` : `/mes/notices/${notice.id}/read`)
-    await loadNotifications()
-  }
+  async function readNotification(n:Notification){await request.post(n.source==='business'?`/mes/business-notices/${n.recordId}/read`:n.id<0?`/account/alerts/${n.recordId||-n.id}/read`:`/mes/notices/${n.id}/read`)}
+  async function markNotificationAsRead(id:number){const notice=notifications.value.find(n=>n.id===id);if(!notice||notice.isRead)return;await readNotification(notice);notice.isRead=true}
+  async function markAllAsRead(){for(const n of notifications.value.filter(n=>!n.isRead)){await readNotification(n);n.isRead=true}}
   async function refreshProfile() {
     if (!currentUser.value) return
     const token=currentUser.value.token
@@ -151,7 +152,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshProfile,
     currentUser,
     effectiveRoleId,
-    notifications,
+    notifications, notificationLoading, notificationError,
     menuPaths,
     settings,
     refreshSettings,

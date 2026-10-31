@@ -1,0 +1,166 @@
+{
+  "employees": [
+    {
+      "userId": 1,
+      "userCode": "109001",
+      "name": "潘雯倩",
+      "roleId": 9,
+      "role": "CEO",
+      "oldDepartmentId": 1,
+      "departmentId": 1,
+      "department": "经营管理部"
+    },
+    {
+      "userId": 2,
+      "userCode": "101001",
+      "name": "李四",
+      "roleId": 1,
+      "role": "生产经理",
+      "oldDepartmentId": 2,
+      "departmentId": 2,
+      "department": "生产制造部"
+    },
+    {
+      "userId": 3,
+      "userCode": "102001",
+      "name": "王五",
+      "roleId": 2,
+      "role": "车间主任",
+      "oldDepartmentId": 2,
+      "departmentId": 2,
+      "department": "生产制造部"
+    },
+    {
+      "userId": 4,
+      "userCode": "103001",
+      "name": "赵六",
+      "roleId": 3,
+      "role": "操作工",
+      "oldDepartmentId": 2,
+      "departmentId": 2,
+      "department": "生产制造部"
+    },
+    {
+      "userId": 5,
+      "userCode": "103002",
+      "name": "孙七",
+      "roleId": 3,
+      "role": "操作工",
+      "oldDepartmentId": 2,
+      "departmentId": 2,
+      "department": "生产制造部"
+    },
+    {
+      "userId": 6,
+      "userCode": "104001",
+      "name": "周八",
+      "roleId": 4,
+      "role": "质检员",
+      "oldDepartmentId": 3,
+      "departmentId": 3,
+      "department": "质量管理部"
+    },
+    {
+      "userId": 7,
+      "userCode": "105001",
+      "name": "吴九",
+      "roleId": 5,
+      "role": "仓管员",
+      "oldDepartmentId": 4,
+      "departmentId": 4,
+      "department": "仓储物流部"
+    },
+    {
+      "userId": 8,
+      "userCode": "106001",
+      "name": "郑十",
+      "roleId": 6,
+      "role": "采购专员",
+      "oldDepartmentId": 5,
+      "departmentId": 5,
+      "department": "采购供应部"
+    },
+    {
+      "userId": 9,
+      "userCode": "107001",
+      "name": "陈十一",
+      "roleId": 7,
+      "role": "销售专员",
+      "oldDepartmentId": 6,
+      "departmentId": 6,
+      "department": "销售业务部"
+    },
+    {
+      "userId": 10,
+      "userCode": "108001",
+      "name": "黄十二",
+      "roleId": 8,
+      "role": "设备管理员",
+      "oldDepartmentId": 7,
+      "departmentId": 7,
+      "department": "设备工程部"
+    },
+    {
+      "userId": 11,
+      "userCode": "110001",
+      "name": "钱十三",
+      "roleId": 10,
+      "role": "CFO",
+      "oldDepartmentId": 8,
+      "departmentId": 8,
+      "department": "财务管理部"
+    }
+  ],
+  "departments": [
+    {
+      "id": 1,
+      "name": "经营管理部",
+      "code": "109"
+    },
+    {
+      "id": 2,
+      "name": "生产制造部",
+      "code": "101"
+    },
+    {
+      "id": 3,
+      "name": "质量管理部",
+      "code": "104"
+    },
+    {
+      "id": 4,
+      "name": "仓储物流部",
+      "code": "105"
+    },
+    {
+      "id": 5,
+      "name": "采购供应部",
+      "code": "106"
+    },
+    {
+      "id": 6,
+      "name": "销售业务部",
+      "code": "107"
+    },
+    {
+      "id": 7,
+      "name": "设备工程部",
+      "code": "108"
+    },
+    {
+      "id": 8,
+      "name": "财务管理部",
+      "code": "110"
+    },
+    {
+      "id": 9,
+      "name": "人力与系统管理部",
+      "code": "111"
+    }
+  ],
+  "categoryCount": 8,
+  "positions": 11,
+  "employeePositions": 11,
+  "menus": 100,
+  "menuGrants": 100
+}

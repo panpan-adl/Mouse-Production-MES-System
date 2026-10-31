@@ -101,7 +101,6 @@ const allMenuItems = ref<MenuItem[]>([
       {path:'/production/schedules',name:'班组排班计划',icon:Calendar},
       { path: '/production/plan', name: '生产计划', icon: FileText },
       { path: '/production/task', name: '生产任务', icon: CheckCircle },
-      { path: '/production/equipment-status', name: '设备状态管理', icon: Wrench, roles: [3] },
       { path: '/production/report', name: '生产报工', icon: BarChart3 },
     ],
   },
@@ -138,6 +137,7 @@ const allMenuItems = ref<MenuItem[]>([
     icon: Wrench,
     children: [
       { path: '/equipment/list', name: '设备台账', icon: Wrench },
+      {path:'/production/equipment-status',name:'设备报修',icon:Wrench,roles:[1,2,3]},
       { path: '/equipment/maintenance', name: '设备维修管理', icon: Settings },
       { path: '/equipment/periodic', name: '定期保养计划', icon: Calendar, roles: [8] },
     ],

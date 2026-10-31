@@ -27,7 +27,7 @@ const activeStatuses = ['PENDING', 'PROCESSING']
 
 const statusText: Record<string, string> = {
   NORMAL: '正常',
-  FAULT: '故障',
+  FAULT: '故障', REPAIR_REQUESTED:'待维修', REPAIRING:'维修中', REPAIRED:'已修复',
   MAINTAINING: '维修中',
   SCRAPPED: '报废',
 }
@@ -61,7 +61,7 @@ const myRepairRequests = computed(() => {
 const stats = computed(() => ({
   total: equipments.value.length,
   normal: equipments.value.filter((item) => item.status === 'NORMAL').length,
-  abnormal: equipments.value.filter((item) => ['FAULT', 'MAINTAINING'].includes(item.status || '')).length,
+  abnormal: equipments.value.filter((item) => ['FAULT', 'REPAIR_REQUESTED', 'MAINTAINING', 'REPAIRING'].includes(item.status || '')).length,
   myPending: myRepairRequests.value.filter((item) => activeStatuses.includes(item.status || '')).length,
 }))
 
@@ -117,7 +117,7 @@ async function submitRepairRequest() {
       equipmentName: selectedEquipment.value.equipmentName,
       maintenanceType: 2,
       faultDesc: repairForm.faultDesc.trim(),
-      remark: `操作工报修；申请人：${currentUser.value.realName}（${currentUser.value.userCode}）；设备：${selectedEquipment.value.equipmentCode}；${repairForm.remark.trim() || '无补充说明'}`,
+      remark: `现场报修；申请人：${currentUser.value.realName}（${currentUser.value.userCode}）；设备：${selectedEquipment.value.equipmentCode}；${repairForm.remark.trim() || '无补充说明'}`,
     })
     completeDrafts();showRepairForm.value=false
     message.value = '设备报修已提交，车间主任工作台会出现待指派维修单'
@@ -131,8 +131,8 @@ async function submitRepairRequest() {
 
 function equipmentStatusClass(status?: string) {
   if (status === 'NORMAL') return 'tag-green'
-  if (status === 'FAULT') return 'tag-red'
-  if (status === 'MAINTAINING') return 'tag-yellow'
+  if (['FAULT','REPAIR_REQUESTED'].includes(status||'')) return 'tag-red'
+  if (['MAINTAINING','REPAIRING'].includes(status||'')) return 'tag-yellow'
   return 'tag-gray'
 }
 
@@ -171,9 +171,9 @@ const completeDrafts=useFormDrafts({showRepairForm:{open:showRepairForm,fields:{
               <Wrench class="h-10 w-10" />
             </div>
             <div>
-              <h1 class="text-3xl font-bold">设备状态管理</h1>
+              <h1 class="text-3xl font-bold">设备报修</h1>
               <p class="mt-2 text-blue-100">查看现场设备状态，发现故障后上报给车间主任，由车间主任指派维修人员。</p>
-              <p class="mt-1 text-sm text-blue-200">当前操作工：{{ currentUser?.realName }}｜工号：{{ currentUser?.userCode }}</p>
+              <p class="mt-1 text-sm text-blue-200">当前申请人：{{ currentUser?.realName }}｜工号：{{ currentUser?.userCode }}</p>
             </div>
           </div>
           <button class="rounded-xl bg-white px-4 py-2 text-sm font-medium text-blue-700 shadow-sm hover:bg-blue-50" :disabled="loading" @click="loadData">

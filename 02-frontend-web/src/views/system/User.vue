@@ -19,6 +19,8 @@ import {
 import { departmentApi, type Department } from '@/api/department'
 
 const users = ref<User[]>([])
+const historyUser=ref<User|null>(null),employeeHistory=ref<Record<string,any>[]>([]),historyError=ref(''),historyBusy=ref(false)
+async function openHistory(user:User){historyUser.value=user;employeeHistory.value=[];historyError.value='';historyBusy.value=true;try{employeeHistory.value=await request.get(`/users/${user.id}/history`)}catch(e:any){historyError.value=e.message||'记录加载失败'}finally{historyBusy.value=false}}
 const searchKeyword = ref('')
 const selectedRole = ref('')
 const selectedDept = ref('')
@@ -426,7 +428,7 @@ const completeDrafts=useFormDrafts({showAddModal:{open:showAddModal,fields:{newU
                   </span>
                 </td>
                 <td class="px-4 py-4">
-                  <div class="flex items-center space-x-3">
+                  <div class="flex items-center space-x-3"><button class="link-btn text-sm" @click="openHistory(user)">任职记录</button>
                     <button 
                       class="text-blue-600 hover:text-blue-700 text-sm font-medium"
                       @click="handleEditUser(user)"
@@ -457,6 +459,7 @@ const completeDrafts=useFormDrafts({showAddModal:{open:showAddModal,fields:{newU
       </div>
     </div>
 
+    <div v-if="historyUser" class="modal-mask"><section class="modal-card max-w-4xl"><div class="flex items-center justify-between mb-4"><div><h2 class="text-xl font-bold">{{historyUser.realName}} · 部门与岗位记录</h2><p class="text-sm text-gray-500 mt-1">工号 {{historyUser.userCode}}；记录由员工资料保存自动生成，保留操作人和当时的部门、岗位名称。</p></div><button class="icon-btn" @click="historyUser=null"><X class="w-5 h-5" /></button></div><p v-if="historyError" role="alert">{{historyError}}</p><p v-if="historyBusy">正在加载任职记录…</p><div v-else class="overflow-x-auto"><table class="data-table"><thead><tr><th>时间 / 操作</th><th>原部门 → 新部门</th><th>原岗位 → 新岗位</th><th>经办人</th></tr></thead><tbody><tr v-for="h in employeeHistory" :key="h.id"><td>{{String(h.created_at).replace('T',' ').slice(0,19)}}<p>{{h.action}}</p></td><td>{{h.old_department}} → {{h.new_department}}</td><td>{{h.old_role}} → {{h.new_role}}</td><td>{{h.actor_name||'系统'}}<p>{{h.actor_code}}</p></td></tr><tr v-if="!employeeHistory.length"><td colspan="4" class="empty-cell">暂无部门岗位变更或确认记录；保存员工资料后自动留痕。</td></tr></tbody></table></div></section></div>
     <div v-if="showAddModal" class="modal-mask fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-business-form>
       <div class="modal-card bg-white rounded-xl shadow-lg w-full max-w-md p-6">
         <div class="flex items-center justify-between mb-4">

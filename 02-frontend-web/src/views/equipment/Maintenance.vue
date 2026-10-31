@@ -2,7 +2,7 @@
 import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useRoute, useRouter } from 'vue-router'
 import { useFormDrafts } from '@/composables/useFormDrafts'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, watch, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
 import { equipmentApi, maintenanceApi, type Equipment, type Maintenance } from '@/api/mes'
@@ -20,7 +20,10 @@ const equipments = ref<Equipment[]>([])
 const maintainers = ref<User[]>([])
 const keyword = ref('')
 const route=useRoute(),router=useRouter()
-const activeTab=computed(()=>String(route.query.tab||'requests'))
+const activeTab=computed(()=>['requests','execution','bills'].includes(String(route.query.tab))?String(route.query.tab):'requests')
+watch(activeTab,()=>{statusFilter.value=''})
+const workQueue=computed(()=>[{key:'PENDING',label:'待派工／待开始',count:pendingCount.value},{key:'PROCESSING',label:'维修处理中',count:processingCount.value},{key:'FINISHED',label:'已完成记录',count:finishedCount.value}])
+function focusQueue(status:string){statusFilter.value=status;router.replace({query:{...route.query,tab:status==='FINISHED'?'bills':'execution'}}).then(()=>{statusFilter.value=status})}
 const billDetails=ref<Maintenance|null>(null)
 const statusFilter = ref('')
 const showCreateForm = ref(false)
@@ -298,14 +301,10 @@ const completeDrafts=useFormDrafts({showCreateForm:{open:showCreateForm,fields:{
         <button v-if="[8,9].includes(authStore.effectiveRoleId)&&!isMaintainer" class="btn-primary" @click="openCreate"><Plus class="w-4 h-4" />新增维修单</button>
       </div>
 
-      <nav class="flex gap-3 flex-wrap" aria-label="维修管理业务"><button v-for="t in [{key:'requests',label:'申请与派工'},{key:'execution',label:'维修执行与记录'},{key:'bills',label:'维护账单'}]" :key="t.key" class="btn-secondary" :class="{'bg-blue-50 text-blue-700':activeTab===t.key}" @click="router.replace({query:{tab:t.key}})">{{t.label}}</button></nav><p v-if="activeTab==='bills'" class="text-gray-500">账单由已完成维修或保养记录自动汇总，费用在完成填报时登记，无需重复录单。</p><div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="stat-card"><p class="stat-label">待维修</p><p class="stat-value text-yellow-600">{{ pendingCount }}</p></div>
-        <div class="stat-card"><p class="stat-label">维修中</p><p class="stat-value text-blue-600">{{ processingCount }}</p></div>
-        <div class="stat-card"><p class="stat-label">已完成</p><p class="stat-value text-green-600">{{ finishedCount }}</p></div>
-        <div class="stat-card"><p class="stat-label">维修费用</p><p class="stat-value text-gray-900">¥{{ totalCost.toFixed(2) }}</p></div>
-      </div>
+      <nav class="flex gap-3 flex-wrap" aria-label="维修管理业务"><button v-for="t in [{key:'requests',label:'申请与派工'},{key:'execution',label:'维修执行与记录'},{key:'bills',label:'维护账单'}]" :key="t.key" class="btn-secondary" :class="{'bg-blue-50 text-blue-700':activeTab===t.key}" @click="router.replace({query:{tab:t.key}})">{{t.label}}</button></nav><p v-if="activeTab==='bills'" class="text-gray-500">账单由已完成维修或保养记录自动汇总，费用在完成填报时登记，无需重复录单。</p><p class="text-sm text-gray-500">已载入维护记录累计费用：¥{{ totalCost.toFixed(2) }}；阶段卡按当前账号可见记录统计。</p>
 
-      <div class="panel">
+      <section class="maintenance-queue" aria-label="维修处理阶段"><button v-for="stage in workQueue" :key="stage.key" @click="focusQueue(stage.key)"><span>{{stage.label}}</span><strong>{{stage.count}}</strong><small>查看对应记录</small></button></section>
+      <div class="panel"><div class="work-area-title"><h2>{{activeTab==='bills'?'完成记录与费用核对':activeTab==='execution'?'维修执行工作区':'维修申请与派工'}}</h2><p>{{activeTab==='bills'?'只展示已完成记录，查看实际维修内容、结果与费用。':activeTab==='execution'?'维护员处理已指派任务：开始维修，完成后填写结果和费用。':'按设备登记问题，核对维护员后派工；记录状态决定可执行操作。'}}</p></div>
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-3 mb-5">
           <div class="relative lg:col-span-2">
             <Search class="search-icon" />

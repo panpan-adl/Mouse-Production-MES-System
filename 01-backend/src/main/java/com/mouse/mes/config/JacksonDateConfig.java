@@ -11,7 +11,10 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
 import java.io.IOException;
-import java.text.ParseException;
+import java.text.ParsePosition;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.TimeZone;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -48,15 +51,19 @@ public class JacksonDateConfig {
                 return null;
             }
             
+            // Offset timestamps must be parsed before date-only formats. SimpleDateFormat
+            // otherwise accepts a valid prefix and silently discards the entire clock time.
+            try { return Date.from(OffsetDateTime.parse(dateStr).toInstant()); }
+            catch (DateTimeParseException ignored) { }
             for (String format : DATE_FORMATS) {
-                try {
-                    SimpleDateFormat sdf = new SimpleDateFormat(format);
-                    sdf.setLenient(false);
-                    return sdf.parse(dateStr);
-                } catch (ParseException ignored) {
-                }
+                SimpleDateFormat sdf = new SimpleDateFormat(format);
+                sdf.setLenient(false);
+                sdf.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"));
+                ParsePosition position = new ParsePosition(0);
+                Date parsed = sdf.parse(dateStr, position);
+                if (parsed != null && position.getIndex() == dateStr.length()) return parsed;
             }
-            
+
             throw new IOException("无法解析日期: " + dateStr + ", 支持的格式: " + String.join(", ", DATE_FORMATS));
         }
     }

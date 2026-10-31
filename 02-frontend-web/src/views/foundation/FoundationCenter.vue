@@ -13,6 +13,7 @@ interface Field { name: string; label: string; type: string; ref?: string; requi
 interface Definition { key: string; label: string; fields: Field[]; roles: number[] }
 type Row = Record<string, any>
 const auth = useAuthStore(), route = useRoute(), router = useRouter()
+const systemHelp:Record<string,string>={positions:'岗位档案定义部门内的工作职责；系统操作权限以角色与业务权限为准。', 'user-positions':'将现有员工关联到所属部门的岗位；部门和职务调整的历史请在员工管理中查看任职记录。',menus:'登记系统真实页面及其访问路径，供角色菜单配置引用。','role-menus':'配置角色可访问的菜单页面。已为原有全权限 CEO 建立显式记录；其他角色维持现有业务权限。'}
 const catalog = ref<Definition[]>([]), records = ref<Row[]>([]), lookups = reactive<Record<string,Row[]>>({})
 const loading = ref(false), saving = ref(false), message = ref(''), error = ref(''), search = ref('')
 const modal = ref(false), editing = ref<number>(), form = reactive<Row>({}), expansion = ref<Row[]>([]), bomQuantity = ref(100)
@@ -26,7 +27,7 @@ const navigationGroups = computed(()=>[currentGroup.value])
 const definition = computed(()=>catalog.value.find(x=>x.key===key.value))
 const canEdit = computed(()=>auth.effectiveRoleId===9 || !!definition.value?.roles.includes(Number(auth.effectiveRoleId)))
 const internalCode=(f:Field)=>!f.ref&&(f.name==='code'||f.name.endsWith('_code'))
-const visibleFields=computed(()=>definition.value?.fields.filter(f=>!internalCode(f))||[])
+const visibleFields=computed(()=>definition.value?.fields.filter(f=>!internalCode(f)).map(f=>f.name==='department_id'?{...f,label:'所属部门'}:f)||[])
 const filtered = computed(()=>records.value.filter(r=>Object.values(r).join(' ').toLowerCase().includes(search.value.toLowerCase())))
 const warehouseId=computed(()=>String(route.query.warehouse||''))
 const areaId=computed(()=>String(route.query.area||''))
@@ -93,7 +94,7 @@ async function load() {
     records.value=await request.get<Row[]>(`/foundation/${key.value}`)
     if(['maintenance-plans','checks'].includes(key.value))maintenancePeople.value=await request.get<Row[]>('/mes/assignable-people',{params:{role:8}})
     await Promise.all([...new Set(definition.value.fields.map(f=>f.ref).filter(Boolean))].map(async r=>{lookups[r!]=await request.get<Row[]>(`/foundation/${r}`)}))
-      if(isWarehouseSetup.value)await Promise.all(['warehouses','areas'].map(async r=>{lookups[r]=await request.get<Row[]>(`/foundation/${r}`)}))
+      if(isWarehouseSetup.value)await Promise.all(['warehouses','areas','locations'].map(async r=>{lookups[r]=await request.get<Row[]>(`/foundation/${r}`)}))
   } catch(e:any) { error.value=e.message || '加载失败'; records.value=[] }
   finally {loading.value=false}
 }
@@ -152,6 +153,10 @@ const completeDrafts=useFormDrafts({modal:{open:modal,fields:{form}, record:()=>
       <div><p class="text-sm text-blue-600 mb-1">{{ currentGroup.module }} / {{ currentGroup.title }}</p><h1 class="text-2xl font-bold text-gray-900">{{ definition?.label || currentGroup.title }}</h1><p class="text-sm text-gray-500 mt-2">{{ isWarehouseSetup?'按仓库、库区、库位三级维护存储位置，供入库、出库和库存查询使用。':key==='categories'?'建立清晰的分类层级，让原材料、半成品和成品各有归属。':`维护${currentGroup.title}，供${currentGroup.module}相关业务使用。` }}</p></div>
       <button v-if="currentGroup.module!=='质量管理'&&currentGroup.returnPath&&auth.hasMenu(currentGroup.returnPath)" class="rounded-lg border px-4 py-2 bg-white" @click="router.push(currentGroup.returnPath)">{{ currentGroup.returnLabel }} →</button>
     </div>
+    <section v-if="isWarehouseSetup" class="storage-hierarchy" aria-label="三级存储结构">
+      <div class="storage-hierarchy-title"><strong>三级存储 · 仓库 → 库区 → 库位</strong><span>先确定仓库，再定位业务库区，最终落实到具体货架库位</span></div>
+      <div class="storage-hierarchy-grid"><article v-for="w in (lookups.warehouses||[]).filter(w=>!warehouseId||Number(w.id)===Number(warehouseId))" :key="w.id"><button @click="openStorage('areas',w)">{{rowName(w)}}</button><div v-for="a in (lookups.areas||[]).filter(a=>Number(a.warehouse_id)===Number(w.id))" :key="a.id"><button class="storage-area" @click="openStorage('locations',a)">{{a.name}}</button><p>{{(lookups.locations||[]).filter(l=>Number(l.area_id)===Number(a.id)).map(l=>l.name).join(' · ')||'待配置库位'}}</p></div></article></div>
+    </section>
     <div :class="isWarehouseSetup || isEquipmentSetup || isSystemSetup ? 'space-y-5' : 'grid grid-cols-[200px_minmax(0,1fr)] gap-5'">
       <aside v-if="!isWarehouseSetup && !isSystemSetup" class="foundation-menu bg-white border rounded-xl p-3 self-start" :aria-label="currentGroup.title" tabindex="0">
         <div v-for="group in navigationGroups" :key="group.title" class="mb-4"><p class="px-2 text-xs text-gray-400 mb-1">{{ group.title }}</p>
@@ -161,7 +166,7 @@ const completeDrafts=useFormDrafts({modal:{open:modal,fields:{form}, record:()=>
       <section class="min-w-0">
         <p v-if="message" role="status" class="mb-3 rounded-lg bg-green-50 p-3 text-green-700">{{ message }}</p>
         <p v-if="error" role="alert" class="mb-3 rounded-lg bg-red-50 p-3 text-red-700">{{ error }}</p>
-        <div v-if="isSystemSetup && key!=='categories'" class="system-list-heading"><div><h2>{{ definition?.label || '基础资料' }}<span>{{ records.length }} 项</span></h2><p>{{ key==='units'?'维护计量单位与换算关系，统一采购、生产和库存的数量口径。':key==='categories'?'按层级整理物料和产品分类，便于查找与统一维护。':'集中维护'+(definition?.label || '配置资料')+'，供相关业务使用。' }}</p></div></div>
+        <div v-if="isSystemSetup && key!=='categories'" class="system-list-heading"><div><h2>{{ definition?.label || '基础资料' }}<span>{{ records.length }} 项</span></h2><p>{{ systemHelp[key] || (key==='units'?'维护计量单位与换算关系，统一采购、生产和库存的数量口径。':key==='categories'?'按层级整理物料和产品分类，便于查找与统一维护。':'集中维护'+(definition?.label || '配置资料')+'，供相关业务使用。') }}</p></div></div>
         <div v-if="isProductionSetup" class="product-summary"><div><span>{{definition?.label||'档案总数'}}</span><strong>{{records.length}}<small>条记录</small></strong></div><div><span>{{key==='products'?'已归类':'当前页'}}</span><strong>{{key==='products'?records.filter(r=>r.category_id).length:productPage}}<small>{{key==='products'?'款':'/ '+productPageCount+' 页'}}</small></strong></div><div><span>当前结果</span><strong>{{visibleRecords.length}}<small>条记录</small></strong></div></div>
         <CategoryManager v-if="key==='categories'" :records="records" :loading="loading" :can-edit="canEdit" @edit="edit" @child="addChildCategory" @remove="remove" @refresh="load" />
         <div v-else class="foundation-records bg-white border rounded-xl overflow-hidden">

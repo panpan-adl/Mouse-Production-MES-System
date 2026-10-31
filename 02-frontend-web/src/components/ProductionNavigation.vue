@@ -16,8 +16,9 @@ const isConfiguration=computed(()=>route.path.startsWith('/foundation/'))
   <section v-if="section&&!['产品与工艺','生产计划'].includes(section.title)" class="production-navigation" :aria-label="section.title">
     <h1>{{section.title}}</h1><p>{{section.description}}</p>
     <nav :aria-label="`${section.title}功能`">
-      <router-link v-for="t in tabs" :key="t.path" :to="t.path" :class="{active:route.path===t.path}" :aria-current="route.path===t.path?'page':undefined">{{t.label}}</router-link>
       <router-link v-if="configuration" :to="configuration.path" :class="{active:isConfiguration}" :aria-current="isConfiguration?'page':undefined">{{section.title==='点检与保养'?'点检配置与记录':'班组与班次配置'}}</router-link>
+      <router-link v-for="t in tabs" :key="t.path" :to="t.path" :class="{active:route.path===t.path}" :aria-current="route.path===t.path?'page':undefined">{{t.label}}</router-link>
+
     </nav>
   </section>
 </template>

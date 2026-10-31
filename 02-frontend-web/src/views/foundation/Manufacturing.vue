@@ -20,7 +20,7 @@ const inspectionDetail=ref<Row>(); const detailResults=computed<Row[]>(()=>{try{
 const sourceNames:Row={TASK:'工序任务',PURCHASE:'采购订单',ORDER:'销售订单'}
 const error=ref(''),message=ref(''),busy=ref(false),createOpen=ref(false),inspectionOpen=ref(false)
 const form=reactive<Row>({}),inspection=reactive<Row>({results:{}})
-const statusNames=['待领取','已领取','生产中','待质检','已完成','已取消']
+const statusNames=['待领取','已派发','生产中','待质检','已完成','已取消']
 const canPlan=computed(()=>[1,2,9].includes(Number(auth.effectiveRoleId)))
 const canInspect=computed(()=>[4,9].includes(Number(auth.effectiveRoleId)))
 const name=(r:Row)=>[r.name||r.plan_no||r.real_name||r.product_name||r.code||'未命名',r.version,r.status].filter(Boolean).join(' · ')

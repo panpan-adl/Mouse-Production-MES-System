@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref,onMounted } from 'vue'
+import { computed, ref,onMounted,onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Bell, Settings, Menu, ChevronRight } from 'lucide-vue-next'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore, type Notification } from '@/stores/auth'
 import UserAvatar from './UserAvatar.vue'
 import { sidebarCollapsed } from '@/stores/layout'
 import { productionSections } from '@/utils/productionNavigation'
@@ -22,6 +22,13 @@ const todayLabel=new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeri
 const authStore = useAuthStore()
 onMounted(()=>Promise.all([authStore.refreshProfile(),authStore.loadNotifications(),authStore.refreshMenuAccess(),authStore.refreshSettings()]).catch(()=>{}))
 const showNotifications = ref(false)
+let notificationTimer:ReturnType<typeof setInterval>|undefined
+const refreshNotifications=()=>{if(document.visibilityState==='visible')authStore.loadNotifications()}
+onMounted(()=>{notificationTimer=setInterval(refreshNotifications,30000);window.addEventListener('focus',refreshNotifications)})
+onBeforeUnmount(()=>{if(notificationTimer)clearInterval(notificationTimer);window.removeEventListener('focus',refreshNotifications)})
+function toggleNotifications(){showNotifications.value=!showNotifications.value;if(showNotifications.value)authStore.loadNotifications()}
+async function openNotification(n:Notification){try{await authStore.markNotificationAsRead(n.id);showNotifications.value=false;router.push(n.targetPath||'/notifications')}catch{authStore.loadNotifications()}}
+
 
 function goToNotifications() {
   showNotifications.value = false
@@ -40,7 +47,7 @@ function goToProfile() {
     <div class="flex items-center space-x-4"><span class="header-date">{{todayLabel}}</span>
       <div class="relative">
         <button
-          aria-label="查看通知" :aria-expanded="showNotifications" @click="showNotifications = !showNotifications"
+          aria-label="查看通知" :aria-expanded="showNotifications" @click="toggleNotifications"
           class="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <Bell class="w-5 h-5 text-gray-600" />
@@ -60,11 +67,11 @@ function goToProfile() {
             <h3 class="font-semibold text-gray-800">通知</h3>
             <span class="text-xs text-gray-500">{{ authStore.notifications.length }} 条</span>
           </div>
-          <div class="max-h-80 overflow-y-auto">
+          <div class="max-h-80 overflow-y-auto"><p v-if="authStore.notificationError" role="alert" class="p-4 text-sm text-red-600">{{authStore.notificationError}}</p><p v-else-if="authStore.notificationLoading&&!authStore.notifications.length" class="p-4 text-sm text-gray-500">正在读取通知…</p><p v-else-if="!authStore.notifications.length" class="p-4 text-sm text-gray-500">暂无通知；业务提醒和账号安全消息会显示在这里。</p>
             <div
               v-for="notification in authStore.notifications.slice(0, 5)"
               :key="notification.id"
-              @click="goToNotifications"
+              @click="openNotification(notification)"
               :class="[
                 'p-4 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0',
                 !notification.isRead ? 'bg-blue-50/50' : ''

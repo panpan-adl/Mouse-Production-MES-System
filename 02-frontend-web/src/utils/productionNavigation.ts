@@ -10,11 +10,11 @@ export const productionSections = [
   { title: '班组与排班', description: '安排班组班次，维护人员、轮班规则与排班日历。', module: '生产管理', tabs: [
     {path:'/production/schedules',label:'排班日历'},
     ...foundationGroups.find(g=>g.title==='班组与排班配置')!.keys.map(key=>({path:`/foundation/${key}`,label:''}))] },
-  { title: '设备台账', description: '查看设备档案、运行状态与故障报修。', module: '设备管理', tabs: [
-    {path:'/equipment/list',label:'设备台账'}, {path:'/production/equipment-status',label:'设备状态与报修'}] },
-  { title: '点检与保养', description: '配置点检项目与计划，安排定期保养并查看执行记录。', module: '设备管理', tabs: [
+  { title: '设备台账', description: '查看设备档案、当前状态与历次维修记录。', module: '设备管理', tabs: [
+    {path:'/equipment/list',label:'设备台账'}] },
+  { title: '设备维修', description: '处理设备故障、维修任务与维修记录。', module: '设备管理', tabs: [
+    {path:'/production/equipment-status',label:'设备报修'}, {path:'/equipment/maintenance',label:'维修管理'}] },  { title: '点检与保养', description: '配置点检项目与计划，安排定期保养并查看执行记录。', module: '设备管理', tabs: [
     ...foundationGroups.find(g=>g.title==='设备点检配置')!.keys.map(key=>({path:`/foundation/${key}`,label:''})),
     {path:'/equipment/periodic',label:'保养计划与执行'}] },
-  { title: '设备维修', description: '处理设备故障、维修任务与维修记录。', module: '设备管理', tabs: [
-    {path:'/equipment/maintenance',label:'维修管理'}] },
+
 ]

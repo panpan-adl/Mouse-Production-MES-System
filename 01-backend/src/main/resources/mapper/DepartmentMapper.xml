@@ -10,7 +10,7 @@
     <select id="findByParentId" parameterType="Long" resultType="com.mouse.mes.entity.Department">
         SELECT * FROM t_department WHERE parent_id = #{parentId} AND status = 1 ORDER BY sort
     </select>
-    <insert id="insert" parameterType="com.mouse.mes.entity.Department">
+    <insert id="insert" parameterType="com.mouse.mes.entity.Department" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO t_department (parent_id, dept_name, dept_code, leader_id, leader_name, sort, status, create_time, update_time)
         VALUES (#{parentId}, #{deptName}, #{deptCode}, #{leaderId}, #{leaderName}, #{sort}, #{status}, #{createTime}, #{updateTime})
     </insert>

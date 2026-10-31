@@ -40,3 +40,78 @@ body:has(.notion-workspace) .modal-card :focus-visible{outline:2px solid #b39872
 .notion-workspace .mes-hero-label{color:#b09a7b}
 .notion-workspace .user-avatar{background:#eee6d8;color:#9a7c54}
 @media(max-width:640px){body:has(.notion-workspace) .modal-mask{padding:12px}body:has(.notion-workspace) .modal-mask .modal-card{padding:18px;max-height:calc(100dvh - 24px);border-radius:11px}}
+
+/* Match the warm production panorama across supporting business modules. */
+.unified-module-theme{--module-ink:#594a37;--module-muted:#958875;--module-line:#e7dfd2;--module-soft:#f4ede1;--module-accent:#92734c}
+.unified-module-theme .workspace-content{color:var(--module-ink)}
+.unified-module-theme .workspace-content :is(.panel,.stat-card,.card,.bg-white,.finance-panel,.finance-health){background:#fffdf9;border:1px solid var(--module-line);border-radius:12px;box-shadow:none}
+.unified-module-theme .workspace-content :is(h1,h2,h3){color:var(--module-ink)}
+.unified-module-theme .workspace-content h1{font-size:26px;font-weight:650;letter-spacing:0}
+.unified-module-theme .workspace-content :is(.text-gray-500,.text-slate-500,.text-slate-400,.stat-label){color:var(--module-muted)}
+.unified-module-theme .workspace-content :is(.stat-value,.finance-page .metric-card strong){color:#76583a}
+.unified-module-theme .workspace-content :is(.text-blue-600,.text-blue-700,.text-blue-500){color:var(--module-accent)!important}
+.unified-module-theme .workspace-content :is(.bg-blue-50,.bg-blue-100){background:#f2ebdf!important;color:#806642!important;border-color:#e2d5c1!important}
+.unified-module-theme .workspace-content :is(.btn-primary,button.bg-blue-600){background:#92734c;border-color:#92734c;color:#fffdf9;box-shadow:none;border-radius:7px}
+.unified-module-theme .workspace-content :is(input,select,textarea){border-color:#ded5c7;border-radius:7px;color:#594f42;background:#fffdf9}
+.unified-module-theme .workspace-content :is(input,select,textarea):focus-visible{outline:2px solid #b69a73;outline-offset:2px;box-shadow:none}
+.unified-module-theme .workspace-content table{color:#665744}
+.unified-module-theme .workspace-content thead,.unified-module-theme .workspace-content th{background:#f6f2eb;color:#877458;border-color:#e7dfd2;font-weight:500}
+.unified-module-theme .workspace-content td{border-color:#eee7dc}
+.unified-module-theme .workspace-content tbody tr:hover{background:#faf6ee}
+.unified-module-theme .workspace-content>div>div:first-child:has(>div>h1),.unified-module-theme .finance-header,.unified-module-theme .agent-hero{padding:24px 26px;border:1px solid #e5dac8;border-radius:14px;background:linear-gradient(115deg,#faf7f1,#f1eadd);box-shadow:none}
+.unified-module-theme .finance-page{--ink:#66513a;--muted:#958875;--line:#e7dfd2;--paper:#fffdf9}
+.unified-module-theme .agent-emblem{background:#f4f1eb;border-color:#ded7cc;box-shadow:none}
+.unified-module-theme .agent-eyebrow,.unified-module-theme .agent-mode{color:#92734c}
+.unified-module-theme .skill-choice{color:#594f42}
+.unified-module-theme .skill-choice small,.unified-module-theme .agent-welcome p{color:#958875}
+.unified-module-theme .skill-choice.chosen,.unified-module-theme .skill-choice:hover{background:#f3ede2;border-color:#d9c9b0}
+.unified-module-theme .agent-welcome-icon{background:#f3ede2;color:#92734c}
+.unified-module-theme .agent-welcome h3{color:#76583a}
+.unified-module-theme .agent-example{background:#faf7f1;border-color:#dfd3c0;color:#806642}
+.unified-module-theme .agent-composer{background:#f8f5ef;border-color:#e7dfd2}
+.unified-module-theme .agent-hero{gap:20px}
+@media(max-width:760px){.unified-module-theme .workspace-content>div>div:first-child:has(>div>h1),.unified-module-theme .finance-header,.unified-module-theme .agent-hero{padding:18px}.unified-module-theme .workspace-content h1{font-size:22px}}
+
+/* Stronger warm palette, shared with foundation pages and teleported dialogs. */
+body:has(.notion-workspace){--business-accent:#89613e;--business-accent-hover:#714a2d;--business-muted:#7d6c59}
+.notion-workspace .workspace-content{color:#634b35}
+.notion-workspace .workspace-content :is(h1,h2,h3){color:#60452e!important}
+.notion-workspace .workspace-content :is(.text-gray-500,.text-slate-500,.text-gray-400,.text-slate-400,.stat-label){color:#89745e!important}
+.notion-workspace .workspace-content :is(.btn-primary,button.bg-blue-500,button.bg-blue-600,a.bg-blue-600,button.bg-gray-800,button.bg-slate-800){background:#89613e!important;border-color:#89613e!important;color:#fffaf1!important;border-radius:7px;box-shadow:none!important}
+.notion-workspace .workspace-content :is(.btn-primary,button.bg-blue-500,button.bg-blue-600,a.bg-blue-600):hover{background:#714a2d!important;border-color:#714a2d!important}
+.notion-workspace .workspace-content :is(.text-blue-500,.text-blue-600,.text-blue-700,.text-indigo-500,.text-indigo-600,.text-purple-600){color:#94683f!important}
+.notion-workspace .workspace-content :is(.bg-indigo-50,.bg-indigo-100,.bg-purple-50,.bg-purple-100){background:#eee4d3!important;color:#94683f!important}
+.notion-workspace .workspace-content :is(.bg-indigo-50,.bg-indigo-100,.bg-purple-50,.bg-purple-100) svg{color:#94683f!important}
+.notion-workspace .workspace-content :is(.bg-blue-50,.bg-blue-100){background:#eee2cf!important;color:#8a6038!important}
+.notion-workspace .workspace-content :is(.text-amber-700,.text-orange-600){color:#a16d3d!important}
+.notion-workspace .agent-page{color:#634b35}
+.notion-workspace .agent-page .agent-hero{background:linear-gradient(115deg,#f4ecdf,#e9dcc6)!important;border:1px solid #d0b99a!important;box-shadow:none!important}
+.notion-workspace .agent-page :is(.agent-eyebrow,.agent-mode,.agent-history>span){color:#89613e!important}
+.notion-workspace .agent-page :is(.skill-choice,.agent-answer,.agent-confirm dd){color:#6a5038!important}
+.notion-workspace .agent-page :is(.skill-choice small,.agent-history small,.agent-welcome p,.agent-confirm dt){color:#8a725a!important}
+.notion-workspace .agent-page :is(.skill-choice.chosen,.skill-choice:hover){background:#ecdfca!important;border-color:#c7a780!important}
+.notion-workspace .agent-page .agent-welcome-icon{background:#ecdfca!important;color:#92643b!important}
+.notion-workspace .agent-page .agent-example{background:#f3e9d9!important;color:#865b35!important;border-color:#d4bc9b!important}
+.notion-workspace .agent-page .agent-composer{background:#f4ecdf!important;border-color:#dac6aa!important}
+.notion-workspace .agent-page :is(.border,.border-b){border-color:#e0d0ba}
+.notion-workspace .agent-page .agent-emblem{background:#f1e3cd!important;border-color:#cfaf84!important}
+.notion-workspace .automation-page>div:first-child{background:linear-gradient(115deg,#f4ecdf,#e9dcc6)!important;border-color:#d0b99a!important}
+body:has(.notion-workspace) :is(.modal-mask,.modal-card) :is(.btn-primary,button.bg-blue-600){background:#89613e!important;border-color:#89613e!important;color:#fffaf1!important}
+/* Softer warm gradients: retain readable brown text without flat tan fills. */
+.notion-workspace .agent-page .agent-hero,.notion-workspace .automation-page>div:first-child{background:linear-gradient(115deg,#faf7f1 0%,#f2e9da 100%)!important;border-color:#dccbb2!important}
+.notion-workspace .agent-page :is(.skill-choice.chosen,.skill-choice:hover){background:linear-gradient(120deg,#faf6ef,#efe4d2)!important;border-color:#d8c4a7!important}
+.notion-workspace .agent-page .agent-example{background:linear-gradient(120deg,#fcf9f3,#f3e9d9)!important;border-color:#ddc9ad!important}
+.notion-workspace .agent-page .agent-welcome-icon{background:linear-gradient(135deg,#faf6ef,#efe4d2)!important}
+.notion-workspace .agent-page .agent-composer{background:linear-gradient(120deg,#fcfaf6,#f5eee3)!important}
+.notion-workspace .agent-page .agent-emblem{background:linear-gradient(135deg,#f6f8f8,#e6edf0)!important;border-color:#c7d4da!important}
+.notion-workspace .workspace-content :is(.bg-blue-50,.bg-blue-100){background:linear-gradient(120deg,#faf6ef,#f0e6d5)!important}
+
+/* Work areas, not additional dashboards: clear local actions and generous table width. */
+.module-view-tabs,.attendance-quick{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}.module-view-tabs button,.attendance-quick button{padding:9px 16px;border:1px solid #e1d4bf;border-radius:8px;color:#8a7154;background:#fffdf9;font-size:13px}.module-view-tabs button[aria-pressed="true"],.attendance-quick button[aria-pressed="true"]{background:linear-gradient(120deg,#f8f3e9,#eae0cd);color:#795534;border-color:#cbb18b;font-weight:600}.quantity-summary{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:13px 16px;background:#faf6ee;border:1px solid #e9dfce;border-radius:9px;margin-bottom:18px}.quantity-summary>span{color:#795a36;font-size:20px;font-weight:600}.quantity-summary small{font-size:12px;color:#97836a;font-weight:400}.quantity-summary>small{margin-left:auto}.work-area-title{margin-bottom:18px}.work-area-title h2{font-size:17px;font-weight:600;margin-bottom:6px}.work-area-title p{font-size:12px;color:#95816a;line-height:1.8}.maintenance-queue{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.maintenance-queue>button{display:flex;align-items:center;gap:16px;padding:16px 20px;border:1px solid #e2d5bf;border-radius:12px;background:linear-gradient(130deg,#fffdf9,#f4eee2);text-align:left;color:#80613e}.maintenance-queue strong{font-size:26px;margin-left:auto}.maintenance-queue small{font-size:11px;color:#9b876c}.warehouse-work-area>.space-y-6:empty{display:none}.module-workflow{padding:14px 20px!important;margin-bottom:18px!important}.module-workflow[open]{padding:20px 24px!important}@media(max-width:760px){.maintenance-queue{grid-template-columns:1fr}.quantity-summary>small{margin-left:0}.module-view-tabs button,.attendance-quick button{padding:8px 12px}}
+
+.module-workflow~:is(.production-navigation,.warehouse-navigation)>h1,.module-workflow~:is(.production-navigation,.warehouse-navigation)>p{display:none}.module-workflow~:is(.production-navigation,.warehouse-navigation){margin-bottom:18px}.module-workflow~:is(.production-navigation,.warehouse-navigation) nav{padding-top:0;margin-top:0}
+
+/* Warehouse hierarchy: readable structural emphasis within the warm theme. */
+.storage-hierarchy{margin:0 0 24px;padding:22px;border:1px solid #ddcdb6;border-radius:16px;background:linear-gradient(120deg,#faf7f1,#f2eadd)}
+.storage-hierarchy-title{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;margin-bottom:16px}.storage-hierarchy-title strong{font-size:23px;color:#67492f}.storage-hierarchy-title span{font-size:13px;color:#88745f}
+.storage-hierarchy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}.storage-hierarchy-grid article{padding:15px;border:1px solid #e5dacb;background:#fffdf9;border-radius:12px}.storage-hierarchy-grid article>button{font-size:17px;font-weight:650;color:#67492f}.storage-hierarchy-grid .storage-area{font-size:14px;font-weight:600;color:#8a6745;margin-top:12px}.storage-hierarchy-grid p{font-size:12px;line-height:1.8;color:#857766;margin:4px 0 0;padding-left:12px;border-left:2px solid #dbcaaf}

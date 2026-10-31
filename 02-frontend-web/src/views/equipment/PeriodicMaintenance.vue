@@ -39,7 +39,7 @@ const finishForm = reactive({
 
 const myPeriodicMaintenances = computed(() => {
   const userId = currentUser.value?.id
-  return maintenances.value.filter((item) => Number(item.maintenanceType) === 1 && (!item.maintenanceUserId || item.maintenanceUserId === userId))
+  return maintenances.value.filter((item) => Number(item.maintenanceType) === 1 && ([1,2,9].includes(Number(authStore.effectiveRoleId)) || !item.maintenanceUserId || item.maintenanceUserId === userId))
 })
 
 const stats = computed(() => ({

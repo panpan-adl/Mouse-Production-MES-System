@@ -4,12 +4,16 @@ import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, onMounted, reactive, ref } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
-import { equipmentApi, type Equipment } from '@/api/mes'
+import { equipmentApi, maintenanceApi, type Maintenance, type Equipment } from '@/api/mes'
 
 const loading = ref(false)
 const saving = ref(false)
 const message = ref('')
 const equipments = ref<Equipment[]>([])
+const histories=ref<Maintenance[]>([])
+const historyEquipment=ref<number|' ' | ''>('')
+const visibleHistory=computed(()=>histories.value.filter(m=>!historyEquipment.value||m.equipmentId===Number(historyEquipment.value)))
+const maintenanceStatus:Record<string,string>={PENDING:'待维修',PROCESSING:'维修中',FINISHED:'已完成',CANCELLED:'已取消'}
 const keyword = ref('')
 const statusFilter = ref('')
 const showForm = ref(false)
@@ -40,8 +44,8 @@ const filteredEquipments = computed(() => {
 })
 
 const normalCount = computed(() => equipments.value.filter((item) => item.status === 'NORMAL').length)
-const faultCount = computed(() => equipments.value.filter((item) => item.status === 'FAULT').length)
-const maintainingCount = computed(() => equipments.value.filter((item) => item.status === 'MAINTAINING').length)
+const faultCount = computed(() => equipments.value.filter((item) => ['FAULT','REPAIR_REQUESTED'].includes(item.status||'')).length)
+const maintainingCount = computed(() => equipments.value.filter((item) => ['MAINTAINING','REPAIRING'].includes(item.status||'')).length)
 const scrappedCount = computed(() => equipments.value.filter((item) => item.status === 'SCRAPPED').length)
 
 onMounted(loadEquipments)
@@ -50,7 +54,7 @@ async function loadEquipments() {
   loading.value = true
   message.value = ''
   try {
-    equipments.value = await equipmentApi.list()
+    [equipments.value,histories.value] = await Promise.all([equipmentApi.list(),maintenanceApi.list()])
   } catch (error: any) {
     message.value = error.message || '设备加载失败'
   } finally {
@@ -61,7 +65,7 @@ async function loadEquipments() {
 function statusText(status?: string) {
   const map: Record<string, string> = {
     NORMAL: '正常',
-    FAULT: '故障',
+    FAULT: '故障', REPAIR_REQUESTED:'待维修', REPAIRING:'维修中', REPAIRED:'已修复',
     MAINTAINING: '维修中',
     SCRAPPED: '报废',
   }
@@ -70,8 +74,8 @@ function statusText(status?: string) {
 
 function statusClass(status?: string) {
   if (status === 'NORMAL') return 'tag-green'
-  if (status === 'FAULT') return 'tag-red'
-  if (status === 'MAINTAINING') return 'tag-yellow'
+  if (['FAULT','REPAIR_REQUESTED'].includes(status||'')) return 'tag-red'
+  if (['MAINTAINING','REPAIRING'].includes(status||'')) return 'tag-yellow'
   if (status === 'SCRAPPED') return 'tag-gray'
   return 'tag-gray'
 }
@@ -152,7 +156,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-bold text-gray-900">设备台账</h1>
-          <p class="text-gray-500 mt-1">维护设备基础资料和运行状态。</p>
+          <p class="text-gray-500 mt-1">维护设备基础资料，核对当前状态和维修历史；故障报修在设备维修模块办理。</p>
         </div>
         <button class="btn-primary" @click="openCreate"><Plus class="w-4 h-4" />新增设备</button>
       </div>
@@ -173,8 +177,8 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
           <select v-model="statusFilter" class="input">
             <option value="">全部状态</option>
             <option value="NORMAL">正常</option>
-            <option value="FAULT">故障</option>
-            <option value="MAINTAINING">维修中</option>
+            <option value="REPAIR_REQUESTED">待维修</option>
+            <option value="REPAIRING">维修中</option>
             <option value="SCRAPPED">报废</option>
           </select>
           <button class="btn-secondary" @click="loadEquipments"><RefreshCw class="w-4 h-4" />刷新</button>
@@ -206,7 +210,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
                 <td>{{ item.responsibleName || '-' }}</td>
                 <td><span :class="statusClass(item.status)">{{ statusText(item.status) }}</span></td>
                 <td class="text-right space-x-2">
-                  <button class="link-btn" @click="openEdit(item)">修改</button>
+                  <button class="link-btn" @click="historyEquipment=item.id||''">维修记录</button><button class="link-btn" @click="openEdit(item)">修改</button>
                   <button class="danger-link" @click="removeEquipment(item)">删除</button>
                 </td>
               </tr>
@@ -215,6 +219,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
         </div>
       </div>
 
+      <section class="panel" aria-label="设备维修历史"><div class="flex items-center justify-between mb-4"><div><h2 class="text-lg font-semibold">设备维修历史</h2><p class="text-sm text-gray-500 mt-1">按设备关联原始报修单、维修人员、处理结果与费用，记录由实际维修流程产生。</p></div><select v-model="historyEquipment" class="input max-w-xs" aria-label="维修历史设备"><option value="">全部设备</option><option v-for="e in equipments" :key="e.id" :value="e.id">{{e.equipmentCode}} · {{e.equipmentName}}</option></select></div><div class="overflow-x-auto"><table class="data-table"><thead><tr><th>维修单号 / 设备</th><th>故障 / 保养内容</th><th>维修人</th><th>处理内容与结果</th><th>状态</th><th>费用</th><th>完成时间</th></tr></thead><tbody><tr v-for="m in visibleHistory" :key="m.id"><td>{{m.maintenanceNo}}<p class="text-xs text-gray-500">{{m.equipmentName}}</p></td><td>{{m.faultDesc}}</td><td>{{m.maintenanceUserName||'待派工'}}</td><td>{{m.maintenanceContent||'尚未执行'}}<p class="text-xs text-gray-500">{{m.result||'待填报结果'}}</p></td><td><span :class="m.status==='FINISHED'?'tag-green':'tag-yellow'">{{maintenanceStatus[m.status||'']||m.status}}</span></td><td>¥{{Number(m.cost||0).toFixed(2)}}</td><td>{{m.endTime?new Date(m.endTime).toLocaleString('zh-CN'):'未完成'}}</td></tr><tr v-if="!visibleHistory.length"><td colspan="7" class="empty-cell">该设备暂无维修记录</td></tr></tbody></table></div></section>
       <div v-if="showForm" class="modal-mask" data-business-form>
         <div class="modal-card max-w-3xl">
           <div class="flex items-center justify-between mb-4">
@@ -234,8 +239,8 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
             <label class="field-label">状态
               <select v-model="form.status" class="input mt-1">
                 <option value="NORMAL">正常</option>
-                <option value="FAULT">故障</option>
-                <option value="MAINTAINING">维修中</option>
+                <option value="REPAIR_REQUESTED">待维修</option>
+                <option value="REPAIRING">维修中</option>
                 <option value="SCRAPPED">报废</option>
               </select>
             </label>

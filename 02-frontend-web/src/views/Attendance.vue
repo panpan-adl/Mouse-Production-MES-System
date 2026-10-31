@@ -31,11 +31,13 @@ const users = ref<User[]>([])
 const attendances = ref<Attendance[]>([])
 const keyword = ref('')
 const statusFilter = ref<number | ''>('')
+const onlyUnregistered=ref(false)
+const unregisteredCount=computed(()=>attendanceRows.value.filter(r=>r.missingRecord).length)
 const dateFilter = ref(today())
 const showForm = ref(false)
 const authStore = useAuthStore()
 const currentUser = computed(() => authStore.currentUser)
-const canManageAttendance = computed(() => [1, 2, 9, 11].includes(Number(currentUser.value?.roleId || 0)))
+const canManageAttendance = computed(() => [1, 2, 9, 11].includes(Number(authStore.effectiveRoleId || 0)))
 
 const form = reactive({
   id: undefined as number | undefined,
@@ -101,7 +103,7 @@ const filteredRows = computed(() => {
       row.userName.toLowerCase().includes(word) ||
       row.userCode.toLowerCase().includes(word)
     const matchStatus = statusFilter.value === '' || row.status === statusFilter.value
-    return matchWord && matchStatus
+    return matchWord && matchStatus && (!onlyUnregistered.value || row.missingRecord)
   })
 })
 
@@ -110,12 +112,12 @@ const pageSize = ref(10)
 const pageCount = computed(() => Math.max(1, Math.ceil(filteredRows.value.length / pageSize.value)))
 const pagedRows = computed(() => filteredRows.value.slice((page.value - 1) * pageSize.value, page.value * pageSize.value))
 
-watch([keyword, statusFilter, dateFilter, pageSize], () => { page.value = 1 })
+watch([keyword, statusFilter, onlyUnregistered, dateFilter, pageSize], () => { page.value = 1 })
 watch(pageCount, (count) => { page.value = Math.min(page.value, count) })
 
 const summaryRows = computed(() => attendanceRows.value)
 const presentCount = computed(() => summaryRows.value.filter((row) => [1, 2, 3].includes(row.status)).length)
-const absentCount = computed(() => summaryRows.value.filter((row) => row.status === 0).length)
+const absentCount = computed(() => summaryRows.value.filter((row) => row.status === 0 && !row.missingRecord).length)
 const lateCount = computed(() => summaryRows.value.filter((row) => [2, 3].includes(row.status)).length)
 const leaveCount = computed(() => summaryRows.value.filter((row) => row.status === 4).length)
 
@@ -427,7 +429,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
               <Calendar class="h-5 w-5 text-red-600" />
             </div>
             <div>
-              <p class="stat-label">缺勤/未登记</p>
+              <p class="stat-label">已登记缺勤</p>
               <p class="stat-value text-red-600">{{ absentCount }}</p>
             </div>
           </div>
@@ -456,7 +458,8 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel"><div class="work-area-title"><h2>考勤核对与登记</h2><p>统计卡按当前业务日期计算。未登记与已确认缺勤分别核对，避免把缺少记录直接当成缺勤。</p></div>
+        <div class="attendance-quick"><button :aria-pressed="!onlyUnregistered && statusFilter===''" @click="onlyUnregistered=false;statusFilter=''">全部记录</button><button :aria-pressed="onlyUnregistered" @click="onlyUnregistered=!onlyUnregistered;statusFilter=''">待登记 {{unregisteredCount}}</button><button :aria-pressed="!onlyUnregistered && statusFilter===2" @click="onlyUnregistered=false;statusFilter=2">迟到记录</button><button :aria-pressed="!onlyUnregistered && statusFilter===3" @click="onlyUnregistered=false;statusFilter=3">早退记录</button><button :aria-pressed="!onlyUnregistered && statusFilter===4" @click="onlyUnregistered=false;statusFilter=4">请假记录</button></div>
         <div class="mb-5 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(220px,1.4fr)_180px_160px_96px_96px]">
           <div class="relative">
             <Search class="search-icon" />
@@ -514,7 +517,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
                 <td>{{ formatTime(row.checkOutTime) }}</td>
                 <td>{{ Number(row.workHours || 0).toFixed(2) }} 小时</td>
                 <td>
-                  <select
+                  <select v-if="!row.missingRecord"
                     class="input min-w-[96px] py-1"
                     :value="row.status"
                     :disabled="!canManageAttendance || savingStatusKey === rowKey(row)"
@@ -525,7 +528,7 @@ const completeDrafts=useFormDrafts({showForm:{open:showForm,fields:{form}, recor
                     <option :value="3">早退</option>
                     <option :value="0">缺勤</option>
                     <option :value="4">请假</option>
-                  </select>
+                  </select><span v-else class="tag-yellow">待登记</span>
                 </td>
                 <td class="max-w-[220px] truncate" :title="row.remark || '-'">{{ row.remark || '-' }}</td>
                 <td v-if="canManageAttendance" class="text-right">

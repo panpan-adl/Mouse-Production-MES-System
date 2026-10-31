@@ -1,24 +1,30 @@
 <script setup lang="ts">
-import { onMounted,onBeforeUnmount } from 'vue'
+import { onMounted,onBeforeUnmount,computed } from 'vue'
+import { useRoute } from 'vue-router'
 import Sidebar from './Sidebar.vue'
 import Header from './Header.vue'
 import AgentEntry from './AgentEntry.vue'
 import ProductionNavigation from './ProductionNavigation.vue'
 import WarehouseNavigation from './WarehouseNavigation.vue'
+import ModuleWorkflow from './ModuleWorkflow.vue'
 import SystemNavigation from './SystemNavigation.vue'
 import { sidebarCollapsed } from '@/stores/layout'
 defineProps<{ fullWidth?: boolean; edgeToEdge?: boolean }>()
+const themeRoute=useRoute()
+const unifiedTheme=computed(()=>/^\/(equipment|system|foundation|inventory)(\/|$)/.test(themeRoute.path)||['/attendance','/cfo','/assistant','/automation','/production/equipment-status','/notifications'].includes(themeRoute.path))
+
 function fitNavigation(){if(window.innerWidth<900)sidebarCollapsed.value=true}
 onMounted(()=>{fitNavigation();window.addEventListener('resize',fitNavigation)})
 onBeforeUnmount(()=>window.removeEventListener('resize',fitNavigation))
 </script>
 <template>
-  <div class="mes-workspace notion-workspace" :class="{'nav-collapsed':sidebarCollapsed}">
+  <div class="mes-workspace notion-workspace" :class="{'nav-collapsed':sidebarCollapsed,'unified-module-theme':unifiedTheme}">
     <Sidebar />
     <AgentEntry />
     <div class="workspace-body">
       <Header />
-      <main class="workspace-content" :class="{'workspace-content-full':fullWidth,'workspace-content-edge':edgeToEdge}"><ProductionNavigation /><WarehouseNavigation /><SystemNavigation /><slot /></main>
+      <main class="workspace-content" :class="{'workspace-content-full':fullWidth,'workspace-content-edge':edgeToEdge}"><ModuleWorkflow /><ProductionNavigation /><WarehouseNavigation /><SystemNavigation /><slot /></main>
+
       <footer class="workspace-footer"><span>MOUSE MES <span class="footer-divider">/</span> 制造执行管理平台</span><span>让每一道工序清晰可见</span></footer>
     </div>
   </div>
