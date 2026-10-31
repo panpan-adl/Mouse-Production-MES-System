@@ -80,6 +80,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     @Transactional
     public ProductionPlan create(ProductionPlan productionPlan) {
         db.queryForList("SELECT id FROM mm_guard WHERE id=1 FOR UPDATE");
+        if(productionPlan.getPlanNo()!=null&&productionPlanMapper.findByPlanNo(productionPlan.getPlanNo().trim())!=null)throw new IllegalArgumentException("计划编号已存在，请更换编号后保存");
         validatePlan(productionPlan);
         if (productionPlan.getOrderId() != null) {
             List<ProductionPlan> existingPlans = productionPlanMapper.findByOrderId(productionPlan.getOrderId());

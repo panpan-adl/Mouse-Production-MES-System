@@ -4,6 +4,7 @@ import { useFormDrafts } from '@/composables/useFormDrafts'
 const props = defineProps<{ embedded?: boolean }>()
 const emit = defineEmits<{ progressed: [stage: 'requests' | 'orders', id: number] }>()
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import request from '@/utils/request'
 import MainLayout from '@/components/MainLayout.vue'
 import TablePagination from '@/components/TablePagination.vue'
@@ -25,6 +26,7 @@ import { canVisit } from '@/utils/permissions'
 
 type RequestStatus = '' | 'PENDING_CHECK' | 'ENOUGH' | 'SHORTAGE' | 'PURCHASE_REQUESTED' | 'PURCHASE_ORDERED'
 
+const route=useRoute()
 const authStore = useAuthStore()
 const canManage = computed(() => [1,2,3,5,9].includes(Number(authStore.effectiveRoleId)))
 const loading = ref(false)
@@ -81,6 +83,11 @@ const enoughCount = computed(() => requests.value.filter((item) => item.requestS
 
 onMounted(async () => {
   await Promise.all([loadRequests(), loadTasks(), loadMaterials(), loadWarehouses()])
+  if(route.path==='/inventory/material-requests'&&route.query.action==='restock'&&canManage.value){
+    const material=materials.value.find(m=>m.id===Number(route.query.materialId))
+    const warehouse=warehouses.value.find(w=>w.id===Number(route.query.warehouseId))
+    if(material&&warehouse){openCreate();form.materialId=material.id!;form.warehouseId=warehouse.id;form.requiredQuantity=Math.max(1,Number(material.safetyStock||0));form.remark='低库存预警补货，请核对需求数量后生成采购需求。'}
+  }
 })
 
 async function loadRequests() {

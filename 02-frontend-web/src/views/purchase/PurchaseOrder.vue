@@ -119,6 +119,10 @@ onMounted(async () => {
   await Promise.all([loadOrders(), loadSuppliers(), loadMaterials(), loadWarehouses(), loadLocations()])
   try { sourceRequests.value = await materialRequestApi.list() } catch { /* Source lookup must not hide the order. */ }
   openLinkedOrder()
+  if(route.path==='/purchase/order'&&route.query.action==='restock'&&!isWarehouseManager.value){
+    const material=materials.value.find(m=>m.id===Number(route.query.materialId))
+    if(material){openCreate();form.items![0].materialId=material.id!;form.items![0].quantity=Math.max(1,Number(material.safetyStock||0)-Number(material.currentStock||0));form.remark='来源：低库存预警补货，请核对供应商、数量与价格。'}
+  }
 })
 
 async function loadOrders() {

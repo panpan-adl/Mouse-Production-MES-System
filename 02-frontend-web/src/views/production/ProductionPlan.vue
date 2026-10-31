@@ -213,6 +213,7 @@ async function openDetail(plan: ProductionPlan) {
 /** 打开新增生产计划弹窗，并默认选中第一条未制定计划的订单。 */
 function openCreate() {
   editingPlan.value=null
+  errorMessage.value=''
   if (unplannedOrders.value.length === 0) {
     errorMessage.value = '当前没有未制定生产计划的订单'
     showBusinessFormError(errorMessage.value)
@@ -237,8 +238,12 @@ function handleOrderChange() {
 }
 
 /** 根据选中的订单新增生产计划。 */
+function planSaveError(error:unknown){const text=error instanceof Error?error.message:'保存计划失败';return /Duplicate entry|SQLIntegrityConstraintViolationException|计划编号.*(存在|重复)/i.test(text)?'计划编号已存在，请更换编号后保存。':text}
 async function savePlan() {
-  if(editingPlan.value?.id){saving.value=true;try{await productionPlanApi.update(editingPlan.value.id,{...editingPlan.value,planNo:createForm.value.planNo,startDate:fromDateTimeLocal(createForm.value.startDate),endDate:fromDateTimeLocal(createForm.value.endDate),priority:createForm.value.priority});completeDrafts();createVisible.value=false;editingPlan.value=null;await loadData()}catch(e:any){errorMessage.value=e.message;showBusinessFormError(e.message)}finally{saving.value=false}return}
+  const duplicate=plans.value.some(p=>p.planNo===createForm.value.planNo.trim()&&p.id!==editingPlan.value?.id)
+  if(duplicate){if(!editingPlan.value)createForm.value.planNo=generatePlanNo();errorMessage.value=editingPlan.value?'计划编号已存在，请更换编号。':'原计划编号已存在，已生成新编号，请确认后再次保存。';showBusinessFormError(errorMessage.value);return}
+
+  if(editingPlan.value?.id){saving.value=true;try{await productionPlanApi.update(editingPlan.value.id,{...editingPlan.value,planNo:createForm.value.planNo,startDate:fromDateTimeLocal(createForm.value.startDate),endDate:fromDateTimeLocal(createForm.value.endDate),priority:createForm.value.priority});completeDrafts();createVisible.value=false;editingPlan.value=null;await loadData()}catch(e:any){errorMessage.value=planSaveError(e);showBusinessFormError(errorMessage.value)}finally{saving.value=false}return}
 
   const order = selectedOrder.value
   if (!order?.id) {
@@ -276,7 +281,7 @@ async function savePlan() {
     completeDrafts();createVisible.value=false
     await loadData()
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : '新增生产计划失败'
+    errorMessage.value = planSaveError(error)
   } finally {
     saving.value = false
   }
@@ -402,7 +407,7 @@ function taskStatus(task: ProductionTask) {
 
 onMounted(loadData)
 
-const completeDrafts=useFormDrafts({createVisible:{open:createVisible,fields:{createForm,selectedOrderId}}})
+const completeDrafts=useFormDrafts({createVisible:{open:createVisible,fields:{createForm,selectedOrderId},record:()=>editingPlan.value?.id||'new-plan'}})
 </script>
 
 <template>

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { showBusinessFormError } from '@/utils/businessFormValidation'
 import { useFormDrafts } from '@/composables/useFormDrafts'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { canVisit } from '@/utils/permissions'
 import MainLayout from '@/components/MainLayout.vue'
 import request from '@/utils/request'
 import { Plus, RefreshCw, Search, X } from 'lucide-vue-next'
@@ -14,7 +16,15 @@ import {
   type Warehouse,
 } from '@/api/mes'
 
-const warehouseTab=ref('inventory')
+const auth = useAuthStore()
+const inventoryPanel = ref<HTMLElement>()
+const inventoryPanelHeight = ref(0)
+let panelObserver: ResizeObserver | undefined
+onMounted(()=>{panelObserver=new ResizeObserver(entries=>{inventoryPanelHeight.value=entries[0].borderBoxSize?.[0]?.blockSize||entries[0].target.getBoundingClientRect().height});if(inventoryPanel.value)panelObserver.observe(inventoryPanel.value)})
+onBeforeUnmount(()=>panelObserver?.disconnect())
+const procurementPath=computed(()=>[6,9].includes(Number(auth.effectiveRoleId))?'/purchase/order':'/inventory/material-requests')
+const canProcure=computed(()=>canVisit(Number(auth.effectiveRoleId),procurementPath.value)&&auth.hasMenu(procurementPath.value))
+function procurementQuery(item:{materialId?:number;warehouseId?:number}){return {action:'restock',materialId:item.materialId,warehouseId:item.warehouseId}}
 const loading = ref(false)
 const saving = ref(false)
 const message = ref('')
@@ -195,9 +205,8 @@ const completeDrafts=useFormDrafts({showWarehouseForm:{open:showWarehouseForm,fi
 
       <p v-if="message" class="text-sm text-blue-600">{{ message }}</p>
 
-      <nav class="module-view-tabs" aria-label="仓储工作区"><button v-for="tab in [{key:'inventory',label:'库存明细'},{key:'alerts',label:'低库存预警'},{key:'configuration',label:'仓库维护'}]" :key="tab.key" :aria-pressed="warehouseTab===tab.key" @click="warehouseTab=tab.key">{{tab.label}}</button></nav>
-      <div class="warehouse-work-area">
-        <div v-if="warehouseTab==='inventory'" class="panel">
+      <div class="grid grid-cols-1 xl:grid-cols-3 items-start gap-6">
+        <div ref="inventoryPanel" class="panel xl:col-span-2">
           <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-5">
             <div>
               <h2 class="text-lg font-semibold text-gray-900">库存查询</h2>
@@ -256,13 +265,13 @@ const completeDrafts=useFormDrafts({showWarehouseForm:{open:showWarehouseForm,fi
           </nav>
         </div>
 
-        <div class="space-y-6">
-          <div v-if="warehouseTab==='configuration'" class="panel">
+        <div class="warehouse-side space-y-6" :style="{'--inventory-panel-height':inventoryPanelHeight+'px'}">
+          <div class="panel">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-lg font-semibold text-gray-900">仓库</h2>
               <button class="link-btn" @click="openCreateWarehouse">新增</button>
             </div>
-            <div class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+            <div class="warehouse-side-list space-y-3 max-h-[420px] overflow-y-auto pr-1">
               <div v-if="warehouses.length === 0" class="text-gray-400 text-sm">暂无仓库数据</div>
               <div v-for="item in warehouses" v-else :key="item.id" class="rounded-xl border border-gray-100 bg-gray-50 p-4">
                 <div class="flex items-start justify-between gap-3">
@@ -282,15 +291,15 @@ const completeDrafts=useFormDrafts({showWarehouseForm:{open:showWarehouseForm,fi
             </div>
           </div>
 
-          <div v-if="warehouseTab==='alerts'" class="panel">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">低库存预警</h2><p class="text-sm text-gray-500 mb-4">按物料汇总各实体仓库余额（不含工单线边库）；当前数量小于安全库存时预警。阈值为 0 时不启用该物料预警。</p>
-            <details class="mb-5 rounded-xl border p-4"><summary class="cursor-pointer font-semibold">配置物料安全库存阈值</summary><div class="overflow-x-auto mt-3"><table class="data-table"><thead><tr><th>物料</th><th>安全库存（小于此值预警）</th><th>操作</th></tr></thead><tbody><tr v-for="m in materials" :key="m.id"><td>{{m.materialName}} · {{m.unit}}</td><td><input v-model.number="thresholds[Number(m.id)]" type="number" min="0" step="0.01" class="input" :aria-label="m.materialName+'安全库存'" /></td><td><button class="link-btn" @click="saveThreshold(m)">保存阈值</button></td></tr></tbody></table></div></details>
-            <div class="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+          <div class="panel">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">低库存预警</h2><details class="mb-5 rounded-xl border p-4"><summary class="cursor-pointer font-semibold">配置物料安全库存阈值</summary><div class="overflow-x-auto mt-3"><table class="data-table"><thead><tr><th>物料</th><th>安全库存（小于此值预警）</th><th>操作</th></tr></thead><tbody><tr v-for="m in materials" :key="m.id"><td>{{m.materialName}} · {{m.unit}}</td><td><input v-model.number="thresholds[Number(m.id)]" type="number" min="0" step="0.01" class="input" :aria-label="m.materialName+'安全库存'" /></td><td><button class="link-btn" @click="saveThreshold(m)">保存阈值</button></td></tr></tbody></table></div></details>
+            <div class="warehouse-side-list space-y-3 max-h-[360px] overflow-y-auto pr-1">
               <div v-if="lowStockList.length === 0" class="text-gray-400 text-sm">暂无低库存记录</div>
               <div v-for="item in lowStockList" v-else :key="item.id" class="p-4 rounded-xl bg-red-50 border border-red-100">
                 <p class="font-semibold text-gray-900">{{ materialName(item.materialId) }}</p>
                 <p class="text-sm text-gray-500 mt-1">实体仓库合计 · 安全阈值 {{item.threshold}} {{item.unit}}</p>
-                <p class="text-sm text-red-600 mt-2">当前库存：{{ item.quantity }} {{item.unit}} · 缺口：{{item.gap}} {{item.unit}}</p><button class="link-btn mt-3" @click="filters.materialId=item.materialId||'';filters.warehouseId='';filters.locationId='';warehouseTab='inventory';searchInventory()">核对此物料库存</button>
+                <p class="text-sm text-red-600 mt-2">当前库存：{{ item.quantity }}</p>
+                <div v-if="canProcure" class="mt-3 flex justify-end"><router-link class="btn-secondary text-sm" :to="{path:procurementPath,query:procurementQuery(item)}">生成采购 →</router-link></div>
               </div>
             </div>
           </div>
@@ -325,3 +334,12 @@ const completeDrafts=useFormDrafts({showWarehouseForm:{open:showWarehouseForm,fi
     </div>
   </MainLayout>
 </template>
+
+<style scoped>
+@media(min-width:1280px){
+.warehouse-side{height:var(--inventory-panel-height);min-height:0;display:grid;grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:24px}
+.warehouse-side.space-y-6>:not([hidden])~:not([hidden]){margin-top:0}
+.warehouse-side>.panel{min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.warehouse-side-list{flex:1;min-height:0;max-height:none}
+}
+</style>
