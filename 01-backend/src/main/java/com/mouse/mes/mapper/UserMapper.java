@@ -24,4 +24,7 @@ public interface UserMapper {
     int softDeleteById(@Param("id") Long id, @Param("leaveDate") java.util.Date leaveDate);
     int restoreUser(@Param("id") Long id);
     int updateAvatar(@Param("id") Long id, @Param("avatar") String avatar);
+    int updateProfile(@Param("id") Long id, @Param("realName") String realName,
+                      @Param("phone") String phone, @Param("email") String email,
+                      @Param("gender") Integer gender);
 }

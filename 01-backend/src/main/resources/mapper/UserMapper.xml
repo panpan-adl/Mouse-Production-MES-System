@@ -74,4 +74,8 @@
     <update id="updateAvatar" parameterType="map">
         UPDATE t_user SET avatar = #{avatar}, update_time = NOW() WHERE id = #{id}
     </update>
+    <update id="updateProfile">
+        UPDATE t_user SET real_name = #{realName}, phone = #{phone}, email = #{email},
+        gender = #{gender}, update_time = NOW() WHERE id = #{id} AND deleted = 0
+    </update>
 </mapper>

@@ -14,6 +14,7 @@ defineProps<{
       <span>{{ alerts.length }} 条</span>
     </div>
     <div class="alert-list">
+      <p v-if="!alerts.length" class="alert-empty">所选日期暂无缺料或工单逾期提醒</p>
       <article v-for="alert in alerts" :key="alert.id" :class="['alert-row', alert.type]">
         <div class="alert-icon">
           <AlertTriangle class="h-4 w-4" />
@@ -31,6 +32,7 @@ defineProps<{
 </template>
 
 <style scoped>
+.alert-empty{font-size:12px;color:#ad9a80;padding:30px 12px;text-align:center;line-height:1.8}
 .panel {
   border: 1px solid rgba(132, 146, 168, 0.14);
   border-radius: 8px;

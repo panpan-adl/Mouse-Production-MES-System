@@ -17,6 +17,7 @@ const toneClass = computed(() => ({
 }))
 
 function displayValue(kpi: DashboardKpi) {
+  if(kpi.unavailable)return '—'
   const value = animatedValues.value[kpi.key] ?? 0
   return value.toFixed(kpi.precision ?? 0)
 }
@@ -60,7 +61,7 @@ onBeforeUnmount(() => cancelAnimationFrame(frameId))
       <span class="kpi-label">{{ kpi.label }}</span>
       <div class="kpi-value">
         <strong>{{ displayValue(kpi) }}</strong>
-        <span>{{ kpi.unit }}</span>
+        <span>{{ kpi.unavailable?'暂无数据':kpi.unit }}</span>
       </div>
     </article>
   </section>

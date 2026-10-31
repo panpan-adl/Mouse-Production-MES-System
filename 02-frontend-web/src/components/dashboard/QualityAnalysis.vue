@@ -34,9 +34,11 @@ const failPoints = computed(() => props.trend.map((item, index) => `${xAt(index)
   <section class="panel quality-panel">
     <div class="panel-title">
       <h2>质量分析</h2>
-      <strong>{{ passRate.toFixed(1) }}%</strong>
+      <strong>{{totalPassed+totalFailed?`${passRate.toFixed(1)}%`:'—'}}</strong>
     </div>
-    <svg class="quality-chart" :viewBox="`0 0 ${chartWidth} ${chartHeight}`">
+    <p class="quality-caption">近七日首检记录 · {{totalPassed+totalFailed}} 件检验样本</p>
+    <div v-if="!totalPassed&&!totalFailed" class="quality-empty">暂无检验样本，暂不计算合格率</div>
+    <svg v-else class="quality-chart" :viewBox="`0 0 ${chartWidth} ${chartHeight}`">
       <polyline :points="passPoints" class="pass-line" />
       <polyline :points="failPoints" class="fail-line" />
       <circle v-for="(item, index) in trend" :key="`${item.label}-pass`" :cx="xAt(index)" :cy="yAt(item.passed)" r="2.8" class="pass-dot">
@@ -47,7 +49,7 @@ const failPoints = computed(() => props.trend.map((item, index) => `${xAt(index)
       </circle>
       <text v-for="(item, index) in trend" :key="item.label" :x="xAt(index)" :y="chartHeight - 6" text-anchor="middle">{{ item.label }}</text>
     </svg>
-    <div class="defect-list"><p class="text-xs text-slate-500 mb-1">不合格检测项次数</p>
+    <div v-if="defects.length" class="defect-list"><p class="text-xs text-slate-500 mb-1">不合格检测项次数</p>
       <div v-for="item in defects" :key="item.defectType" class="defect-row">
         <span>{{ item.defectType }}</span>
         <div>
@@ -60,6 +62,7 @@ const failPoints = computed(() => props.trend.map((item, index) => `${xAt(index)
 </template>
 
 <style scoped>
+.quality-caption{font-size:10px;color:#aa9981;margin-top:12px}.quality-empty{padding:35px 15px;font-size:12px;color:#ac9a80;text-align:center;background:#faf6ee;border-radius:9px;margin-top:16px}
 .panel {
   border: 1px solid rgba(132, 146, 168, 0.14);
   border-radius: 8px;

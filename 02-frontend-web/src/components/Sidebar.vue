@@ -348,7 +348,7 @@ function handleLogout() {
             @click="navigate(item.path)" :title="item.name"
           >
             <component :is="item.icon" class="w-5 h-5 mr-3 shrink-0" />
-            <span v-if="!collapsed">{{ item.name }}</span>
+            <span v-if="!collapsed">{{ item.path==='/'?'生产全景看板':item.name }}</span>
           </button>
         </li>
       </ul>

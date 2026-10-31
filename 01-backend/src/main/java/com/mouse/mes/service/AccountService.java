@@ -48,7 +48,9 @@ public class AccountService implements CommandLineRunner {
         if(email==null||email.length()>100||(!email.isBlank()&&!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")))throw new IllegalArgumentException("请输入有效的邮箱地址，或留空");
         if(gender==null||gender<0||gender>2)throw new IllegalArgumentException("性别值无效");
         requireUser(id);
-        db.update("UPDATE t_user SET real_name=?,phone=?,email=?,gender=?,update_time=NOW() WHERE id=? AND deleted=0",name.trim(),phone.trim(),email.trim(),gender,id);
+        // Mapper updates invalidate the MyBatis session cache populated by requireUser.
+        int changed=users.updateProfile(id,name.trim(),phone.trim(),email.trim(),gender);
+        if(changed!=1)throw new IllegalArgumentException("资料保存失败，账号可能已停用或删除，请刷新后重试");
         return profile(id);
     }
     public long sessionVersion(long id) {

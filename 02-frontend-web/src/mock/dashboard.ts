@@ -5,6 +5,7 @@ export interface DashboardFilters {
 }
 
 export interface DashboardKpi {
+  unavailable?: boolean
   key: string
   label: string
   value: number

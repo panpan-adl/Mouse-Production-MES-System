@@ -9,10 +9,11 @@ const totalInspected=computed(()=>props.data.qualityTrend.reduce((n,row)=>n+row.
 const passed=computed(()=>props.data.qualityTrend.reduce((n,row)=>n+row.passed,0))
 const yieldRate=computed(()=>totalInspected.value?Math.round(passed.value/totalInspected.value*1000)/10:null)
 const equipmentTotal=computed(()=>(props.data.equipmentStatus||[]).reduce((n,row)=>n+row.value,0))
-const equipmentNormal=computed(()=>(props.data.equipmentStatus||[]).filter(row=>/正常|运行/.test(row.label)).reduce((n,row)=>n+row.value,0))
+const equipmentNormal=computed(()=>(props.data.equipmentStatus||[]).filter(row=>/正常|运行|可用/.test(row.label)).reduce((n,row)=>n+row.value,0))
 const riskOrders=computed(()=>props.data.workOrders.filter(row=>row.statusTone==='red'||row.statusTone==='yellow'))
 const actual=computed(()=>props.data.hourlyOutput.reduce((n,row)=>n+row.actual,0))
 const plan=computed(()=>props.data.hourlyOutput.reduce((n,row)=>n+row.plan,0))
+const scheduledPlan=computed(()=>props.data.kpis.find(k=>k.key==='plan')?.value||plan.value)
 const chartMax=computed(()=>Math.max(1,...props.data.hourlyOutput.flatMap(row=>[row.actual,row.plan])))
 const curve=(key:'actual'|'plan')=>props.data.hourlyOutput.map((row,i)=>`${i*240/Math.max(1,props.data.hourlyOutput.length-1)},${70-row[key]/chartMax.value*58}`).join(' ')
 </script>
@@ -20,13 +21,13 @@ const curve=(key:'actual'|'plan')=>props.data.hourlyOutput.map((row,i)=>`${i*240
   <div class="cockpit-grid">
     <aside class="cockpit-column">
       <section class="warm-card production-card"><div class="card-heading"><h2><Activity :size="14"/>产出与计划</h2><span>所选日期</span></div>
-        <div class="output-summary"><strong>{{actual.toLocaleString()}}</strong><span>报工产出</span></div>
-        <div class="target-row"><span>计划 {{plan.toLocaleString()}}</span><strong>{{plan?`${Math.round(actual/plan*100)}%`:'暂无计划'}}</strong></div>
-        <svg viewBox="0 0 240 85" class="mini-output" role="img" aria-label="计划与实际产量趋势"><path d="M0 70H240 M0 40H240 M0 10H240" stroke="#eee7dc" fill="none"/><polyline :points="curve('plan')" fill="none" stroke="#d5c6ad" stroke-width="1.5" stroke-dasharray="4 4"/><polyline :points="curve('actual')" fill="none" stroke="#b77945" stroke-width="2.5" stroke-linejoin="round"/></svg>
-        <div class="chart-legend"><span><i></i>实际产量</span><span><i class="plan"></i>计划产量</span></div>
+        <div class="output-summary"><strong>{{actual.toLocaleString()}}</strong><span>关键工序放行</span></div>
+        <div class="target-row"><span>排程计划 {{scheduledPlan.toLocaleString()}}</span><strong>{{scheduledPlan?`${Math.round(actual/scheduledPlan*100)}%`:'暂无计划'}}</strong></div>
+        <svg viewBox="0 0 240 85" class="mini-output" role="img" aria-label="计划与放行产量趋势"><path d="M0 70H240 M0 40H240 M0 10H240" stroke="#eee7dc" fill="none"/><polyline :points="curve('plan')" fill="none" stroke="#d5c6ad" stroke-width="1.5" stroke-dasharray="4 4"/><polyline :points="curve('actual')" fill="none" stroke="#b77945" stroke-width="2.5" stroke-linejoin="round"/></svg>
+        <div class="chart-legend"><span><i></i>放行产量</span><span><i class="plan"></i>计划产量</span></div>
       </section>
       <section class="warm-card"><div class="card-heading"><h2><PackageCheck :size="14"/>物料与库存</h2><span>当前余额</span></div>
-        <div class="readiness"><span>物料齐套率</span><strong>{{data.materialReadinessRate}}<small>%</small></strong></div><div class="readiness-bar"><i :style="{width:`${Math.min(100,Math.max(0,data.materialReadinessRate))}%`}"></i></div>
+        <div class="readiness"><span>物料齐套率</span><strong>{{data.workOrders.length?data.materialReadinessRate:'—'}}<small v-if="data.workOrders.length">%</small></strong></div><div class="readiness-bar"><i :style="{width:`${Math.min(100,Math.max(0,data.materialReadinessRate))}%`}"></i></div>
         <div class="inventory-tiles"><div><strong>{{data.inventory.rawMaterial.toLocaleString()}}</strong><span>原材料</span></div><div><strong>{{data.inventory.wip.toLocaleString()}}</strong><span>在制品</span></div><div><strong>{{data.inventory.finishedGoods.toLocaleString()}}</strong><span>成品</span></div></div>
         <div class="inventory-warning"><TriangleAlert :size="12"/>{{data.inventory.lowStockCount}} 项低库存物料</div>
       </section>

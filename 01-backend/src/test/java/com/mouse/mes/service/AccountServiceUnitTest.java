@@ -33,6 +33,23 @@ class AccountServiceUnitTest {
         assertThrows(IllegalArgumentException.class,()->service.changePassword(17,"old-password","new-password","different"));
         assertThrows(IllegalArgumentException.class,()->service.changePassword(17,"old-password","old-password","old-password"));verifyNoInteractions(db);
     }
+    @Test void profileUpdateUsesMapperToInvalidateCachedProfileAndReturnsFreshValues() {
+        User before=user();before.setRealName("Old name");before.setRoleId(9L);
+        User after=new User();after.setId(17L);after.setRoleId(9L);after.setRealName("New name");
+        after.setPhone("13900139000");after.setEmail("new@example.com");after.setGender(2);
+        when(users.findById(17L)).thenReturn(before,after);
+        when(users.updateProfile(17L,"New name","13900139000","new@example.com",2)).thenReturn(1);
+        LoginResponse result=service.updateProfile(17," New name ","13900139000","new@example.com",2);
+        assertEquals("New name",result.getRealName());assertEquals("13900139000",result.getPhone());
+        assertEquals("new@example.com",result.getEmail());assertEquals(2,result.getGender());
+        var order=inOrder(users);order.verify(users).findById(17L);
+        order.verify(users).updateProfile(17L,"New name","13900139000","new@example.com",2);
+        order.verify(users).findById(17L);verifyNoInteractions(db);
+    }
+    @Test void failedProfileWriteDoesNotReturnSuccess() {
+        user();assertThrows(IllegalArgumentException.class,()->service.updateProfile(17,"Name","","",0));
+        verify(users,times(1)).findById(17L);
+    }
     @Test void passwordChangeAtomicallyChecksOldPasswordAndBumpsSessionVersion() {
         user();String query="UPDATE t_user SET password=?,update_time=NOW() WHERE id=? AND password=? AND deleted=0";
         when(db.update(query,"new-password",17L,"old-password")).thenReturn(1);
