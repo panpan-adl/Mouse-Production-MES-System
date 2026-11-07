@@ -14,12 +14,16 @@ import java.util.*;
 public class RagFileService {
     private final JdbcTemplate db;
     private final TransactionTemplate tx;
+    private final TransactionTemplate progressTx;
     private final RagParser parser;
     private final RagModelClient models;
     private final ObjectMapper json;
     private final Path root;
     private RagGraphBridge graph;
     @Autowired(required=false) public void setGraphBridge(RagGraphBridge value){graph=value;}
+    private void stage(long owner,String id,int version,String value){
+        try{progressTx.executeWithoutResult(s->db.update("INSERT INTO rag_progress(owner,document_id,version,stage,updated_at) VALUES(?,?,?,?,CURRENT_TIMESTAMP) ON DUPLICATE KEY UPDATE stage=VALUES(stage),updated_at=CURRENT_TIMESTAMP",owner,id,version,value));}catch(org.springframework.dao.DataAccessException e){org.slf4j.LoggerFactory.getLogger(RagFileService.class).warn("Progress persistence unavailable; publication status remains authoritative");}
+    }
     public boolean graphIntegrated(){return graph!=null;}
     private void graphState(long owner,String id,int version,String status,String error,boolean attempt){
         String message=Objects.toString(error,"");message=message.substring(0,Math.min(500,message.length()));
@@ -33,6 +37,8 @@ public class RagFileService {
                           RagModelClient models, ObjectMapper json, RagSchema schema,
                           @Value("${MES_RAG_STORAGE:uploads/rag-files}") String storage) throws Exception {
         this.db = db; this.tx = new TransactionTemplate(manager); this.parser = parser; this.models = models; this.json = json;
+        this.progressTx=new TransactionTemplate(manager);
+        this.progressTx.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         root = Path.of(storage).toAbsolutePath().normalize(); Files.createDirectories(root);
     }
     public static void validateId(String id) {
@@ -40,7 +46,9 @@ public class RagFileService {
     }
     public boolean managed(long owner,String id){validateId(id);return db.queryForObject("SELECT COUNT(*) FROM rag_document WHERE owner=? AND document_id=?",Integer.class,owner,id)>0;}
     public List<Map<String,Object>> list(long owner) {
-        return db.queryForList("SELECT d.document_id AS documentId,d.version,d.active_version AS activeVersion,r.title,r.filename,r.status,r.error,r.attempts,r.created_at AS createdAt,COALESCE(g.status,'PENDING_TASK3') AS graphStatus,g.error AS graphError FROM rag_document d JOIN rag_revision r ON r.owner=d.owner AND r.document_id=d.document_id AND r.version=d.version LEFT JOIN rag_graph_sync g ON g.owner=r.owner AND g.document_id=r.document_id AND g.version=r.version WHERE d.owner=? AND d.deleted=FALSE ORDER BY r.created_at DESC", owner);
+        // Recover an abandoned request even when the backend stayed running after the last restart.
+        db.update("UPDATE rag_revision SET status='FAILED',error='处理超过30分钟未完成，可重试同一版本；旧可检索版本保留' WHERE owner=? AND status IN ('UPLOADED','INDEXING') AND COALESCE((SELECT p.updated_at FROM rag_progress p WHERE p.owner=rag_revision.owner AND p.document_id=rag_revision.document_id AND p.version=rag_revision.version),created_at)<TIMESTAMPADD(MINUTE,-30,CURRENT_TIMESTAMP)",owner);
+        return db.queryForList("SELECT d.document_id AS documentId,d.version,d.active_version AS activeVersion,r.title,r.filename,r.status,r.error,r.attempts,r.created_at AS createdAt,COALESCE(g.status,'PENDING_TASK3') AS graphStatus,g.error AS graphError,CASE WHEN r.status IN ('READY','FAILED') THEN r.status ELSE COALESCE(p.stage,r.status) END AS stage FROM rag_document d JOIN rag_revision r ON r.owner=d.owner AND r.document_id=d.document_id AND r.version=d.version LEFT JOIN rag_graph_sync g ON g.owner=r.owner AND g.document_id=r.document_id AND g.version=r.version LEFT JOIN rag_progress p ON p.owner=r.owner AND p.document_id=r.document_id AND p.version=r.version WHERE d.owner=? AND d.deleted=FALSE ORDER BY r.created_at DESC", owner);
     }
     private Map<String,Object> revision(long owner, String id, int version) {
         validateId(id);
@@ -116,20 +124,24 @@ public class RagFileService {
         var rev = revision(owner,id,version);
         graphState(owner,id,version,graph==null?"PENDING_TASK3":"INDEXING","",true);
         try {
+            stage(owner,id,version,"PARSING");
             var parts = parser.parse(rev.get("filename").toString(),Files.readAllBytes(storedPath(rev)));
             var chunks = parser.chunks(id,version,rev.get("title").toString(),rev.get("build_id").toString(),parts);
             String text = String.join("\n",parts.stream().map(RagTypes.Part::text).toList());
             // Persist extraction even if the remote embedding call fails, without publishing it.
             db.update("UPDATE rag_revision SET parsed_text=? WHERE owner=? AND document_id=? AND version=?",text,owner,id,version);
+            stage(owner,id,version,"EMBEDDING");
             var embeddings = models.embed(owner,chunks.stream().map(RagTypes.Chunk::text).toList());
             List<String> encoded = new ArrayList<>();
             for (var embedding : embeddings) encoded.add(json.writeValueAsString(embedding));
+            stage(owner,id,version,"GRAPH_BUILD");
             tx.executeWithoutResult(s -> {
                 var doc = db.queryForMap("SELECT * FROM rag_document WHERE owner=? AND document_id=? FOR UPDATE",owner,id);
                 if (((Number)doc.get("version")).intValue()!=version || Boolean.TRUE.equals(doc.get("deleted")))
                     throw new IllegalArgumentException("处理期间文件已更新或删除，本次结果未发布");
                 // Graph publication joins this transaction. Failure keeps BOTH previous active versions.
                 if(graph!=null)graph.publish(owner,id,version,rev.get("title").toString(),text);
+                stage(owner,id,version,"PUBLISHING");
                 db.update("DELETE FROM rag_vector WHERE owner=? AND document_id=?",owner,id);
                 for(int i=0;i<chunks.size();i++) {
                     var c=chunks.get(i);
@@ -139,8 +151,10 @@ public class RagFileService {
                 db.update("UPDATE rag_revision SET status='READY',error='' WHERE owner=? AND document_id=? AND version=?",owner,id,version);
                 graphState(owner,id,version,graph==null?"PENDING_TASK3":"READY","",false);
             });
+            stage(owner,id,version,"READY");
             return Map.of("documentId",id,"version",version,"chunkCount",chunks.size(),"status","READY","graphStatus",graph==null?"PENDING_TASK3":"READY","unchanged",false);
         } catch (Exception e) {
+            stage(owner,id,version,"FAILED");
             // Retain the previous active_version and its vectors on any failed replacement.
             String message = e instanceof IllegalArgumentException || e instanceof IllegalStateException ? Objects.toString(e.getMessage(),"处理失败，请重试") : "解析或索引失败，请确认文件有效后重试";
             db.update("UPDATE rag_revision SET status='FAILED',error=? WHERE owner=? AND document_id=? AND version=?",message.substring(0,Math.min(500,message.length())),owner,id,version);

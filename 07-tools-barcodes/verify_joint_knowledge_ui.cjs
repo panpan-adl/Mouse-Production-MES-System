@@ -17,7 +17,7 @@ const base=process.env.KNOWLEDGE_UI_URL||'http://127.0.0.1:5176',out='.runtime/j
   if(path==='/api/rag/documents'&&request.method()==='GET')data=doc?[doc]:[];
   if(path==='/api/rag/events')data=deleteEvent?[deleteEvent]:[];
   if(path==='/api/knowledge/documents')data=graphDoc?[{...graphDoc,chunkCount:1}]:[];
-  if(path==='/api/knowledge/graph')data={facts:graphDoc?[fact()]:[],truncated:false};
+  if(path==='/api/knowledge/graph')data={facts:graphDoc?[fact(),{...fact(),relation:'关联'}]:[],truncated:false,sources:graphDoc?[{id:'S1',documentId:graphDoc.documentId,title:graphDoc.title,version:graphDoc.version,chunkId:fact().chunkId,text:graphDoc.text,location:'第2页'}]:[]};
   if(path==='/api/rag/documents'&&request.method()==='POST'){
    const body=request.postDataBuffer().toString('utf8'),field=name=>body.match(new RegExp('name="'+name+'"\\r\\n\\r\\n([^\\r]+)'))?.[1];
    const id=field('documentId'),version=Number(field('version')),title=field('title');assert(id&&version&&title);
@@ -37,7 +37,7 @@ const base=process.env.KNOWLEDGE_UI_URL||'http://127.0.0.1:5176',out='.runtime/j
   if(path==='/api/knowledge/messages'){
    const input=request.postDataJSON();modes.push(input.mode);assert(graphDoc);
    const source={id:'S1',documentId:graphDoc.documentId,title:graphDoc.title,version:graphDoc.version,chunkId:fact().chunkId,text:graphDoc.text,location:'第2页'};sourceIds.push(source.chunkId);
-   data={answer:graphDoc.text+'[S1]',mode:input.mode,retrieval:input.mode==='GRAPHRAG'?'图谱两跳检索':'真实向量接口替身',sources:[source],facts:input.mode==='RAG'?[]:[fact()],model:'fixture'};
+   data={answer:graphDoc.text+'[S1]',mode:input.mode,retrieval:input.mode==='GRAPHRAG'?'图谱两跳检索':'真实向量接口替身',sources:[source],facts:input.mode==='RAG'?[]:[fact(),{...fact(),relation:'关联'}],model:'fixture'};
   }
   await route.fulfill({json:{code:200,msg:'success',data}});
  });
@@ -50,10 +50,20 @@ const base=process.env.KNOWLEDGE_UI_URL||'http://127.0.0.1:5176',out='.runtime/j
   const downloaded=page.waitForEvent('download');await library.getByRole('button',{name:'下载原件',exact:true}).click();await(await downloaded).saveAs(out+'/original.txt');assert(fs.readFileSync(out+'/original.txt').equals(original));checks.push('下载保留原件字节并携带登录身份');
   for(const mode of ['RAG','GRAPHRAG','HYBRID']){await page.getByLabel('检索方式').selectOption(mode);await page.getByLabel('知识库问题').fill('点胶机由谁负责？');await page.getByRole('button',{name:'提问',exact:true}).click();await page.locator('.chat-turn').nth(modes.length-1).waitFor();}
   assert.deepEqual(modes,['RAG','GRAPHRAG','HYBRID']);assert.equal(new Set(sourceIds).size,1);await page.locator('.chat-turn').last().getByText(/第2页/).waitFor();checks.push('三种问答模式在同一页面工作，并返回共享片段编号与原文页码');
+  await page.getByRole('button',{name:'查看本次回答子图',exact:true}).last().click();
+  await page.locator('.graph-edge.highlighted').first().waitFor();assert.equal(await page.locator('.graph-edge.highlighted').count(),2);assert.equal(await page.locator('.graph-node.highlighted').count(),2);
+  const paths=await page.locator('.graph-edge .edge-line').evaluateAll(items=>items.map(i=>i.getAttribute('d')));assert.equal(new Set(paths).size,2);
+  await page.locator('.graph-edge').first().click();await page.locator('.relation-evidence').getByText(/联合工艺资料 · 版本 1 · 第2页/).waitFor();
+  checks.push('回答证据子图高亮，平行关系曲线分离，点击关系定位文件、版本和页码');
   await page.screenshot({path:out+'/desktop.png',fullPage:true});
+  await page.getByRole('button',{name:'返回回答',exact:true}).click();graphDoc.version=2;
+  await page.getByRole('button',{name:'查看本次回答子图',exact:true}).last().click();await page.getByText('资料已经更新或删除，请重新提问后查看子图',{exact:true}).waitFor();graphDoc.version=1;
+  checks.push('打开回答子图前重新核对服务端版本，外部更新后拒绝旧答案子图');
   await library.getByRole('button',{name:'替换原件'}).click();await library.getByLabel('选择原始文件').setInputFiles({name:'joint.txt',mimeType:'text/plain',buffer:Buffer.from('点胶机由乙负责。')});await library.getByRole('button',{name:'保存并同步索引'}).click();
   await library.getByText('图数据库离线，旧版本保留',{exact:true}).waitFor();assert.equal(graphDoc.version,1);assert.equal(await page.locator('.chat-turn').count(),0);checks.push('失败更新明确显示旧可检索版本，并清空页面旧回答');
   await library.getByRole('button',{name:'重试同步',exact:true}).click();await library.getByText('已重试，请核对文件与图谱状态。',{exact:true}).waitFor();assert.equal(graphDoc.version,2);checks.push('失败版本可重试同步，无需再次递增版本');
+  doc.status='INDEXING';doc.stage='GRAPH_BUILD';doc.graphStatus='INDEXING';await page.reload();await library.getByText(/服务器处理中 · 抽取关系与构建图谱/).waitFor();
+  doc.status='READY';doc.stage='READY';doc.graphStatus='READY';await page.waitForFunction(()=>!document.querySelector('.stage-list .current'));checks.push('刷新后恢复服务器处理阶段，并自动轮询完成状态');
   await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>document.querySelector('.mes-sidebar').getBoundingClientRect().width<80);await page.waitForFunction(()=>document.documentElement.scrollWidth<=innerWidth+2);await page.screenshot({path:out+'/mobile.png',fullPage:true});checks.push('统一文件库和图谱页面在手机宽度无横向溢出');
   await library.getByRole('button',{name:'删除文件',exact:true}).click();await page.getByRole('button',{name:'确认删除文件',exact:true}).click();await library.getByText('已退出两类检索，物理清理待重试。',{exact:true}).waitFor();
   await library.locator('.file-events summary').click();await library.getByRole('button',{name:'重试删除清理',exact:true}).click();await library.getByText('已重试，请核对文件与图谱状态。',{exact:true}).waitFor();assert.equal(deleteEvent.graphStatus,'DELETED');checks.push('删除立即退出图谱和文件列表，处理记录中可重试双侧清理');

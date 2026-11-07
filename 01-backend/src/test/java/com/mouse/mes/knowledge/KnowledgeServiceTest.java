@@ -176,4 +176,13 @@ class KnowledgeServiceTest {
         Answer answer=service.ask(7,new Question("A100鼠标","RAG"));assertEquals(KnowledgeModel.INSUFFICIENT,answer.answer());
         verify(model,times(2)).answer(anyString(),anyList(),anyList());
     }
+    @Test void graphMetadataOnlyIncludesAuthorizedEvidenceUsedByVisibleRelations(){
+        when(repo.list(7)).thenReturn(List.of(doc(1,"READY")));
+        var fact=new Fact("点胶工序","使用","点胶机","点胶工序使用点胶机。","active-build:0");
+        when(graph.graph(7,List.of("active-build"),"")).thenReturn(new Graph(List.of(fact),false));
+        Graph result=service.visualize(7);
+        assertEquals(1,result.sources().size());assertEquals("sop-a100",result.sources().get(0).documentId());
+        assertEquals(1,result.sources().get(0).version());assertEquals("active-build:0",result.sources().get(0).chunkId());
+        verify(graph).graph(7,List.of("active-build"),"");
+    }
 }

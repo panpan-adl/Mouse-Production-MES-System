@@ -17,7 +17,9 @@ public final class KnowledgeTypes {
     public record Evidence(String id, String documentId, String title, long version, String chunkId, String text,String location) {
         public Evidence(String id,String documentId,String title,long version,String chunkId,String text){this(id,documentId,title,version,chunkId,text,"");}
     }
-    public record Graph(List<Fact> facts, boolean truncated) {}
+    public record Graph(List<Fact> facts, boolean truncated,List<Evidence> sources) {
+        public Graph(List<Fact> facts,boolean truncated){this(facts,truncated,List.of());}
+    }
     public record Answer(String answer, String mode, String retrieval, List<Evidence> sources,
                          List<Fact> facts, String model) {}
 }

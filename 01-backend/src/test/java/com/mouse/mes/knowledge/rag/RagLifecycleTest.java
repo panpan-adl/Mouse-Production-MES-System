@@ -21,10 +21,11 @@ class RagLifecycleTest {
     static class StubModel extends RagModelClient {
         int embeddingCalls=0,answerCalls=0;
         boolean fail=false;
+        Runnable onEmbed=()->{};
         StubModel(JdbcTemplate db,DataSourceTransactionManager tx){super(new ObjectMapper(),db,tx);}
         @Override public String embeddingModel(){return "test-embedding";}
         @Override public String chatModel(){return "test-chat";}
-        @Override public List<double[]> embed(long owner,List<String> texts){embeddingCalls++;if(fail)throw new IllegalStateException("上游不可用");return texts.stream().map(t->new double[]{1,0,0}).toList();}
+        @Override public List<double[]> embed(long owner,List<String> texts){embeddingCalls++;onEmbed.run();if(fail)throw new IllegalStateException("上游不可用");return texts.stream().map(t->new double[]{1,0,0}).toList();}
         @Override public String answer(long owner,String question,List<RagTypes.Source> sources){answerCalls++;return "操作依据[S1]。";}
     }
     @BeforeEach void setup() throws Exception {
@@ -98,5 +99,23 @@ class RagLifecycleTest {
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM rag_authorized_vector WHERE owner=2",Integer.class));
         bridge.retrieve(1,"问题",List.<RagTypes.Chunk>of(),1,c->c);
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM rag_authorized_vector WHERE owner=1",Integer.class));
+    }
+    @Test void progressCommitsBeforeProviderWorkAndRestoresFailureAfterServiceRecreation() throws Exception {
+        model.onEmbed=()->assertEquals("EMBEDDING",files.list(1).get(0).get("stage"));
+        model.fail=true;
+        assertEquals("FAILED",files.upload(1,"progress",1,"进度样例","a.txt",text("设备由甲负责。")).get("status"));
+        var tx=new DataSourceTransactionManager(db.getDataSource());
+        var reloaded=new RagFileService(db,tx,new RagParser(),model,new ObjectMapper(),new RagSchema(db),dir.toString());
+        assertEquals("FAILED",reloaded.list(1).get(0).get("stage"));
+        model.fail=false;assertEquals("READY",reloaded.retry(1,"progress",1).get("status"));
+        assertEquals("READY",reloaded.list(1).get(0).get("stage"));
+    }
+    @Test void abandonedProgressBecomesRetryableWithoutRestartAndPreservesActiveVersion() throws Exception {
+        files.upload(1,"stale",1,"恢复样例","a.txt",text("设备由甲负责。"));
+        db.update("UPDATE rag_revision SET status='INDEXING' WHERE owner=1 AND document_id='stale'");
+        db.update("UPDATE rag_progress SET stage='GRAPH_BUILD',updated_at=TIMESTAMPADD(MINUTE,-31,CURRENT_TIMESTAMP) WHERE owner=1 AND document_id='stale'");
+        var recovered=files.list(1).get(0);assertEquals("FAILED",recovered.get("status"));assertEquals("FAILED",recovered.get("stage"));
+        assertEquals(1,((Number)recovered.get("activeVersion")).intValue());
+        assertEquals("READY",files.retry(1,"stale",1).get("status"));
     }
 }

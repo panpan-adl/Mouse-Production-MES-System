@@ -75,7 +75,7 @@ class RagGraphIntegrationTest {
                 reset(graph);reset(context.getBean(AuthorizedChunkIndex.class));
                 for(var doc:files.list(owner))files.delete(owner,doc.get("documentId").toString(),((Number)doc.get("version")).intValue()+1);
                 if(real())graph.delete(owner,"joint-doc",Integer.MAX_VALUE);
-                for(String table:List.of("rag_vector","rag_authorized_vector","rag_graph_sync","rag_revision","rag_document"))db.update("DELETE FROM "+table+" WHERE owner=?",owner);
+                for(String table:List.of("rag_progress","rag_vector","rag_authorized_vector","rag_graph_sync","rag_revision","rag_document"))db.update("DELETE FROM "+table+" WHERE owner=?",owner);
                 db.update("DELETE FROM mm_kg_document WHERE owner_id=?",owner);
             }
         }finally{if(context!=null)context.close();System.clearProperty("mes.knowledge.enabled");}
@@ -83,13 +83,13 @@ class RagGraphIntegrationTest {
     Map<String,Object> upload(int version,String text) throws Exception{return files.upload(owner,"joint-doc",version,"联合工艺","sop.txt",text.getBytes(StandardCharsets.UTF_8));}
     @Test void actualBeanAssemblyUsesVectorRetrieverAndSharedChunkIds() throws Exception {
         assertEquals(1,context.getBeansOfType(RagRetriever.class).size());assertInstanceOf(VectorRagRetriever.class,context.getBean(RagRetriever.class));
-        var response=upload(1,"设备由甲负责。");assertEquals("READY",response.get("graphStatus"));assertTrue(files.graphIntegrated());
+        var response=upload(1,"设备由甲负责。");assertEquals("READY",response.get("graphStatus"));assertTrue(files.graphIntegrated());assertEquals("READY",files.list(owner).get(0).get("stage"));
         var document=repository.list(owner).get(0);Answer reply=knowledge.ask(owner,new Question("设备由谁负责？","RAG"));
         assertEquals(document.chunks().get(0).id(),reply.sources().get(0).chunkId());assertTrue(reply.retrieval().contains("fixture-dense"));
         assertEquals("正文",reply.sources().get(0).location());assertEquals(2,((Embeddings)models).calls);
         assertArrayEquals("设备由甲负责。".getBytes(StandardCharsets.UTF_8),files.download(owner,"joint-doc").bytes());
         if(real()){
-            assertFalse(knowledge.visualize(owner).facts().isEmpty());
+            assertFalse(knowledge.visualize(owner).facts().isEmpty());assertEquals("正文",knowledge.visualize(owner).sources().get(0).location());
             assertEquals(document.chunks().get(0).id(),knowledge.ask(owner,new Question("设备","GRAPHRAG")).sources().get(0).chunkId());
             assertEquals(document.chunks().get(0).id(),knowledge.ask(owner,new Question("设备","HYBRID")).sources().get(0).chunkId());
         }

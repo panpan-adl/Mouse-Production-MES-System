@@ -83,7 +83,13 @@ public class KnowledgeService {
     public Graph visualize(long owner,List<String> documentIds,String entity) {
         settings.requireEnabled();
         if(entity==null || entity.length()>120) throw new IllegalArgumentException("实体查询最长120字");
-        return graph.graph(owner,scope(repository.list(owner),documentIds).stream().map(Document::buildId).toList(),entity.strip());
+        List<Document> documents=scope(repository.list(owner),documentIds);
+        Graph result=graph.graph(owner,documents.stream().map(Document::buildId).toList(),entity.strip());
+        Set<String> used=new HashSet<>();result.facts().forEach(f->used.add(f.chunkId()));
+        List<Evidence> sources=new ArrayList<>();
+        for(Document document:documents)for(Chunk c:document.chunks())if(used.contains(c.id()))
+            sources.add(new Evidence("S"+(sources.size()+1),c.documentId(),c.title(),c.version(),c.id(),c.text(),sourceLocations==null?"片段"+(c.ordinal()+1):sourceLocations.resolve(owner,c)));
+        return new Graph(result.facts(),result.truncated(),sources);
     }
     public Answer ask(long owner,Question input) {
         settings.requireEnabled();
@@ -118,7 +124,7 @@ public class KnowledgeService {
         List<Fact> citedFacts=facts.stream().filter(f->selected.containsKey(f.chunkId())).limit(40).toList();
         String retrieval=mode.equals("GRAPHRAG")?"实体名称匹配＋两跳图谱检索":mode.equals("RAG")?rag.name():"两跳图谱＋"+rag.name();
         if(!linked.isEmpty()) retrieval+="；模型定位实体："+String.join("、",linked);
-        if(sources.isEmpty()) return new Answer("当前私有资料中没有检索到相关依据，请补充文件或使用文档中的实体名称提问。",mode,retrieval,List.of(),List.of(),"");
+        if(sources.isEmpty()) return new Answer(KnowledgeModel.INSUFFICIENT,mode,retrieval,List.of(),List.of(),"");
         String answer=model.answer(input.question(),sources,citedFacts);
         try { validateCitations(answer,sources); }
         catch(IllegalStateException invalidCitation) {
