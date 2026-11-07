@@ -9,7 +9,7 @@ import WarehouseNavigation from './WarehouseNavigation.vue'
 import ModuleWorkflow from './ModuleWorkflow.vue'
 import SystemNavigation from './SystemNavigation.vue'
 import { sidebarCollapsed } from '@/stores/layout'
-defineProps<{ fullWidth?: boolean; edgeToEdge?: boolean }>()
+defineProps<{ fullWidth?: boolean; edgeToEdge?: boolean; hideAgent?: boolean }>()
 const themeRoute=useRoute()
 const unifiedTheme=computed(()=>/^\/(equipment|system|foundation|inventory)(\/|$)/.test(themeRoute.path)||['/attendance','/cfo','/assistant','/automation','/production/equipment-status','/notifications'].includes(themeRoute.path))
 
@@ -20,7 +20,7 @@ onBeforeUnmount(()=>window.removeEventListener('resize',fitNavigation))
 <template>
   <div class="mes-workspace notion-workspace" :class="{'nav-collapsed':sidebarCollapsed,'unified-module-theme':unifiedTheme}">
     <Sidebar />
-    <AgentEntry />
+    <AgentEntry v-if="!hideAgent" />
     <div class="workspace-body">
       <Header />
       <main class="workspace-content" :class="{'workspace-content-full':fullWidth,'workspace-content-edge':edgeToEdge}"><ModuleWorkflow /><ProductionNavigation /><WarehouseNavigation /><SystemNavigation /><slot /></main>
