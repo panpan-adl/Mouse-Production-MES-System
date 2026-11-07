@@ -16,6 +16,7 @@ public final class RolePermissions {
     }
     public static boolean canWrite(int role,String path,String method){
         if(path.startsWith("/api/rag/"))return role>=1&&role<=11; // Every file operation checks the authenticated owner.
+        if(path.startsWith("/api/knowledge/"))return role>=1&&role<=11; // Owner isolation is enforced by the knowledge service.
         if(path.startsWith("/api/account/"))return role>=1&&role<=11;
         if(role==9)return true;
         if(path.startsWith("/api/agent/"))return role>=1&&role<=11; // Each skill enforces its business roles.

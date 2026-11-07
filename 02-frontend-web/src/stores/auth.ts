@@ -68,6 +68,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function refreshSettings(){const rows=await request.get<{code:string;value:string}[]>('/mes/settings');settings.value=Object.fromEntries(rows.map(r=>[r.code,r.value]));if(settings.value.APP_NAME)document.title=settings.value.APP_NAME}
   async function refreshMenuAccess(){if(currentUser.value)currentUser.value.permissionRoleId=await request.get<number>('/mes/access-role');const rows=await request.get<{path:string}[]>('/mes/menu-access');menuPaths.value=rows.map(r=>r.path)}
   function hasMenu(path:string):boolean {
+    if(path==='/knowledge')return !!currentUser.value // Personal documents are available to every authenticated job.
     if(currentUser.value?.roleId===9||!menuPaths.value?.length||['/','/dashboard','/login','/notifications','/user/profile'].includes(path))return true
     const aliases:Record<string,string[]>={'/manufacturing':['/production/work-orders'],'/equipment/maintenance':['/equipment/repair-tasks','/equipment/bills'],'/assistant':['/intelligence']}
     return menuPaths.value.some(p=>path===p||path.startsWith(p+'/')||aliases[path]?.includes(p))

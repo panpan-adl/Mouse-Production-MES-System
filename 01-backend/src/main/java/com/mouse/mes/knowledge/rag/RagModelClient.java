@@ -13,6 +13,8 @@ import java.util.*;
 
 @Component
 public class RagModelClient {
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private com.mouse.mes.knowledge.KnowledgeSettings knowledgeSettings;
     @Value("${MES_AI_BASE_URL:https://ark.cn-beijing.volces.com/api/v3}") private String base;
     @Value("${MES_AI_MODEL:doubao-seed-2-1-lite-260915}") private String model;
     @Value("${MES_AI_API_KEY:}") private String key;
@@ -20,21 +22,24 @@ public class RagModelClient {
     @Value("${MES_EMBED_API_KEY:}") private String embedKey;
     @Value("${MES_EMBED_MODEL:doubao-embedding-vision-251215}") private String embedModel;
     @Value("${MES_RAG_CALL_LIMIT:100}") private int totalLimit;
+    @Value("${MES_RAG_DAILY_CALL_LIMIT:40}") private int dailyLimit=40;
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
     private final ObjectMapper json;
     private final JdbcTemplate db;
     private final TransactionTemplate tx;
     public RagModelClient(ObjectMapper json, JdbcTemplate db, PlatformTransactionManager manager) {
         this.json = json; this.db = db; this.tx = new TransactionTemplate(manager);
+        this.tx.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
     public String embeddingModel() { return embedModel; }
     public String chatModel() { return model; }
     public Map<String,Object> status() {
         return Map.of("chatConfigured", !key.isBlank(), "embeddingConfigured", !embeddingKey().isBlank(),
                 "model", model, "embeddingModel", embedModel, "vectorStore", "本地MySQL向量持久化＋余弦精确检索",
-                "graphAvailable", false, "maxTextLength", 12000, "totalCallLimit", totalLimit, "dimensions", 1024);
+                "graphAvailable", knowledgeSettings!=null&&knowledgeSettings.isEnabled(), "maxTextLength", 12000, "totalCallLimit", totalLimit, "dimensions", 1024);
     }
     private String embeddingKey() { return embedKey.isBlank() ? key : embedKey; }
+    public void reserveGraph(long owner){reserve(owner);}
     private void reserve(long owner) {
         tx.executeWithoutResult(s -> {
             // Shared lifetime budget, and per-user daily budget. Reserve before sending, including failures.
@@ -42,8 +47,8 @@ public class RagModelClient {
             if (db.update("UPDATE rag_usage SET calls=calls+1 WHERE owner=0 AND day='2000-01-01' AND calls<?", totalLimit) != 1)
                 throw new IllegalStateException("任务二总调用次数已达上限，请先核对火山账单再调整MES_RAG_CALL_LIMIT");
             db.update("INSERT IGNORE INTO rag_usage(owner,day,calls) VALUES(?,CURRENT_DATE,0)", owner);
-            if (db.update("UPDATE rag_usage SET calls=calls+1 WHERE owner=? AND day=CURRENT_DATE AND calls<20", owner) != 1)
-                throw new IllegalStateException("今天的任务二模型调用已达20次，请明天再试");
+            if (db.update("UPDATE rag_usage SET calls=calls+1 WHERE owner=? AND day=CURRENT_DATE AND calls<?", owner,dailyLimit) != 1)
+                throw new IllegalStateException("今天的知识库模型调用次数已达上限，请明天再试");
         });
     }
     private JsonNode post(long owner, String url, String token, Map<String,Object> body) throws Exception {

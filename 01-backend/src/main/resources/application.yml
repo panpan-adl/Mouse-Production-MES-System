@@ -1,6 +1,17 @@
 server:
   port: 8080
 
+mes:
+  knowledge:
+    enabled: ${MES_KNOWLEDGE_ENABLED:false}
+    neo4j-url: ${MES_KNOWLEDGE_NEO4J_URL:http://127.0.0.1:7474}
+    neo4j-database: ${MES_KNOWLEDGE_NEO4J_DATABASE:neo4j}
+    neo4j-user: ${MES_KNOWLEDGE_NEO4J_USER:neo4j}
+    neo4j-password: ${MES_KNOWLEDGE_NEO4J_PASSWORD:}
+    model-base-url: ${MES_KNOWLEDGE_MODEL_BASE_URL:}
+    model: ${MES_KNOWLEDGE_MODEL:}
+    model-api-key: ${MES_KNOWLEDGE_MODEL_API_KEY:}
+
 spring:
   servlet:
     multipart:

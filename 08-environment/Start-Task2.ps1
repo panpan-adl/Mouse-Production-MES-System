@@ -11,6 +11,23 @@ if (-not $env:MES_AI_API_KEY) {
     $env:MES_AI_API_KEY = [System.Net.NetworkCredential]::new('', $secret).Password
 }
 if ([string]::IsNullOrWhiteSpace($env:MES_AI_API_KEY)) { throw 'API Key is required.' }
+$env:MES_KNOWLEDGE_ENABLED = 'true'
+if (-not $env:MES_KNOWLEDGE_MODEL_BASE_URL) { $env:MES_KNOWLEDGE_MODEL_BASE_URL = $env:MES_AI_BASE_URL }
+if (-not $env:MES_KNOWLEDGE_MODEL) { $env:MES_KNOWLEDGE_MODEL = $env:MES_AI_MODEL }
+if (-not $env:MES_KNOWLEDGE_MODEL_API_KEY) { $env:MES_KNOWLEDGE_MODEL_API_KEY = $env:MES_AI_API_KEY }
+if (-not $env:MES_KNOWLEDGE_NEO4J_URL -and $LocalConfig.neo4jUrl) { $env:MES_KNOWLEDGE_NEO4J_URL = [string]$LocalConfig.neo4jUrl }
+if (-not $env:MES_KNOWLEDGE_NEO4J_PASSWORD -and $LocalConfig.neo4jPassword) { $env:MES_KNOWLEDGE_NEO4J_PASSWORD = [string]$LocalConfig.neo4jPassword }
+if (-not $env:MES_KNOWLEDGE_NEO4J_URL -or -not $env:MES_KNOWLEDGE_NEO4J_PASSWORD) {
+    throw 'Configure Neo4j URL/password in server environment variables or config.local.json before starting.'
+}
+$neoUri = [Uri]$env:MES_KNOWLEDGE_NEO4J_URL
+if ($neoUri.Host -in @('127.0.0.1','localhost') -and -not (Test-LocalPort $neoUri.Port)) {
+    if (-not $LocalConfig.neo4jHome) { throw 'Start the configured Neo4j instance first.' }
+    $env:NEO4J_HOME = [string]$LocalConfig.neo4jHome
+    $neoLauncher = Join-Path $env:NEO4J_HOME 'bin\neo4j.ps1'
+    Start-Process 'powershell.exe' -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$neoLauncher`"",'console') -WindowStyle Hidden -WorkingDirectory $env:NEO4J_HOME -RedirectStandardOutput (Join-Path $LogRoot 'knowledge-neo4j.stdout.log') -RedirectStandardError (Join-Path $LogRoot 'knowledge-neo4j.stderr.log') | Out-Null
+    Wait-LocalPort $neoUri.Port 60
+}
 if (Test-LocalPort $BackendPort) {
     $record = Join-Path $RuntimeRoot 'task2-backend.process.json'
     if (-not (Test-Path -LiteralPath $record)) { throw "Port $BackendPort is already in use. Stop the existing backend before starting task 2." }
@@ -23,6 +40,6 @@ if (Test-LocalPort $BackendPort) {
     Wait-Process -Id $process.Id -Timeout 15 -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $record
 }
-& (Join-Path $PSScriptRoot 'Start-MouseMES.ps1') -SkipBuild:$SkipBuild -BackendPort $BackendPort -FrontendPort $FrontendPort -ProcessPrefix 'task2-' -ArtifactName 'mouse-mes-task2-1.0.0'
-Write-Host "Task 2: http://127.0.0.1:$FrontendPort/knowledge"
+& (Join-Path $PSScriptRoot 'Start-MouseMES.ps1') -SkipBuild:$SkipBuild -BackendPort $BackendPort -FrontendPort $FrontendPort -ProcessPrefix 'task2-' -ArtifactName 'mouse-mes-unified-1.0.0'
+Write-Host "RAG + GraphRAG workspace: http://127.0.0.1:$FrontendPort/knowledge"
 Write-Host 'The API key is held in this process environment and is not saved to Git.'

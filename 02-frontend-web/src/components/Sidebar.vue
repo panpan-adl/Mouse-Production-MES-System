@@ -170,7 +170,7 @@ const takeEntry = (path: string): ChildMenuItem => {
 }
 takeEntry('/mes')
 takeEntry('/fulfillment')
-const assistantEntries = [takeEntry('/assistant'), {path:'/knowledge',name:'私有知识库',icon:FileText}, takeEntry('/automation')]
+const assistantEntries = [takeEntry('/assistant'), {path:'/knowledge',name:'私有知识库与图谱',icon:Bot}, takeEntry('/automation')]
 const sharedEntry = takeEntry('/foundation/units')
 sharedEntry.name = '通用基础资料'
 sharedEntry.roles = [1,2,4,5,6,7,8,11]
