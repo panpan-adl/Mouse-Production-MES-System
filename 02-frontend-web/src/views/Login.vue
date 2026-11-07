@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import LoginParticleCloud from '@/components/LoginParticleCloud.vue'
+import LoginPromo from '@/components/LoginPromo.vue'
 import { motionEnabled } from '@/stores/layout'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -35,6 +36,7 @@ async function login(){
       <div class="login-particle-stage" aria-hidden="true"><LoginParticleCloud :active="motionEnabled"/></div>
       <a href="/login" class="login-brand"><span class="login-brand-icon"><Factory :size="23" /></span><span>MOUSE MES<small>制造执行管理平台</small></span></a>
       <div class="story-copy"><div class="story-eyebrow"><span></span> YOUR EVERYDAY WORKSPACE</div><h1 class="story-art-title"><span class="title-line">让生产<span class="title-emphasis">井然有序</span>，</span><span class="title-line">让协作<span class="title-emphasis">轻松发生</span><span class="title-period">。</span></span></h1><p>从一份生产计划，到每一道工序的执行。<br/>连接人、设备与物料，构建有序、高效的生产现场。</p></div>
+      <LoginPromo :motion-enabled="motionEnabled" />
       <div class="login-workflow"><span>01 · 生产计划</span><span>02 · 工序执行</span><span>03 · 质量追溯</span></div>
       <div class="story-footer"><span>为每一次制造，建立可靠连接。</span><span>MOUSE / MES</span></div>
     </section>
@@ -129,4 +131,16 @@ async function login(){
 @media(min-width:761px) and (max-width:1100px){.story-copy .story-art-title{font-size:clamp(28px,3.6vw,40px)}}
 @media(max-width:1000px){.login-story{padding:32px 7%}.login-access{padding:32px 8%}.story-copy h1{font-size:31px}.story-copy{margin-top:65px}.login-workflow{gap:6px}.login-workflow span{padding:8px;font-size:9px}}
 @media(max-width:760px){.login-page{grid-template-columns:1fr}.login-story{min-height:430px;padding:24px;border-right:0;border-bottom:1px solid #e7e3da}.story-copy{margin-top:26px}.story-copy h1{font-size:27px}.story-copy p{font-size:11px;margin-top:12px}.story-eyebrow{font-size:8px;margin-bottom:12px}.story-footer{display:none}.login-workflow{padding-top:110px;margin-bottom:0;gap:7px}.login-access{padding:24px;min-height:560px}.login-card{padding:30px 0}.login-card h2{font-size:27px}.login-fields{margin-top:26px}.login-access-footer{font-size:8px}.login-motion-control{margin-bottom:20px}}
+</style>
+<style scoped>
+/* The film takes the place of the former empty particle stage. */
+.notion-login{grid-template-columns:minmax(0,1.12fr) minmax(0,1fr)}
+.notion-login .login-story{min-width:0}
+.notion-login .story-copy{margin-top:32px}
+.notion-login .story-copy .story-art-title{font-size:clamp(28px,3vw,48px);line-height:1.55}
+.notion-login .story-copy p{margin-top:12px}
+.notion-login .story-eyebrow{margin-bottom:12px}
+.notion-login .login-workflow{padding-top:0;margin:18px 0}
+.notion-login .story-footer{margin-top:auto}
+@media(max-width:760px){.notion-login{grid-template-columns:minmax(0,1fr)}.notion-login .story-copy{margin-top:24px}.notion-login .story-copy .story-art-title{font-size:clamp(25px,6.8vw,40px)}.notion-login .login-story{min-height:auto;padding-bottom:24px}}
 </style>

@@ -1,0 +1,137 @@
+{
+  "database": "mouse_mes_four_tier_20261030_171925_883824",
+  "sales_order": "SO-20261101-DEF01",
+  "sales_order_id": 44,
+  "purchase_order": "PO-20261101-DEF01",
+  "purchase_order_id": 59,
+  "receipt": "演示时新建",
+  "receipt_status": "尚未创建",
+  "product": "A100有线办公鼠标",
+  "quantity": 10,
+  "amount": 890,
+  "customer": "深圳星河数码",
+  "contact": "程子谦",
+  "supplier": "苏州诚品电子制造有限公司",
+  "warehouse": "A100原料仓",
+  "location": "R01-02-01货架位",
+  "bom": "BOM-A100-V1",
+  "route": "ROUTE-A100-V1",
+  "materials": [
+    {
+      "id": 37,
+      "code": "MAT-000032",
+      "name": "A100 防滑脚贴（量产型）",
+      "unit": "套",
+      "quantity": 10.0,
+      "unit_price": 0.26,
+      "lot": "DEF-20261101-A100-037"
+    },
+    {
+      "id": 38,
+      "code": "MAT-000033",
+      "name": "A100 产品铭牌（量产型）",
+      "unit": "张",
+      "quantity": 10.0,
+      "unit_price": 0.12,
+      "lot": "DEF-20261101-A100-038"
+    },
+    {
+      "id": 39,
+      "code": "MAT-000034",
+      "name": "A100 包装盒（量产型）",
+      "unit": "个",
+      "quantity": 10.0,
+      "unit_price": 0.95,
+      "lot": "DEF-20261101-A100-039"
+    },
+    {
+      "id": 40,
+      "code": "MAT-000035",
+      "name": "A100 PCB主板（量产型）",
+      "unit": "块",
+      "quantity": 10.0,
+      "unit_price": 8.6,
+      "lot": "DEF-20261101-A100-040"
+    },
+    {
+      "id": 41,
+      "code": "MAT-000036",
+      "name": "A100 微动开关（量产型）",
+      "unit": "个",
+      "quantity": 20.0,
+      "unit_price": 0.65,
+      "lot": "DEF-20261101-A100-041"
+    },
+    {
+      "id": 42,
+      "code": "MAT-000037",
+      "name": "A100 滚轮编码器（量产型）",
+      "unit": "个",
+      "quantity": 10.0,
+      "unit_price": 1.25,
+      "lot": "DEF-20261101-A100-042"
+    },
+    {
+      "id": 43,
+      "code": "MAT-000038",
+      "name": "A100 USB连接线（量产型）",
+      "unit": "根",
+      "quantity": 10.0,
+      "unit_price": 2.4,
+      "lot": "DEF-20261101-A100-043"
+    },
+    {
+      "id": 44,
+      "code": "MAT-000039",
+      "name": "A100 鼠标上盖（量产型）",
+      "unit": "个",
+      "quantity": 10.0,
+      "unit_price": 1.8,
+      "lot": "DEF-20261101-A100-044"
+    },
+    {
+      "id": 45,
+      "code": "MAT-000040",
+      "name": "A100 鼠标下盖（量产型）",
+      "unit": "个",
+      "quantity": 10.0,
+      "unit_price": 1.6,
+      "lot": "DEF-20261101-A100-045"
+    },
+    {
+      "id": 46,
+      "code": "MAT-000041",
+      "name": "A100 滚轮组件（量产型）",
+      "unit": "个",
+      "quantity": 10.0,
+      "unit_price": 0.78,
+      "lot": "DEF-20261101-A100-046"
+    },
+    {
+      "id": 47,
+      "code": "MAT-000042",
+      "name": "A100 光学透镜（量产型）",
+      "unit": "个",
+      "quantity": 10.0,
+      "unit_price": 0.42,
+      "lot": "DEF-20261101-A100-047"
+    },
+    {
+      "id": 48,
+      "code": "MAT-000043",
+      "name": "A100 固定螺钉（量产型）",
+      "unit": "颗",
+      "quantity": 40.0,
+      "unit_price": 0.04,
+      "lot": "DEF-20261101-A100-048"
+    }
+  ],
+  "station": "A100柔性总装站",
+  "station_id": 20,
+  "team": "A100订单交付演示班组",
+  "schedule_id": 23,
+  "worker": "103001 赵宇航",
+  "schedule_start": "2026-11-01 08:00",
+  "schedule_end": "2026-11-01 20:00",
+  "url": "http://127.0.0.1:5175/login"
+}

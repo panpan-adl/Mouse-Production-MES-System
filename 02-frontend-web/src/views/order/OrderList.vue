@@ -6,6 +6,7 @@ import MainLayout from '@/components/MainLayout.vue'
 import { Check, CircleX, Edit, Eye, Plus, RefreshCw, Search, X } from 'lucide-vue-next'
 import { customerApi, orderApi, type Customer, type Order } from '@/api/mes'
 import { useAuthStore } from '@/stores/auth'
+import request from '@/utils/request'
 
 const authStore = useAuthStore()
 
@@ -17,6 +18,11 @@ const actionOrderId = ref<number | null>(null)
 const message = ref('')
 const orders = ref<Order[]>([])
 const customers = ref<Customer[]>([])
+interface CatalogProduct { id: number; product_code: string; product_name: string }
+const products = ref<CatalogProduct[]>([])
+const productLoading = ref(false)
+const productError = ref('')
+const selectedCatalogProduct = computed(() => products.value.find(item => item.product_name === form.productName))
 const selectedOrder = ref<Order | null>(null)
 const detailVisible = ref(false)
 const formVisible = ref(false)
@@ -120,6 +126,7 @@ const formTotalAmount = computed(() => {
 onMounted(() => {
   loadOrders()
   loadCustomers()
+  loadProducts()
 })
 
 async function loadOrders() {
@@ -145,6 +152,19 @@ async function loadCustomers() {
   }
 }
 
+async function loadProducts() {
+  productLoading.value = true
+  productError.value = ''
+  try {
+    products.value = await request.get<CatalogProduct[]>('/foundation/products')
+  } catch (error: any) {
+    products.value = []
+    productError.value = error.message || '产品档案加载失败，请重试'
+  } finally {
+    productLoading.value = false
+  }
+}
+
 async function openDetail(order: Order) {
   if (!order.id) return
   detailLoading.value = true
@@ -160,6 +180,7 @@ async function openDetail(order: Order) {
 }
 
 function openCreate() {
+  loadProducts()
   formMode.value = 'create'
   editingOrderId.value = null
   resetForm()
@@ -178,6 +199,7 @@ async function openEdit(order: Order) {
   if (customers.value.length === 0) {
     await loadCustomers()
   }
+  await loadProducts()
   const customerName = displayOrderField(order, 'customerName')
   const productName = displayOrderField(order, 'productName')
   const matchedCustomer = activeCustomers.value.find((customer) => {
@@ -262,8 +284,8 @@ async function saveOrder() {
     showBusinessFormError(message.value)
     return
   }
-  if (!form.productName.trim()) {
-    message.value = '产品名称不能为空'
+  if (productLoading.value || productError.value || !selectedCatalogProduct.value) {
+    message.value = productLoading.value ? '产品档案加载中，请稍后保存' : productError.value || '请选择产品档案中的有效产品'
     showBusinessFormError(message.value)
     return
   }
@@ -295,7 +317,7 @@ async function saveOrder() {
       orderNo: form.orderNo.trim(),
       customerName: form.customerName.trim(),
       customerPhone: form.customerPhone.trim(),
-      productName: form.productName.trim(),
+      productName: selectedCatalogProduct.value.product_name,
       quantity: Number(form.quantity),
       unitPrice: Number(form.unitPrice),
       totalAmount: formTotalAmount.value,
@@ -580,7 +602,13 @@ const completeDrafts=useFormDrafts({formVisible:{open:formVisible,fields:{form},
             </label>
             <label class="field-label">
               产品名称
-              <input v-model="form.productName" class="input mt-1" placeholder="例如：A100有线办公鼠标" />
+              <select v-model="form.productName" aria-label="产品名称" class="input mt-1" :disabled="productLoading || Boolean(productError)">
+                <option value="">{{ productLoading ? '正在加载产品档案...' : '请选择产品' }}</option>
+                <option v-if="form.productName && !selectedCatalogProduct && !productLoading" :value="form.productName" disabled>{{ form.productName }}（已不在产品档案中，请重新选择）</option>
+                <option v-for="product in products" :key="product.id" :value="product.product_name">{{ product.product_name }} · {{ product.product_code }}</option>
+              </select>
+              <span v-if="productError" class="mt-1 block text-sm text-red-600" role="alert">{{ productError }} <button type="button" class="underline" @click="loadProducts">重新加载</button></span>
+              <span v-else-if="!productLoading && !products.length" class="mt-1 block text-sm text-yellow-700">暂无可选产品，请先维护<router-link to="/foundation/products" class="underline">产品档案</router-link>。</span>
             </label>
             <label class="field-label">
               优先级
@@ -624,7 +652,7 @@ const completeDrafts=useFormDrafts({formVisible:{open:formVisible,fields:{form},
 
           <div class="mt-6 flex justify-end gap-3">
             <button class="btn-secondary" @click="formVisible = false">取消</button>
-            <button class="btn-primary" :disabled="saving || activeCustomers.length === 0" @click="saveOrder">
+            <button class="btn-primary" :disabled="saving || activeCustomers.length === 0 || productLoading || Boolean(productError) || !selectedCatalogProduct" @click="saveOrder">
               {{ saving ? '保存中...' : (formMode === 'edit' ? '保存修改' : '保存订单') }}
             </button>
           </div>
