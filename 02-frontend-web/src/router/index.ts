@@ -3,6 +3,8 @@ import { useAuthStore } from '@/stores/auth'
 import { canVisit } from '@/utils/permissions'
 
 const routes: RouteRecordRaw[] = [
+  {path:'/knowledge',component:()=>import('@/views/knowledge/RagWorkspace.vue'),meta:{requiresAuth:true,title:'私有知识库'}},
+  {path:'/rag',redirect:'/knowledge',meta:{requiresAuth:true}},
   {path:'/production/work-orders',redirect:to=>({path:'/manufacturing',query:to.query}),meta:{requiresAuth:true}},
   {path:'/production/schedules',component:()=>import('@/views/production/SchedulePlanning.vue'),meta:{requiresAuth:true}},
   ...[

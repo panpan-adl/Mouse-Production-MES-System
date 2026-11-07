@@ -20,7 +20,7 @@ onBeforeUnmount(()=>window.removeEventListener('resize',fitNavigation))
 <template>
   <div class="mes-workspace notion-workspace" :class="{'nav-collapsed':sidebarCollapsed,'unified-module-theme':unifiedTheme}">
     <Sidebar />
-    <AgentEntry />
+    <AgentEntry v-if="themeRoute.path !== '/knowledge'" />
     <div class="workspace-body">
       <Header />
       <main class="workspace-content" :class="{'workspace-content-full':fullWidth,'workspace-content-edge':edgeToEdge}"><ModuleWorkflow /><ProductionNavigation /><WarehouseNavigation /><SystemNavigation /><slot /></main>

@@ -14,6 +14,7 @@
     <name>mouse-mes</name>
     <description>鼠标制造MES系统后端</description>
     <properties>
+        <mes.artifactName>mouse-mes-1.0.0</mes.artifactName>
         <java.version>17</java.version>
         <argLine></argLine>
         <mybatis.version>3.0.3</mybatis.version>
@@ -24,6 +25,13 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>com.h2database</groupId><artifactId>h2</artifactId><scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId><artifactId>pdfbox</artifactId><version>3.0.6</version>
+            <exclusions><exclusion><groupId>commons-logging</groupId><artifactId>commons-logging</artifactId></exclusion></exclusions>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -63,6 +71,7 @@
         </dependency>
     </dependencies>
     <build>
+        <finalName>${mes.artifactName}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

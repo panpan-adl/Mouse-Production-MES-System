@@ -1,5 +1,5 @@
 ﻿. (Join-Path $PSScriptRoot 'Use-Environment.ps1')
-foreach ($name in @('completion-test-frontend', 'completion-test-backend', 'stage34-demo-frontend', 'stage34-demo-backend', 'frontend', 'backend')) {
+foreach ($name in @('task2-frontend', 'task2-backend', 'completion-test-frontend', 'completion-test-backend', 'stage34-demo-frontend', 'stage34-demo-backend', 'frontend', 'backend')) {
     $record = Join-Path $RuntimeRoot "$name.process.json"
     if (-not (Test-Path -LiteralPath $record)) { continue }
     $owned = Get-Content -LiteralPath $record -Raw | ConvertFrom-Json
