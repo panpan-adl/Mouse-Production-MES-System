@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.mouse.mes.knowledge.KnowledgeService;
+import com.mouse.mes.knowledge.KnowledgeTypes;
 
 @RestController
 @RequestMapping("/api/rag")
@@ -15,6 +18,7 @@ public class RagController {
     private final RagFileService files;
     private final RagVectorService vectors;
     private final RagModelClient models;
+    @Autowired(required=false) private KnowledgeService knowledge;
     public RagController(RagFileService files,RagVectorService vectors,RagModelClient models) {this.files=files;this.vectors=vectors;this.models=models;}
     private long owner(HttpServletRequest request) {
         if(!(request.getAttribute("userInfo") instanceof LoginResponse identity)||identity.getId()==null||identity.getId()<1)
@@ -22,7 +26,7 @@ public class RagController {
         if(request.getParameter("owner")!=null||request.getParameter("userId")!=null) throw new SecurityException("不接受客户端指定用户身份");
         return identity.getId();
     }
-    @GetMapping("/status") public Object status(HttpServletRequest request) {owner(request);return JsonResult.success(models.status());}
+    @GetMapping("/status") public Object status(HttpServletRequest request) {owner(request);var status=new LinkedHashMap<String,Object>(models.status());status.put("graphAvailable",files.graphIntegrated());return JsonResult.success(status);}
     @GetMapping("/documents") public Object list(HttpServletRequest request) {return JsonResult.success(files.list(owner(request)));}
     @GetMapping("/events") public Object events(HttpServletRequest request) {return JsonResult.success(files.events(owner(request)));}
     @GetMapping("/documents/{id}") public Object detail(HttpServletRequest request,@PathVariable String id) {return JsonResult.success(files.detail(owner(request),id));}
@@ -53,7 +57,16 @@ public class RagController {
     }
     @PostMapping("/messages") public Object ask(HttpServletRequest request,@RequestBody Map<String,Object> input) throws Exception {
         long user=owner(request);
-        if(!Set.of("question","mode").containsAll(input.keySet())) throw new IllegalArgumentException("只接受question和mode，身份由登录会话确定");
+        if(!Set.of("question","mode","documentIds").containsAll(input.keySet())) throw new IllegalArgumentException("只接受question、mode和documentIds，身份由登录会话确定");
+        if(knowledge!=null&&files.graphIntegrated()) {
+            List<String> ids=new ArrayList<>();
+            if(input.containsKey("documentIds")) {
+                if(!(input.get("documentIds") instanceof List<?> values))throw new IllegalArgumentException("documentIds必须为数组");
+                for(Object value:values){if(!(value instanceof String text))throw new IllegalArgumentException("资料编号必须为字符串");ids.add(text);}
+            }
+            return JsonResult.success(knowledge.ask(user,new KnowledgeTypes.Question(Objects.toString(input.get("question"),""),Objects.toString(input.get("mode"),"RAG"),ids)));
+        }
+        if(input.containsKey("documentIds"))throw new IllegalStateException("统一图谱模块未启用，暂不支持指定资料范围");
         return JsonResult.success(vectors.ask(user,Objects.toString(input.get("question"),""),Objects.toString(input.get("mode"),"RAG")));
     }
     @ExceptionHandler(SecurityException.class) public ResponseEntity<?> denied(SecurityException e) {return ResponseEntity.status(403).body(JsonResult.error(403,e.getMessage()));}

@@ -2,6 +2,7 @@ package com.mouse.mes.knowledge.rag;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -17,6 +18,17 @@ public class RagFileService {
     private final RagModelClient models;
     private final ObjectMapper json;
     private final Path root;
+    private RagGraphBridge graph;
+    @Autowired(required=false) public void setGraphBridge(RagGraphBridge value){graph=value;}
+    public boolean graphIntegrated(){return graph!=null;}
+    private void graphState(long owner,String id,int version,String status,String error,boolean attempt){
+        String message=Objects.toString(error,"");message=message.substring(0,Math.min(500,message.length()));
+        db.update("INSERT INTO rag_graph_sync(owner,document_id,version,status,error,attempts) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE status=VALUES(status),error=VALUES(error),attempts=attempts+?",owner,id,version,status,message,attempt?1:0,attempt?1:0);
+    }
+    private String graphStatus(long owner,String id,int version){
+        var rows=db.queryForList("SELECT status FROM rag_graph_sync WHERE owner=? AND document_id=? AND version=?",owner,id,version);
+        return rows.isEmpty()?"PENDING_TASK3":rows.get(0).get("status").toString();
+    }
     public RagFileService(JdbcTemplate db, PlatformTransactionManager manager, RagParser parser,
                           RagModelClient models, ObjectMapper json, RagSchema schema,
                           @Value("${MES_RAG_STORAGE:uploads/rag-files}") String storage) throws Exception {
@@ -26,8 +38,9 @@ public class RagFileService {
     public static void validateId(String id) {
         if (id == null || !id.matches("[A-Za-z0-9_-]{1,64}")) throw new IllegalArgumentException("documentId须为1至64位ASCII字母、数字、下划线或短横线");
     }
+    public boolean managed(long owner,String id){validateId(id);return db.queryForObject("SELECT COUNT(*) FROM rag_document WHERE owner=? AND document_id=?",Integer.class,owner,id)>0;}
     public List<Map<String,Object>> list(long owner) {
-        return db.queryForList("SELECT d.document_id AS documentId,d.version,d.active_version AS activeVersion,r.title,r.filename,r.status,r.error,r.attempts,r.created_at AS createdAt FROM rag_document d JOIN rag_revision r ON r.owner=d.owner AND r.document_id=d.document_id AND r.version=d.version WHERE d.owner=? AND d.deleted=FALSE ORDER BY r.created_at DESC", owner);
+        return db.queryForList("SELECT d.document_id AS documentId,d.version,d.active_version AS activeVersion,r.title,r.filename,r.status,r.error,r.attempts,r.created_at AS createdAt,COALESCE(g.status,'PENDING_TASK3') AS graphStatus,g.error AS graphError FROM rag_document d JOIN rag_revision r ON r.owner=d.owner AND r.document_id=d.document_id AND r.version=d.version LEFT JOIN rag_graph_sync g ON g.owner=r.owner AND g.document_id=r.document_id AND g.version=r.version WHERE d.owner=? AND d.deleted=FALSE ORDER BY r.created_at DESC", owner);
     }
     private Map<String,Object> revision(long owner, String id, int version) {
         validateId(id);
@@ -68,8 +81,27 @@ public class RagFileService {
     public Map<String,Object> retry(long owner, String id, int version) throws Exception {
         var rev = revision(owner,id,version);
         if ("DELETE".equals(rev.get("action"))) return delete(owner,id,version);
-        if ("READY".equals(rev.get("status"))) return Map.of("documentId",id,"version",version,"unchanged",true);
+        if ("READY".equals(rev.get("status"))) {
+            if(graph!=null && !"READY".equals(graphStatus(owner,id,version)))return syncReady(owner,id,version);
+            // Never acknowledge a stale ready event after the document has moved on.
+            syncEvent(owner,id,version);
+            return Map.of("documentId",id,"version",version,"unchanged",true);
+        }
         return process(owner,id,version);
+    }
+    private Map<String,Object> syncReady(long owner,String id,int version){
+        try {
+            tx.executeWithoutResult(s->{
+                var doc=db.queryForMap("SELECT * FROM rag_document WHERE owner=? AND document_id=? FOR UPDATE",owner,id);
+                if(((Number)doc.get("version")).intValue()!=version || ((Number)doc.get("active_version")).intValue()!=version || Boolean.TRUE.equals(doc.get("deleted")))
+                    throw new IllegalArgumentException("当前版本已变化，不能同步旧事件");
+                var rev=revision(owner,id,version);
+                graph.publish(owner,id,version,rev.get("title").toString(),rev.get("parsed_text").toString());
+                graphState(owner,id,version,"READY","",true);
+            });
+            return Map.of("documentId",id,"version",version,"status","READY","graphStatus","READY","unchanged",false);
+        } catch(IllegalArgumentException|SecurityException e){throw e;}
+        catch(Exception e){graphState(owner,id,version,"FAILED",e.getMessage(),true);throw new IllegalStateException("图谱同步失败，已保留原有索引；可重试当前版本");}
     }
     private Map<String,Object> process(long owner, String id, int version) throws Exception {
         Boolean claimed = tx.execute(s -> {
@@ -82,6 +114,7 @@ public class RagFileService {
         });
         if (!Boolean.TRUE.equals(claimed)) throw new IllegalArgumentException("版本正在处理或已完成，请刷新列表");
         var rev = revision(owner,id,version);
+        graphState(owner,id,version,graph==null?"PENDING_TASK3":"INDEXING","",true);
         try {
             var parts = parser.parse(rev.get("filename").toString(),Files.readAllBytes(storedPath(rev)));
             var chunks = parser.chunks(id,version,rev.get("title").toString(),rev.get("build_id").toString(),parts);
@@ -95,6 +128,8 @@ public class RagFileService {
                 var doc = db.queryForMap("SELECT * FROM rag_document WHERE owner=? AND document_id=? FOR UPDATE",owner,id);
                 if (((Number)doc.get("version")).intValue()!=version || Boolean.TRUE.equals(doc.get("deleted")))
                     throw new IllegalArgumentException("处理期间文件已更新或删除，本次结果未发布");
+                // Graph publication joins this transaction. Failure keeps BOTH previous active versions.
+                if(graph!=null)graph.publish(owner,id,version,rev.get("title").toString(),text);
                 db.update("DELETE FROM rag_vector WHERE owner=? AND document_id=?",owner,id);
                 for(int i=0;i<chunks.size();i++) {
                     var c=chunks.get(i);
@@ -102,13 +137,15 @@ public class RagFileService {
                 }
                 db.update("UPDATE rag_document SET active_version=? WHERE owner=? AND document_id=?",version,owner,id);
                 db.update("UPDATE rag_revision SET status='READY',error='' WHERE owner=? AND document_id=? AND version=?",owner,id,version);
+                graphState(owner,id,version,graph==null?"PENDING_TASK3":"READY","",false);
             });
-            return Map.of("documentId",id,"version",version,"chunkCount",chunks.size(),"status","READY","graphStatus","PENDING_TASK3","unchanged",false);
+            return Map.of("documentId",id,"version",version,"chunkCount",chunks.size(),"status","READY","graphStatus",graph==null?"PENDING_TASK3":"READY","unchanged",false);
         } catch (Exception e) {
             // Retain the previous active_version and its vectors on any failed replacement.
-            String message = e instanceof IllegalArgumentException || e instanceof IllegalStateException ? e.getMessage() : "解析或索引失败，请确认文件有效后重试";
+            String message = e instanceof IllegalArgumentException || e instanceof IllegalStateException ? Objects.toString(e.getMessage(),"处理失败，请重试") : "解析或索引失败，请确认文件有效后重试";
             db.update("UPDATE rag_revision SET status='FAILED',error=? WHERE owner=? AND document_id=? AND version=?",message.substring(0,Math.min(500,message.length())),owner,id,version);
-            return Map.of("documentId",id,"version",version,"status","FAILED","error",message,"graphStatus","PENDING_TASK3");
+            graphState(owner,id,version,graph==null?"PENDING_TASK3":"FAILED",message,false);
+            return Map.of("documentId",id,"version",version,"status","FAILED","error",message,"graphStatus",graph==null?"PENDING_TASK3":"FAILED");
         }
     }
     private Path storedPath(Map<String,Object> rev) {
@@ -134,9 +171,11 @@ public class RagFileService {
             var rev=revision(owner,id,current);
             if (version==current && "DELETE".equals(rev.get("action"))) return;
             if(version!=current+1) throw new IllegalArgumentException("删除版本必须为当前version加1");
+            if(graph!=null)graph.revoke(owner,id,version);
             db.update("INSERT INTO rag_revision(owner,document_id,version,title,filename,storage_path,action,status,build_id) VALUES(?,?,?,?,?,?,'DELETE','CLEANUP_PENDING',?)",owner,id,version,rev.get("title"),rev.get("filename"),rev.get("storage_path"),UUID.randomUUID().toString());
             db.update("UPDATE rag_document SET version=?,active_version=0,deleted=TRUE WHERE owner=? AND document_id=?",version,owner,id);
             db.update("DELETE FROM rag_vector WHERE owner=? AND document_id=?",owner,id);
+            graphState(owner,id,version,graph==null?"PENDING_TASK3":"CLEANUP_PENDING","",true);
         });
         // Permission revocation has committed before filesystem cleanup. Never restore on failure.
         boolean pending=false;
@@ -144,10 +183,15 @@ public class RagFileService {
             try { Files.deleteIfExists(storedPath(rev)); } catch(Exception e) { pending=true; }
         }
         db.update("UPDATE rag_revision SET status=? WHERE owner=? AND document_id=? AND version=? AND action='DELETE'",pending?"CLEANUP_PENDING":"DELETED",owner,id,version);
-        return Map.of("deleted",true,"cleanupPending",pending,"graphCleanupPending",true,"version",version);
+        boolean graphPending=true;
+        if(graph!=null) {
+            try {graphPending=graph.cleanup(owner,id,version);}catch(Exception e){graphPending=true;}
+            graphState(owner,id,version,graphPending?"CLEANUP_PENDING":"DELETED",graphPending?"图数据库清理待重试":"",false);
+        }
+        return Map.of("deleted",true,"cleanupPending",pending,"graphCleanupPending",graphPending,"version",version);
     }
     public List<Map<String,Object>> events(long owner) {
-        return db.queryForList("SELECT document_id AS documentId,version,action,status,error,attempts,created_at AS createdAt FROM rag_revision WHERE owner=? ORDER BY created_at DESC LIMIT 100",owner);
+        return db.queryForList("SELECT r.document_id AS documentId,r.version,r.action,r.status,r.error,r.attempts,r.created_at AS createdAt,COALESCE(g.status,'PENDING_TASK3') AS graphStatus,g.error AS graphError FROM rag_revision r LEFT JOIN rag_graph_sync g ON g.owner=r.owner AND g.document_id=r.document_id AND g.version=r.version WHERE r.owner=? ORDER BY r.created_at DESC LIMIT 100",owner);
     }
     public Map<String,Object> syncPayload(long owner,String id) {
         var doc=detail(owner,id); int active=((Number)doc.get("activeVersion")).intValue();

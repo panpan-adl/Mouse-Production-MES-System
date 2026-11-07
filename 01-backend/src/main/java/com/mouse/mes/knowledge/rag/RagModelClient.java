@@ -13,9 +13,9 @@ import java.util.*;
 
 @Component
 public class RagModelClient {
-    @Value("${MES_AI_BASE_URL:https://ark.cn-beijing.volces.com/api/v3}") private String base;
-    @Value("${MES_AI_MODEL:doubao-seed-2-1-lite-260915}") private String model;
-    @Value("${MES_AI_API_KEY:}") private String key;
+    @Value("${MES_AI_BASE_URL:${MES_KNOWLEDGE_MODEL_BASE_URL:https://ark.cn-beijing.volces.com/api/v3}}") private String base;
+    @Value("${MES_AI_MODEL:${MES_KNOWLEDGE_MODEL:doubao-seed-2-1-lite-260915}}") private String model;
+    @Value("${MES_AI_API_KEY:${MES_KNOWLEDGE_MODEL_API_KEY:}}") private String key;
     @Value("${MES_EMBED_BASE_URL:}") private String embedBase;
     @Value("${MES_EMBED_API_KEY:}") private String embedKey;
     @Value("${MES_EMBED_MODEL:doubao-embedding-vision-251215}") private String embedModel;
@@ -57,6 +57,7 @@ public class RagModelClient {
                 .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body))).build();
         HttpResponse<String> response;
         try { response = http.send(request, HttpResponse.BodyHandlers.ofString()); }
+        catch (InterruptedException e) {Thread.currentThread().interrupt();throw new IllegalStateException("模型请求已中断",e);}
         catch (Exception e) { throw new IllegalStateException("模型连接失败或超时；本次不自动重试，请检查网络", e); }
         if (response.statusCode() != 200) {
             // Never forward upstream error bodies, which may contain credentials or request text.

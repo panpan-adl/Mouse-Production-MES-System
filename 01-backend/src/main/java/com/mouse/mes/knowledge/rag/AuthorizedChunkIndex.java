@@ -3,6 +3,7 @@ package com.mouse.mes.knowledge.rag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;
@@ -17,11 +18,16 @@ public class AuthorizedChunkIndex {
     private final RagModelClient model;
     private final ObjectMapper json;
     private final Map<Long,ReentrantLock> locks=new ConcurrentHashMap<>();
+    @Value("${MES_RAG_MIN_SCORE:0.5}") private double minimumScore=0.5;
     public AuthorizedChunkIndex(JdbcTemplate db,RagModelClient model,ObjectMapper json,RagSchema schema) {
         this.db=db;this.model=model;this.json=json;
         db.execute("CREATE TABLE IF NOT EXISTS rag_authorized_vector (owner BIGINT NOT NULL, chunk_id VARCHAR(96) NOT NULL, fingerprint CHAR(64) NOT NULL, embedding_model VARCHAR(200) NOT NULL, embedding JSON NOT NULL, PRIMARY KEY(owner,chunk_id)) ENGINE=InnoDB");
     }
     public String name(){return "向量检索 · "+model.embeddingModel()+" · MySQL余弦精确召回";}
+    public void evict(long owner,List<String> ids){
+        ReentrantLock lock=locks.computeIfAbsent(owner,k->new ReentrantLock());lock.lock();
+        try{for(String id:ids)db.update("DELETE FROM rag_authorized_vector WHERE owner=? AND chunk_id=?",owner,id);}finally{lock.unlock();}
+    }
     public <T> List<T> retrieve(long owner,String question,List<T> authorized,int limit,Function<T,RagTypes.Chunk> mapper) throws Exception {
         if(owner<1||limit<1||limit>50||authorized.size()>2000||question==null||question.isBlank()||question.length()>1200)
             throw new IllegalArgumentException("检索参数超过限制");
@@ -42,6 +48,17 @@ public class AuthorizedChunkIndex {
                 } else stored.put(id,json.readValue(row.get("embedding").toString(),double[].class));
             }
             if(originals.isEmpty()) return List.of();
+            // Reuse task two's already-published embedding when the exact authorized text/model matches.
+            // Only the identifier changes to task three's shared buildId:ordinal; no extra cloud call.
+            for(String id:originals.keySet())if(!stored.containsKey(id)) {
+                var c=mapper.apply(originals.get(id));
+                var rows=db.queryForList("SELECT v.content,v.embedding FROM rag_vector v JOIN rag_document d ON d.owner=v.owner AND d.document_id=v.document_id AND d.active_version=v.version WHERE v.owner=? AND v.document_id=? AND v.version=? AND v.embedding_model=? AND d.deleted=FALSE",owner,c.documentId(),c.version(),model.embeddingModel());
+                for(var row:rows)if(c.text().equals(row.get("content"))) {
+                    double[] vector=json.readValue(row.get("embedding").toString(),double[].class);
+                    db.update("INSERT INTO rag_authorized_vector(owner,chunk_id,fingerprint,embedding_model,embedding) VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE fingerprint=VALUES(fingerprint),embedding_model=VALUES(embedding_model),embedding=VALUES(embedding)",owner,id,fingerprints.get(id),model.embeddingModel(),json.writeValueAsString(vector));
+                    stored.put(id,vector);break;
+                }
+            }
             List<String> missing=originals.keySet().stream().filter(id->!stored.containsKey(id)).toList();
             for(int start=0;start<missing.size();start+=8) {
                 var batch=missing.subList(start,Math.min(start+8,missing.size()));
@@ -56,7 +73,7 @@ public class AuthorizedChunkIndex {
             List<Map.Entry<String,Double>> scored=new ArrayList<>();
             for(String id:originals.keySet()) scored.add(Map.entry(id,RagVectorService.cosine(query,stored.get(id))));
             scored.sort(Map.Entry.<String,Double>comparingByValue().reversed());
-            return scored.stream().limit(limit).map(entry->originals.get(entry.getKey())).toList();
+            return scored.stream().filter(entry->entry.getValue()>=minimumScore).limit(limit).map(entry->originals.get(entry.getKey())).toList();
         } finally {lock.unlock();}
     }
 }

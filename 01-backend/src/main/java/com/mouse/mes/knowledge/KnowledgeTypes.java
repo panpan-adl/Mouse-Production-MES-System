@@ -14,7 +14,9 @@ public final class KnowledgeTypes {
     public record Fact(String source, String relation, String target, String quote, String chunkId) {}
     public record Document(String documentId, String title, long version, String text, String buildId,
                            List<Chunk> chunks, String state) {}
-    public record Evidence(String id, String documentId, String title, long version, String chunkId, String text) {}
+    public record Evidence(String id, String documentId, String title, long version, String chunkId, String text,String location) {
+        public Evidence(String id,String documentId,String title,long version,String chunkId,String text){this(id,documentId,title,version,chunkId,text,"");}
+    }
     public record Graph(List<Fact> facts, boolean truncated) {}
     public record Answer(String answer, String mode, String retrieval, List<Evidence> sources,
                          List<Fact> facts, String model) {}

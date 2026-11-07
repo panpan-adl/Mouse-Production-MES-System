@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.mouse.mes.knowledge.rag.RagFileService;
 import static com.mouse.mes.knowledge.KnowledgeTypes.*;
 
 @RestController
@@ -15,6 +17,7 @@ import static com.mouse.mes.knowledge.KnowledgeTypes.*;
 public class KnowledgeController {
     private final KnowledgeService service;
     private final ObjectMapper json;
+    @Autowired(required=false) private RagFileService library;
     public KnowledgeController(KnowledgeService service,ObjectMapper json) { this.service=service; this.json=json; }
     private long owner(HttpServletRequest request) {
         Object raw=request.getAttribute("userInfo");
@@ -27,9 +30,15 @@ public class KnowledgeController {
     @GetMapping("/documents") public Object documents(HttpServletRequest request) { return JsonResult.success(service.documents(owner(request))); }
     @GetMapping("/deletions") public Object pending(HttpServletRequest request) { return JsonResult.success(service.pendingDeletions(owner(request))); }
     @GetMapping("/documents/{id}") public Object document(@PathVariable String id,HttpServletRequest request) { return JsonResult.success(service.document(owner(request),id)); }
-    @PostMapping("/documents") public Object upload(@RequestBody DocumentInput input,HttpServletRequest request) { return JsonResult.success(service.upsert(owner(request),input)); }
+    @PostMapping("/documents") public Object upload(@RequestBody DocumentInput input,HttpServletRequest request) {
+        long owner=owner(request);
+        if(library!=null && input!=null && input.documentId()!=null && library.managed(owner,input.documentId()))throw new IllegalArgumentException("该资料由文件库管理，请通过文件库更新原件");
+        return JsonResult.success(service.upsert(owner,input));
+    }
     @DeleteMapping("/documents/{id}") public Object delete(@PathVariable String id,@RequestParam long version,HttpServletRequest request) {
-        long owner=owner(request); service.tombstone(owner,id,version); return JsonResult.success(service.cleanup(owner,id,version));
+        long owner=owner(request);
+        if(library!=null && library.managed(owner,id))throw new IllegalArgumentException("该资料由文件库管理，请通过文件库删除以同步两类索引");
+        service.tombstone(owner,id,version); return JsonResult.success(service.cleanup(owner,id,version));
     }
     @GetMapping("/graph") public Object graph(@RequestParam(required=false) List<String> documentIds,
             @RequestParam(defaultValue="") String entity,HttpServletRequest request) {

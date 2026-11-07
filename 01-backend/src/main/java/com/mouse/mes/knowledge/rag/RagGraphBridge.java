@@ -1,0 +1,8 @@
+package com.mouse.mes.knowledge.rag;
+
+/** Implemented by task three. Publication/revocation join the file transaction. Cleanup follows commit. */
+public interface RagGraphBridge {
+    void publish(long owner,String id,int version,String title,String text);
+    void revoke(long owner,String id,int version);
+    boolean cleanup(long owner,String id,int version);
+}

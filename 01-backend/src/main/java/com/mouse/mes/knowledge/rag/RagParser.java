@@ -79,8 +79,9 @@ public class RagParser {
         List<Integer> starts = new ArrayList<>();
         for (var part : parts) { if (!starts.isEmpty()) body.append('\n'); starts.add(body.length()); body.append(part.text()); }
         List<RagTypes.Chunk> result = new ArrayList<>();
-        for (int start = 0; start < body.length(); start += 1650) {
+        for (int start = 0; start < body.length();) {
             int end = Math.min(start + 1800, body.length());
+            if(end<body.length()&&Character.isHighSurrogate(body.charAt(end-1)))end--;
             List<String> locations = new ArrayList<>();
             for (int i = 0; i < parts.size(); i++) {
                 int stop = i + 1 < parts.size() ? starts.get(i + 1) : body.length();
@@ -89,6 +90,7 @@ public class RagParser {
             result.add(new RagTypes.Chunk(buildId + ":" + result.size(), id, version, title,
                     body.substring(start, end), String.join("、", locations)));
             if (end == body.length()) break;
+            start=end-150;if(Character.isLowSurrogate(body.charAt(start)))start--;
         }
         return result;
     }

@@ -2,11 +2,12 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { Network, FileText, Plus, Send, RefreshCw, Trash2, Pencil, X, Search, BookOpen, ShieldCheck } from 'lucide-vue-next'
 import MainLayout from '@/components/MainLayout.vue'
+import PrivateFileLibrary from '@/components/PrivateFileLibrary.vue'
 import request from '@/utils/request'
 
 interface Doc { documentId: string; title: string; version: number; chunkCount: number }
 interface Fact { source: string; target: string; relation: string; quote: string; chunkId: string }
-interface Evidence { id: string; documentId: string; title: string; version: number; chunkId: string; text: string }
+interface Evidence { id: string; documentId: string; title: string; version: number; chunkId: string; text: string; location?: string }
 interface Answer { answer: string; mode: string; retrieval: string; sources: Evidence[]; facts: Fact[]; model: string }
 interface Status { enabled: boolean; modelConfigured: boolean; model: string; ragProvider: string; neo4j: string }
 const status = ref<Status>(), docs = ref<Doc[]>([]), facts = ref<Fact[]>([]), truncated = ref(false)
@@ -14,6 +15,8 @@ const busy = ref(false), error = ref(''), notice = ref(''), mode = ref('GRAPHRAG
 const messages = ref<{ question: string; result: Answer }[]>([]), tab = ref('graph'), filter = ref(''), selected = ref(''), zoom = ref(1)
 const documentScope = ref(''), entityQuery = ref(''), modelConnection = ref('未实测')
 const focusNode = ref(false), conversation = ref<HTMLElement>()
+const managedFiles=ref<string[]>([]),libraryBusy=ref(false)
+async function libraryChanged(ids:string[]){managedFiles.value=ids;messages.value=[];await load()}
 const editor = ref(false), draft = ref({ documentId: '', title: '', version: 1, text: '' }), editing = ref(false)
 const deleting = ref<Doc>(), pendingCleanup = ref<{documentId:string;version:number}[]>([])
 const related = computed(() => facts.value.filter(f => f.source === selected.value || f.target === selected.value))
@@ -51,7 +54,7 @@ function exportConversation() {
   const lines = ['# MouseMES 私有知识问答记录', '', '以下内容来自本页实际问答，资料版本与来源随各条回答保留。', '']
   for (const turn of messages.value) {
     lines.push('## 问题', '', turn.question, '', `检索方式：${turn.result.mode} · ${turn.result.retrieval}`, '', turn.result.answer, '', '### 来源', '')
-    for (const source of turn.result.sources) lines.push(`[${source.id}] ${source.title} · 版本 ${source.version} · 片段 ${source.chunkId}`, '', source.text, '')
+    for (const source of turn.result.sources) lines.push(`[${source.id}] ${source.title} · 版本 ${source.version} · ${source.location||'原文片段'} · ${source.chunkId}`, '', source.text, '')
   }
   const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' }))
   const link = document.createElement('a'); link.href = url; link.download = 'MouseMES-问答与来源.md'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
@@ -61,7 +64,7 @@ async function load(probe = false) {
   busy.value = true; error.value = ''
   try {
     status.value = await request.get<Status>('/knowledge/status', { params: { probe }, timeout: 30000 })
-    if (status.value.enabled) { docs.value = await request.get<Doc[]>('/knowledge/documents'); pendingCleanup.value = await request.get('/knowledge/deletions'); await refreshGraph() }
+    if (status.value.enabled) { docs.value = await request.get<Doc[]>('/knowledge/documents'); if(documentScope.value&&!docs.value.some(d=>d.documentId===documentScope.value))documentScope.value=''; pendingCleanup.value = await request.get('/knowledge/deletions'); await refreshGraph() }
   } catch (e: any) { error.value = e.message } finally { busy.value = false }
 }
 function newDocument() {
@@ -106,7 +109,7 @@ async function remove(id: string, version: number) {
   } catch (e: any) { error.value = e.message } finally { busy.value = false }
 }
 async function ask() {
-  if (busy.value || !question.value.trim()) return
+  if (busy.value || libraryBusy.value || !question.value.trim()) return
   const text = question.value.trim(); busy.value = true; error.value = ''
   try {
     const result = await request.post<Answer>('/knowledge/messages', { question: text, mode: mode.value, documentIds: documentScope.value ? [documentScope.value] : [] }, { timeout: 240000 })
@@ -129,13 +132,14 @@ onMounted(() => load())
       <div v-if="notice" class="feedback success" role="status">{{ notice }}</div>
       <div v-if="status && !status.enabled" class="feedback warning">知识库尚未启用。请按照任务三部署说明配置服务，再点击检测连接。</div>
       <div class="connection-bar"><span :class="{ready:status?.modelConfigured}"><i />{{status?.modelConfigured ? `模型：${status.model}` : '大模型待配置'}} · {{modelConnection}}</span><span>Neo4j：{{status?.neo4j || '未检测'}}</span><button :disabled="busy || !status?.enabled || !status?.modelConfigured" @click="probeModel">测试模型</button><button :disabled="busy" @click="load(true)"><RefreshCw :size="14" />检测连接</button></div>
+      <PrivateFileLibrary v-if="status?.enabled" :disabled="busy" @managed="managedFiles=$event" @working="libraryBusy=$event" @changed="libraryChanged" />
       <div class="knowledge-grid">
         <aside class="library panel">
           <div class="section-heading"><h2><BookOpen :size="17" />私有资料</h2><span>{{docs.length}} 份</span></div>
           <p class="muted intro">导入工艺、SOP与设备说明，构建属于你的制造知识图谱。</p>
-          <button class="primary import-button" :disabled="busy || !status?.enabled" @click="newDocument"><Plus :size="16" />导入资料</button>
+          <button class="primary import-button" :disabled="busy || libraryBusy || !status?.enabled" @click="newDocument"><Plus :size="16" />导入资料</button>
           <div v-if="!docs.length" class="empty-library"><FileText :size="30" /><p>还没有知识资料</p><small>支持文本和 Markdown</small></div>
-          <article v-for="doc in docs" :key="doc.documentId" class="document-card"><FileText :size="18" /><div><h3>{{doc.title}}</h3><small>版本 {{doc.version}} · {{doc.chunkCount}} 个片段</small><div class="doc-actions"><button :disabled="busy" @click="editDocument(doc)"><Pencil :size="12" />更新</button><button :disabled="busy" @click="deleting=doc"><Trash2 :size="12" />删除</button></div></div></article>
+          <article v-for="doc in docs" :key="doc.documentId" class="document-card"><FileText :size="18" /><div><h3>{{doc.title}}</h3><small>版本 {{doc.version}} · {{doc.chunkCount}} 个片段</small><small v-if="managedFiles.includes(doc.documentId)" class="block">通过上方文件库管理原件及索引</small><div v-else class="doc-actions"><button :disabled="busy||libraryBusy" @click="editDocument(doc)"><Pencil :size="12" />更新</button><button :disabled="busy||libraryBusy" @click="deleting=doc"><Trash2 :size="12" />删除</button></div></div></article>
           <div v-for="item in pendingCleanup" :key="item.documentId" class="cleanup"><p>文件已退出检索，图数据库清理待重试。</p><button :disabled="busy" @click="remove(item.documentId,item.version)">重试清理</button></div>
           <footer class="library-foot"><ShieldCheck :size="15" /><span>仅检索当前登录用户的资料；更新与删除会切换可检索版本。</span></footer>
         </aside>
@@ -157,7 +161,7 @@ onMounted(() => load())
           <section v-else ref="conversation" class="chat-section" aria-live="polite">
             <div v-if="messages.length" class="chat-actions"><span>每次提问独立检索资料</span><button @click="exportConversation">导出问答与来源</button><button :disabled="busy" @click="messages=[];question=''">清空本页对话</button></div>
             <div v-if="!messages.length" class="chat-empty"><h2>沿着关系，找到答案</h2><p>试着询问资料中某个产品涉及的工序，或某台设备关联的检验要求。</p><div class="examples"><button @click="question='A100鼠标需要经过哪些工序？'">A100鼠标需要经过哪些工序？</button><button @click="question='点胶工序涉及哪些设备和检验要求？'">点胶工序涉及哪些设备和检验要求？</button></div></div>
-            <article v-for="(turn,i) in messages" :key="i" class="chat-turn"><p class="user-question">{{turn.question}}</p><span class="answer-meta">{{turn.result.mode}} · {{turn.result.retrieval}}</span><p class="answer-text">{{turn.result.answer}}</p><details v-for="source in turn.result.sources" :key="source.id" class="source-card"><summary>[{{source.id}}] {{source.title}} · 版本 {{source.version}}</summary><p>{{source.text}}</p><small>片段 {{source.chunkId}}</small></details><details v-if="turn.result.facts.length" class="source-card"><summary>检索到的关系路径</summary><p v-for="(f,j) in turn.result.facts" :key="j">{{f.source}} → {{f.relation}} → {{f.target}}</p></details></article>
+            <article v-for="(turn,i) in messages" :key="i" class="chat-turn"><p class="user-question">{{turn.question}}</p><span class="answer-meta">{{turn.result.mode}} · {{turn.result.retrieval}}</span><p class="answer-text">{{turn.result.answer}}</p><details v-for="source in turn.result.sources" :key="source.id" class="source-card"><summary>[{{source.id}}] {{source.title}} · 版本 {{source.version}} · {{source.location||'原文片段'}}</summary><p>{{source.text}}</p><small>片段 {{source.chunkId}}</small></details><details v-if="turn.result.facts.length" class="source-card"><summary>检索到的关系路径</summary><p v-for="(f,j) in turn.result.facts" :key="j">{{f.source}} → {{f.relation}} → {{f.target}}</p></details></article>
           </section>
           <form class="question-form" @submit.prevent="ask"><div class="mode-row"><label>检索方式<select v-model="mode" :disabled="busy"><option value="GRAPHRAG">GraphRAG · 图谱检索</option><option value="RAG">RAG · 文本检索</option><option value="HYBRID">融合检索</option></select></label><span>{{mode==='RAG' ? status?.ragProvider : '实体关联 · 两跳路径 · 来源引用'}}</span></div><div class="question-row"><textarea v-model="question" maxlength="1000" rows="2" placeholder="输入关于私有资料的问题…" aria-label="知识库问题" @keydown.ctrl.enter.prevent="ask" /><button class="primary" :disabled="busy || !question.trim() || !status?.enabled"><Send :size="17" />{{busy?'处理中…':'提问'}}</button></div><small>Ctrl＋Enter 提问 · 本页对话刷新后不保留，可先导出。实时业务请使用业务智能体。</small></form>
         </main>

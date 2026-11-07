@@ -2,6 +2,7 @@ package com.mouse.mes.knowledge;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.*;
 import java.util.regex.*;
 import static com.mouse.mes.knowledge.KnowledgeTypes.*;
@@ -13,6 +14,7 @@ public class KnowledgeService {
     private final Neo4jKnowledgeStore graph;
     private final KnowledgeModel model;
     private final RagRetriever rag;
+    @Autowired(required=false) private KnowledgeSourceLocations sourceLocations;
     public KnowledgeService(KnowledgeSettings settings, KnowledgeRepository repository, Neo4jKnowledgeStore graph, KnowledgeModel model, RagRetriever rag) {
         this.settings=settings; this.repository=repository; this.graph=graph; this.model=model; this.rag=rag;
     }
@@ -20,7 +22,7 @@ public class KnowledgeService {
         Map<String,Object> result=new LinkedHashMap<>();
         result.put("enabled",settings.isEnabled()); result.put("modelConfigured",settings.modelConfigured());
         result.put("model",settings.getModel()); result.put("ragProvider",rag.name()); result.put("neo4j","未检测");
-        result.put("revision","task3-r3");result.put("vectorRetrieverConnected",!(rag instanceof LexicalRagRetriever));
+        result.put("revision","task2-task3-r1");result.put("vectorRetrieverConnected",!(rag instanceof LexicalRagRetriever));
         result.put("supportedModes",List.of("RAG","GRAPHRAG","HYBRID"));result.put("maxDocumentCharacters",12000);
         if(probe && settings.isEnabled()) {
             try { graph.ping(); result.put("neo4j","已连接"); }
@@ -112,7 +114,7 @@ public class KnowledgeService {
             }
         }
         List<Evidence> sources=new ArrayList<>();
-        for(Chunk c:selected.values()) sources.add(new Evidence("S"+(sources.size()+1),c.documentId(),c.title(),c.version(),c.id(),c.text()));
+        for(Chunk c:selected.values()) sources.add(new Evidence("S"+(sources.size()+1),c.documentId(),c.title(),c.version(),c.id(),c.text(),sourceLocations==null?"片段"+(c.ordinal()+1):sourceLocations.resolve(owner,c)));
         List<Fact> citedFacts=facts.stream().filter(f->selected.containsKey(f.chunkId())).limit(40).toList();
         String retrieval=mode.equals("GRAPHRAG")?"实体名称匹配＋两跳图谱检索":mode.equals("RAG")?rag.name():"两跳图谱＋"+rag.name();
         if(!linked.isEmpty()) retrieval+="；模型定位实体："+String.join("、",linked);
