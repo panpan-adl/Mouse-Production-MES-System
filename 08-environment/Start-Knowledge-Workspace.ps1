@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $kgWorkspaceRoot = Split-Path $PSScriptRoot -Parent
 Set-Location -LiteralPath $kgWorkspaceRoot
 
-Write-Host '[1/4] Configure the Volcano Ark model. Paste the API key when prompted.'
+Write-Host '[1/4] Configure the Volcano Ark model. Load local settings, or prompt if no API key is configured.'
 . (Join-Path $PSScriptRoot 'Use-Knowledge-Ark.ps1')
 . (Join-Path $PSScriptRoot 'Use-Environment.ps1')
 
@@ -40,4 +40,4 @@ Write-Host '[4/4] Build and restart the knowledge backend. Build output follows.
 & (Join-Path $PSScriptRoot 'Restart-Knowledge-Backend.ps1') -SkipBuild:$SkipBuild
 Write-Host ''
 Write-Host 'Knowledge workspace is ready: http://127.0.0.1:5173/knowledge'
-Write-Host 'The model API key is kept in memory only. This window can be used for later restarts.'
+Write-Host 'The API key is not printed. Optional knowledge.local.json is excluded from Git.'

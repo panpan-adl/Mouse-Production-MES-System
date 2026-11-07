@@ -4,6 +4,7 @@
 01-backend/target/
 01-backend/logs/
 08-environment/config.local.json
+08-environment/knowledge.local.json
 logs/
 **/__pycache__/
 *.py[cod]
