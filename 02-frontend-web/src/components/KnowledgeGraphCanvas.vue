@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 interface Fact {source:string;target:string;relation:string;quote:string;chunkId:string}
-const props=defineProps<{facts:Fact[];highlighted:Fact[];selected:string;zoom:number}>()
+const props=defineProps<{facts:Fact[];highlighted:Fact[];selected:string;zoom:number;removed?:Fact[];entityTypes?:Record<string,string>}>()
 const emit=defineEmits<{node:[name:string];edge:[fact:Fact]}>()
 const marker='kg-'+crypto.randomUUID()
 const key=(f:Fact)=>JSON.stringify([f.source,f.relation,f.target,f.chunkId])
+const removed=computed(()=>new Set((props.removed||[]).map(key)))
+const typeNames:Record<string,string>={EQUIPMENT:'设备',PROCESS:'工序',PRODUCT:'产品',PERSON:'人员',INSPECTION:'检验',OTHER:'其他'}
+const colors:Record<string,string>={EQUIPMENT:'#dff1ff',PROCESS:'#e2f4e7',PRODUCT:'#f0e4fa',PERSON:'#fff1d4',INSPECTION:'#fce4e6',OTHER:'#e3f2f0'}
 const hot=computed(()=>new Set(props.highlighted.map(key)))
 const hotNodes=computed(()=>new Set(props.highlighted.flatMap(f=>[f.source,f.target])))
 const points=computed(()=>{
@@ -40,17 +43,17 @@ const edges=computed(()=>{
 <div class="graph-canvas"><svg viewBox="0 0 900 600" role="img" aria-label="私有资料知识图谱">
   <defs><marker :id="marker" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" /></marker></defs>
   <g :transform="`translate(450 300) scale(${zoom}) translate(-450 -300)`">
-    <g v-for="e in edges" :key="e.id" class="graph-edge" :class="{highlighted:e.hot}" role="button" tabindex="0" :aria-label="`查看关系：${e.fact.source} ${e.fact.relation} ${e.fact.target}`" @click="emit('edge',e.fact)" @keydown.enter="emit('edge',e.fact)" @keydown.space.prevent="emit('edge',e.fact)">
+    <g v-for="e in edges" :key="e.id" class="graph-edge" :class="{highlighted:e.hot,removed:removed.has(key(e.fact))}" role="button" tabindex="0" :aria-label="`查看关系：${e.fact.source} ${e.fact.relation} ${e.fact.target}`" @click="emit('edge',e.fact)" @keydown.enter="emit('edge',e.fact)" @keydown.space.prevent="emit('edge',e.fact)">
       <path :d="e.path" class="edge-hit" /><path :d="e.path" class="edge-line" :marker-end="`url(#${marker})`" />
       <rect :x="e.x-Math.min(130,e.fact.relation.length*12+16)/2" :y="e.y-10" :width="Math.min(130,e.fact.relation.length*12+16)" height="20" rx="5" />
       <text :x="e.x" :y="e.y+4">{{e.fact.relation.length>10?e.fact.relation.slice(0,10)+'…':e.fact.relation}}</text><title>{{e.fact.source}} → {{e.fact.relation}} → {{e.fact.target}}</title>
     </g>
     <g v-for="n in [...points.values()]" :key="n.name" class="graph-node" :class="{chosen:selected===n.name,highlighted:hotNodes.has(n.name)}" role="button" tabindex="0" :aria-label="`查看${n.name}的关系`" @click="emit('node',n.name)" @keydown.enter="emit('node',n.name)" @keydown.space.prevent="emit('node',n.name)">
-      <circle :cx="n.x" :cy="n.y" r="24" /><text :x="n.x" :y="n.y+42">{{n.name.length>14?n.name.slice(0,14)+'…':n.name}}</text><title>{{n.name}}</title>
+      <circle :cx="n.x" :cy="n.y" r="24" :style="!hotNodes.has(n.name)&&entityTypes?.[n.name]?{fill:colors[entityTypes[n.name]]}:{}" /><text :x="n.x" :y="n.y+42">{{n.name.length>14?n.name.slice(0,14)+'…':n.name}}</text><title>{{n.name}} · {{typeNames[entityTypes?.[n.name]||'OTHER']}}</title>
     </g>
   </g>
 </svg></div>
 </template>
 <style scoped>
-.graph-canvas{overflow:hidden;background:#fafdfd;border-block:1px solid #edf2f4}.graph-canvas svg{display:block;width:100%;min-height:300px}.graph-edge,.graph-node{cursor:pointer;outline:none}.edge-line{fill:none;stroke:#9eb8c4;stroke-width:1.6}.edge-hit{fill:none;stroke:transparent;stroke-width:18}.graph-edge rect{fill:#fff;stroke:#e0eaee}.graph-edge text{font-size:11px;fill:#527380;text-anchor:middle}.graph-node circle{fill:#e3f2f0;stroke:#62a6a0;stroke-width:1.6}.graph-node text{font-size:12px;fill:#365d68;text-anchor:middle;paint-order:stroke;stroke:#fff;stroke-width:3px}.graph-node.chosen circle,.graph-node:focus circle{stroke:#e69b32;stroke-width:3}.highlighted .edge-line{stroke:#d88b22;stroke-width:3}.graph-edge.highlighted rect{fill:#fff3d8;stroke:#d8a246}.graph-node.highlighted circle{fill:#fff0cc;stroke:#d88b22}.graph-edge:hover .edge-line,.graph-edge:focus .edge-line{stroke:#0b716d;stroke-width:3}@media(max-width:720px){.graph-canvas svg{min-height:260px}}
+.graph-canvas{overflow:hidden;background:#fafdfd;border-block:1px solid #edf2f4}.graph-canvas svg{display:block;width:100%;min-height:300px}.graph-edge,.graph-node{cursor:pointer;outline:none}.graph-edge.removed .edge-line{stroke:#c04e43;stroke-dasharray:6 4;stroke-width:2.5}.graph-edge.removed rect{fill:#ffe5df;stroke:#c04e43}.edge-line{fill:none;stroke:#9eb8c4;stroke-width:1.6}.edge-hit{fill:none;stroke:transparent;stroke-width:18}.graph-edge rect{fill:#fff;stroke:#e0eaee}.graph-edge text{font-size:11px;fill:#527380;text-anchor:middle}.graph-node circle{fill:#e3f2f0;stroke:#62a6a0;stroke-width:1.6}.graph-node text{font-size:12px;fill:#365d68;text-anchor:middle;paint-order:stroke;stroke:#fff;stroke-width:3px}.graph-node.chosen circle,.graph-node:focus circle{stroke:#e69b32;stroke-width:3}.highlighted .graph-edge.removed .edge-line{stroke:#c04e43;stroke-dasharray:6 4;stroke-width:2.5}.graph-edge.removed rect{fill:#ffe5df;stroke:#c04e43}.edge-line{stroke:#d88b22;stroke-width:3}.graph-edge.highlighted rect{fill:#fff3d8;stroke:#d8a246}.graph-node.highlighted circle{fill:#fff0cc;stroke:#d88b22}.graph-edge:hover .edge-line,.graph-edge:focus .graph-edge.removed .edge-line{stroke:#c04e43;stroke-dasharray:6 4;stroke-width:2.5}.graph-edge.removed rect{fill:#ffe5df;stroke:#c04e43}.edge-line{stroke:#0b716d;stroke-width:3}@media(max-width:720px){.graph-canvas svg{min-height:260px}}
 </style>

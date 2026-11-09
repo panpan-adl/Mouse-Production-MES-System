@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { Network, FileText, Plus, Send, RefreshCw, Trash2, Pencil, X, Search, BookOpen, ShieldCheck } from 'lucide-vue-next'
 import MainLayout from '@/components/MainLayout.vue'
 import PrivateFileLibrary from '@/components/PrivateFileLibrary.vue'
 import KnowledgeGraphCanvas from '@/components/KnowledgeGraphCanvas.vue'
+import KnowledgeLab from '@/components/KnowledgeLab.vue'
 import request from '@/utils/request'
 
 interface Doc { documentId: string; title: string; version: number; chunkCount: number }
@@ -13,7 +14,7 @@ interface Answer { answer: string; mode: string; retrieval: string; sources: Evi
 interface Status { enabled: boolean; modelConfigured: boolean; model: string; ragProvider: string; neo4j: string }
 const status = ref<Status>(), docs = ref<Doc[]>([]), facts = ref<Fact[]>([]), truncated = ref(false)
 const busy = ref(false), error = ref(''), notice = ref(''), mode = ref('GRAPHRAG'), question = ref('')
-const messages = ref<{ question: string; result: Answer }[]>([]), tab = ref('graph'), filter = ref(''), selected = ref(''), zoom = ref(1)
+const messages = ref<{ question: string; result: Answer; resolvedQuestion?: string }[]>([]), tab = ref('graph'), filter = ref(''), selected = ref(''), zoom = ref(1)
 const documentScope = ref(''), entityQuery = ref(''), modelConnection = ref('未实测')
 const graphSources=ref<Evidence[]>([]),answerGraph=ref<Answer>(),onlyAnswer=ref(true),selectedEdge=ref<Fact>()
 const baseFacts=computed(()=>answerGraph.value?(onlyAnswer.value?answerGraph.value.facts:[...facts.value,...answerGraph.value.facts.filter(f=>!facts.value.some(g=>JSON.stringify(g)===JSON.stringify(f))) ]):facts.value)
@@ -29,8 +30,11 @@ async function showAnswerGraph(answer:Answer){
 }
 function clearAnswerGraph(){answerGraph.value=undefined;selectedEdge.value=undefined}
 const focusNode = ref(false), conversation = ref<HTMLElement>()
-const managedFiles=ref<string[]>([]),libraryBusy=ref(false)
-async function libraryChanged(ids:string[]){managedFiles.value=ids;messages.value=[];await load()}
+const managedFiles=ref<string[]>([]),libraryBusy=ref(false),labBusy=ref(false),entityTypes=ref<Record<string,string>>({}),followup=ref(false),contextId=ref('')
+function newTopic(){contextId.value='';notice.value='已开启新话题；下一次提问独立检索'}
+watch(followup,()=>{contextId.value=''})
+watch(documentScope,()=>{contextId.value=''})
+async function libraryChanged(ids:string[]){managedFiles.value=ids;messages.value=[];contextId.value='';await load()}
 const editor = ref(false), draft = ref({ documentId: '', title: '', version: 1, text: '' }), editing = ref(false)
 const deleting = ref<Doc>(), pendingCleanup = ref<{documentId:string;version:number}[]>([])
 const related = computed(() => baseFacts.value.filter(f => f.source === selected.value || f.target === selected.value))
@@ -65,6 +69,7 @@ function exportGraph() {
 function exportConversation() {
   const lines = ['# MouseMES 私有知识问答记录', '', '以下内容来自本页实际问答，资料版本与来源随各条回答保留。', '']
   for (const turn of messages.value) {
+    if(turn.resolvedQuestion&&turn.resolvedQuestion!==turn.question)lines.push('追问改写：'+turn.resolvedQuestion,'')
     lines.push('## 问题', '', turn.question, '', `检索方式：${turn.result.mode} · ${turn.result.retrieval}`, '', turn.result.answer, '', '### 来源', '')
     for (const source of turn.result.sources) lines.push(`[${source.id}] ${source.title} · 版本 ${source.version} · ${source.location||'原文片段'} · ${source.chunkId}`, '', source.text, '')
   }
@@ -107,7 +112,7 @@ async function save() {
   try {
     const result = await request.post<{relationCount:number;unchanged:boolean}>('/knowledge/documents', draft.value, { timeout: 600000 })
     editor.value = false; notice.value = result.unchanged ? '此版本已存在，未重复构建。' : `图谱已更新，提取 ${result.relationCount} 条关系。`
-    messages.value = []; docs.value = await request.get<Doc[]>('/knowledge/documents'); await refreshGraph()
+    messages.value = []; contextId.value=''; docs.value = await request.get<Doc[]>('/knowledge/documents'); await refreshGraph()
   } catch (e: any) { error.value = e.message } finally { busy.value = false }
 }
 async function remove(id: string, version: number) {
@@ -116,16 +121,19 @@ async function remove(id: string, version: number) {
     const result = await request.delete<{cleanupPending:boolean;message?:string}>(`/knowledge/documents/${id}`, { params: { version }, timeout: 60000 })
     pendingCleanup.value = pendingCleanup.value.filter(d => d.documentId !== id)
     if (result.cleanupPending) pendingCleanup.value.push({documentId:id,version})
-    notice.value = result.message || '文件及对应图谱已删除。'; deleting.value = undefined; messages.value = []
+    notice.value = result.message || '文件及对应图谱已删除。'; deleting.value = undefined; messages.value = [];contextId.value=''
     docs.value = await request.get<Doc[]>('/knowledge/documents'); if (documentScope.value === id) documentScope.value = ''; await refreshGraph()
   } catch (e: any) { error.value = e.message } finally { busy.value = false }
 }
 async function ask() {
-  if (busy.value || libraryBusy.value || !question.value.trim()) return
+  if (busy.value || libraryBusy.value || labBusy.value || !question.value.trim()) return
   const text = question.value.trim(); busy.value = true; error.value = ''
   try {
-    const result = await request.post<Answer>('/knowledge/messages', { question: text, mode: mode.value, documentIds: documentScope.value ? [documentScope.value] : [] }, { timeout: 240000 })
-    messages.value.push({ question: text, result }); question.value = ''; tab.value = 'chat'
+    const payload={question:text,mode:mode.value,documentIds:documentScope.value?[documentScope.value]:[]}
+    let result:Answer,resolvedQuestion:string|undefined
+    if(followup.value){const reply=await request.post<{result:Answer;contextId:string;resolvedQuestion:string}>('/knowledge/lab/dialogue',{...payload,contextId:contextId.value||null},{timeout:300000});result=reply.result;contextId.value=reply.contextId;resolvedQuestion=reply.resolvedQuestion}
+    else result=await request.post<Answer>('/knowledge/messages',payload,{timeout:240000})
+    messages.value.push({ question: text, result, resolvedQuestion }); question.value = ''; tab.value = 'chat'
     await nextTick(); conversation.value?.scrollTo({ top: conversation.value.scrollHeight, behavior: 'smooth' })
   } catch (e: any) { error.value = e.message } finally { busy.value = false }
 }
@@ -144,7 +152,8 @@ onMounted(() => load())
       <div v-if="notice" class="feedback success" role="status">{{ notice }}</div>
       <div v-if="status && !status.enabled" class="feedback warning">知识库尚未启用。请按照任务三部署说明配置服务，再点击检测连接。</div>
       <div class="connection-bar"><span :class="{ready:status?.modelConfigured}"><i />{{status?.modelConfigured ? `模型：${status.model}` : '大模型待配置'}} · {{modelConnection}}</span><span>Neo4j：{{status?.neo4j || '未检测'}}</span><button :disabled="busy || !status?.enabled || !status?.modelConfigured" @click="probeModel">测试模型</button><button :disabled="busy" @click="load(true)"><RefreshCw :size="14" />检测连接</button></div>
-      <PrivateFileLibrary v-if="status?.enabled" :disabled="busy" @managed="managedFiles=$event" @working="libraryBusy=$event" @changed="libraryChanged" />
+      <PrivateFileLibrary v-if="status?.enabled" :disabled="busy||labBusy" @managed="managedFiles=$event" @working="libraryBusy=$event" @changed="libraryChanged" />
+      <KnowledgeLab v-if="status?.enabled" :documents="docs" :disabled="busy||libraryBusy" @working="labBusy=$event" @changed="load()" @types="entityTypes=$event" />
       <div class="knowledge-grid">
         <aside class="library panel">
           <div class="section-heading"><h2><BookOpen :size="17" />私有资料</h2><span>{{docs.length}} 份</span></div>
@@ -165,7 +174,7 @@ onMounted(() => load())
             <div v-if="facts.length" class="graph-options"><span>{{nodes.length}} 个可见实体 · {{shownFacts.length}} 条关系</span><label><input v-model="focusNode" type="checkbox" :disabled="!selected" />仅看选中节点的关系</label></div>
             <div v-if="!facts.length" class="graph-empty"><div><Network :size="48" /></div><h2>从一份资料开始连接</h2><p>导入文件后，提取的实体与关系会显示在这里。<br />点击节点，查看关系及其原文依据。</p></div>
             <template v-else>
-              <KnowledgeGraphCanvas :facts="shownFacts" :highlighted="answerGraph?.facts||[]" :selected="selected" :zoom="zoom" @node="selected=$event" @edge="selectedEdge=$event" />
+              <KnowledgeGraphCanvas :facts="shownFacts" :highlighted="answerGraph?.facts||[]" :selected="selected" :entity-types="entityTypes" :zoom="zoom" @node="selected=$event" @edge="selectedEdge=$event" />
               <section v-if="selectedEdge" class="relation-evidence"><div class="section-heading"><h3>{{selectedEdge.source}} → {{selectedEdge.relation}} → {{selectedEdge.target}}</h3><button aria-label="关闭关系来源" @click="selectedEdge=undefined"><X :size="16" /></button></div><p v-if="sourceFor(selectedEdge)">{{sourceFor(selectedEdge)?.title}} · 版本 {{sourceFor(selectedEdge)?.version}} · {{sourceFor(selectedEdge)?.location||'原文片段'}}</p><blockquote>{{selectedEdge.quote}}</blockquote><details v-if="sourceFor(selectedEdge)"><summary>展开来源全文片段</summary><p>{{sourceFor(selectedEdge)?.text}}</p></details><small v-else>该接口响应未提供文件定位，请从资料列表核对原文。</small></section>
               <p v-if="truncated" class="graph-caption">当前仅显示前150条关系，可按文件拆分演示；问答使用独立的相关子图检索。</p>
               <div v-if="selected" class="node-detail"><div class="section-heading"><h3>{{selected}}</h3><button aria-label="关闭节点详情" @click="selected=''"><X :size="16" /></button></div><article v-for="(f,i) in related" :key="i"><strong>{{f.source}} → {{f.relation}} → {{f.target}}</strong><blockquote>{{f.quote}}</blockquote><button class="evidence-link" @click="selectedEdge=f">查看文件与原文位置</button></article></div>
@@ -173,11 +182,11 @@ onMounted(() => load())
             </template>
           </section>
           <section v-else ref="conversation" class="chat-section" aria-live="polite">
-            <div v-if="messages.length" class="chat-actions"><span>每次提问独立检索资料</span><button @click="exportConversation">导出问答与来源</button><button :disabled="busy" @click="messages=[];question=''">清空本页对话</button></div>
+            <div v-if="messages.length" class="chat-actions"><span>{{followup?'连续追问：指代消解后重新检索':'每次提问独立检索资料'}}</span><button @click="exportConversation">导出问答与来源</button><button :disabled="busy" @click="messages=[];question='';contextId=''">清空本页对话</button></div>
             <div v-if="!messages.length" class="chat-empty"><h2>沿着关系，找到答案</h2><p>试着询问资料中某个产品涉及的工序，或某台设备关联的检验要求。</p><div class="examples"><button @click="question='A100鼠标需要经过哪些工序？'">A100鼠标需要经过哪些工序？</button><button @click="question='点胶工序涉及哪些设备和检验要求？'">点胶工序涉及哪些设备和检验要求？</button></div></div>
-            <article v-for="(turn,i) in messages" :key="i" class="chat-turn"><p class="user-question">{{turn.question}}</p><span class="answer-meta">{{turn.result.mode}} · {{turn.result.retrieval}}</span><p class="answer-text">{{turn.result.answer}}</p><button v-if="turn.result.facts.length" class="answer-graph-button" :disabled="busy" @click="showAnswerGraph(turn.result)">查看本次回答子图</button><details v-for="source in turn.result.sources" :key="source.id" class="source-card"><summary>[{{source.id}}] {{source.title}} · 版本 {{source.version}} · {{source.location||'原文片段'}}</summary><p>{{source.text}}</p><small>片段 {{source.chunkId}}</small></details><details v-if="turn.result.facts.length" class="source-card"><summary>检索到的关系路径</summary><p v-for="(f,j) in turn.result.facts" :key="j">{{f.source}} → {{f.relation}} → {{f.target}}</p></details></article>
+            <article v-for="(turn,i) in messages" :key="i" class="chat-turn"><p class="user-question">{{turn.question}}</p><span class="answer-meta">{{turn.result.mode}} · {{turn.result.retrieval}}</span><p v-if="turn.resolvedQuestion&&turn.resolvedQuestion!==turn.question" class="answer-meta">本次独立检索问题：{{turn.resolvedQuestion}}</p><p class="answer-text">{{turn.result.answer}}</p><button v-if="turn.result.facts.length" class="answer-graph-button" :disabled="busy" @click="showAnswerGraph(turn.result)">查看本次回答子图</button><details v-for="source in turn.result.sources" :key="source.id" class="source-card"><summary>[{{source.id}}] {{source.title}} · 版本 {{source.version}} · {{source.location||'原文片段'}}</summary><p>{{source.text}}</p><small>片段 {{source.chunkId}}</small></details><details v-if="turn.result.facts.length" class="source-card"><summary>检索到的关系路径</summary><p v-for="(f,j) in turn.result.facts" :key="j">{{f.source}} → {{f.relation}} → {{f.target}}</p></details></article>
           </section>
-          <form class="question-form" @submit.prevent="ask"><div class="mode-row"><label>检索方式<select v-model="mode" :disabled="busy"><option value="GRAPHRAG">GraphRAG · 图谱检索</option><option value="RAG">RAG · 向量检索</option><option value="HYBRID">融合检索</option></select></label><span>{{mode==='RAG' ? status?.ragProvider : '实体关联 · 两跳路径 · 来源引用'}}</span></div><div class="question-row"><textarea v-model="question" maxlength="1000" rows="2" placeholder="输入关于私有资料的问题…" aria-label="知识库问题" @keydown.ctrl.enter.prevent="ask" /><button class="primary" :disabled="busy || !question.trim() || !status?.enabled"><Send :size="17" />{{busy?'处理中…':'提问'}}</button></div><small>Ctrl＋Enter 提问 · 本页对话刷新后不保留，可先导出。实时业务请使用业务智能体。</small></form>
+          <form class="question-form" @submit.prevent="ask"><div class="followup-controls"><label><input v-model="followup" type="checkbox" :disabled="busy||labBusy" />连续追问</label><span>{{followup?(contextId?'承接上一轮指代，重新检索最新资料':'下一问建立话题'):'每次独立检索'}}</span><button type="button" :disabled="busy||!contextId" @click="newTopic">开启新话题</button></div><div class="mode-row"><label>检索方式<select v-model="mode" :disabled="busy"><option value="GRAPHRAG">GraphRAG · 图谱检索</option><option value="RAG">RAG · 向量检索</option><option value="HYBRID">融合检索</option></select></label><span>{{mode==='RAG' ? status?.ragProvider : '实体关联 · 两跳路径 · 来源引用'}}</span></div><div class="question-row"><textarea v-model="question" maxlength="1000" rows="2" placeholder="输入关于私有资料的问题…" aria-label="知识库问题" @keydown.ctrl.enter.prevent="ask" /><button class="primary" :disabled="busy || libraryBusy || labBusy || !question.trim() || !status?.enabled"><Send :size="17" />{{busy?'处理中…':'提问'}}</button></div><small>Ctrl＋Enter 提问 · 本页对话刷新后不保留，可先导出。实时业务请使用业务智能体。</small></form>
         </main>
       </div>
       <div v-if="editor" class="modal-backdrop"><section class="editor panel" role="dialog" aria-modal="true" aria-labelledby="kg-editor-title"><div class="section-heading"><h2 id="kg-editor-title">{{editing?'更新资料':'导入资料'}}</h2><button :disabled="busy" aria-label="关闭导入窗口" @click="editor=false"><X :size="20" /></button></div><p class="muted">发布前会调用大模型提取关系，长文可能需要数分钟；失败时保留原有版本。</p><p v-if="error" class="feedback error" role="alert">{{error}}</p><form @submit.prevent="save"><label>资料标题<input v-model="draft.title" maxlength="200" required :disabled="busy" /></label><label class="file-picker">读取文本或Markdown<input type="file" accept=".txt,.md" :disabled="busy" @change="readFile" /></label><label>资料内容<textarea v-model="draft.text" maxlength="12000" rows="12" required :disabled="busy" /></label><div class="editor-footer"><span>{{draft.text.length}} / 12000 字 · 版本 {{draft.version}}</span><button class="primary" :disabled="busy || !draft.text.trim() || !draft.title.trim()">{{busy?'正在构建图谱…':'保存并构建图谱'}}</button></div></form></section></div>
@@ -187,6 +196,8 @@ onMounted(() => load())
 </template>
 
 <style scoped>
+.followup-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:11px;color:#647f89;margin-bottom:12px}.followup-controls label{display:flex;gap:6px;align-items:center}.followup-controls button{color:#0b716d;border:1px solid #d7e6e4;border-radius:5px;padding:5px 9px}
+
 .answer-graph-banner,.relation-evidence{margin:16px 22px;padding:14px;background:#fff9e9;border:1px solid #ecd8ad;border-radius:8px;font-size:12px;overflow-wrap:anywhere}.answer-graph-banner p{margin:8px 0;color:#806c4b}.answer-graph-banner label{display:inline-flex;align-items:center;gap:6px}.answer-graph-banner button,.evidence-link,.answer-graph-button{color:#0b716d;border:1px solid #c7dfda;border-radius:5px;padding:6px 10px;font-size:12px;margin:5px;background:white}.relation-evidence blockquote{border-left:3px solid #d8a246;padding:10px;margin:10px 0;white-space:pre-wrap}.relation-evidence details p{white-space:pre-wrap;line-height:1.8}.relation-evidence h3{font-size:13px}.answer-graph-button{margin:0 0 8px}
 
 .graph-options,.chat-actions{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:0 22px 14px;font-size:11px;color:#78909f;flex-wrap:wrap}.graph-options label{display:flex;gap:5px;align-items:center}.graph-options input{accent-color:#0b716d}.chat-actions{padding:0 0 18px;justify-content:flex-end}.chat-actions>span{margin-right:auto}.chat-actions button{color:#0b716d}

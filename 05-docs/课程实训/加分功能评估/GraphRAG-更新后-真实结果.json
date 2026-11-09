@@ -1,0 +1,278 @@
+{
+  "generatedAt": "2026-11-09T03:13:17.427Z",
+  "manifest": [
+    {
+      "chunkCount": 1,
+      "state": "READY",
+      "title": "评估样例：A100生产工艺",
+      "version": 1,
+      "documentId": "course-eval-process"
+    },
+    {
+      "chunkCount": 1,
+      "state": "READY",
+      "title": "评估样例：设备维护",
+      "version": 2,
+      "documentId": "course-eval-equipment"
+    },
+    {
+      "chunkCount": 1,
+      "state": "READY",
+      "title": "评估样例：检验要求",
+      "version": 1,
+      "documentId": "course-eval-inspection"
+    }
+  ],
+  "summary": {
+    "attempted": 2,
+    "succeeded": 2,
+    "errors": 0,
+    "termCoverage": 1,
+    "sourceRecall": 1,
+    "citationsValid": 2,
+    "manualReviewed": 0
+  },
+  "rows": [
+    {
+      "caseId": "Q17",
+      "question": "当前版本点胶机DG01由谁负责？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "equipment"
+      ],
+      "terms": [
+        [
+          "赵师傅"
+        ]
+      ],
+      "refuse": false,
+      "version": 2,
+      "success": true,
+      "milliseconds": 1238,
+      "result": {
+        "answer": "当前版本点胶机DG01由赵师傅负责[S2]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索；模型定位实体：点胶设备DG01、点胶机DG01",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-equipment",
+            "title": "评估样例：设备维护",
+            "version": 2,
+            "chunkId": "a99ef776-4dba-467a-ad2c-22d8f5ba4e61:0",
+            "text": "本资料为课程虚构样例。点胶机DG01由赵师傅负责。点胶机DG01每班进行喷嘴点检。装配台AS01由李师傅负责。装配台AS01每周进行紧固检查。点胶设备DG01指代点胶机DG01。",
+            "location": "正文"
+          },
+          {
+            "id": "S3",
+            "documentId": "course-eval-inspection",
+            "title": "评估样例：检验要求",
+            "version": 1,
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0",
+            "text": "本资料为课程虚构样例。胶量检验使用电子秤SC01。胶量检验由王质检员执行。外观检验检查划痕和装配间隙。喷嘴点检要求清洁喷嘴。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "使用",
+            "target": "点胶机DG01",
+            "quote": "点胶工序使用点胶机DG01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "要求",
+            "target": "胶量检验",
+            "quote": "点胶工序要求胶量检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶机DG01",
+            "relation": "每班进行",
+            "target": "喷嘴点检",
+            "quote": "点胶机DG01每班进行喷嘴点检",
+            "chunkId": "a99ef776-4dba-467a-ad2c-22d8f5ba4e61:0"
+          },
+          {
+            "source": "点胶机DG01",
+            "relation": "负责人员",
+            "target": "赵师傅",
+            "quote": "点胶机DG01由赵师傅负责",
+            "chunkId": "a99ef776-4dba-467a-ad2c-22d8f5ba4e61:0"
+          },
+          {
+            "source": "点胶设备DG01",
+            "relation": "指代",
+            "target": "点胶机DG01",
+            "quote": "点胶设备DG01指代点胶机DG01",
+            "chunkId": "a99ef776-4dba-467a-ad2c-22d8f5ba4e61:0"
+          },
+          {
+            "source": "喷嘴点检",
+            "relation": "要求",
+            "target": "清洁喷嘴",
+            "quote": "喷嘴点检要求清洁喷嘴",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q18",
+      "question": "当前版本点胶工序使用的设备由谁负责？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "process",
+        "equipment"
+      ],
+      "terms": [
+        [
+          "DG01"
+        ],
+        [
+          "赵师傅"
+        ]
+      ],
+      "refuse": false,
+      "version": 2,
+      "success": true,
+      "milliseconds": 1052,
+      "result": {
+        "answer": "当前版本点胶工序使用的设备为点胶机DG01[S1]，该设备由赵师傅负责[S2]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-equipment",
+            "title": "评估样例：设备维护",
+            "version": 2,
+            "chunkId": "a99ef776-4dba-467a-ad2c-22d8f5ba4e61:0",
+            "text": "本资料为课程虚构样例。点胶机DG01由赵师傅负责。点胶机DG01每班进行喷嘴点检。装配台AS01由李师傅负责。装配台AS01每周进行紧固检查。点胶设备DG01指代点胶机DG01。",
+            "location": "正文"
+          },
+          {
+            "id": "S3",
+            "documentId": "course-eval-inspection",
+            "title": "评估样例：检验要求",
+            "version": 1,
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0",
+            "text": "本资料为课程虚构样例。胶量检验使用电子秤SC01。胶量检验由王质检员执行。外观检验检查划痕和装配间隙。喷嘴点检要求清洁喷嘴。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "A100鼠标",
+            "relation": "要求",
+            "target": "外观检验",
+            "quote": "A100鼠标要求外观检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "组装工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "使用",
+            "target": "点胶机DG01",
+            "quote": "点胶工序使用点胶机DG01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "要求",
+            "target": "胶量检验",
+            "quote": "点胶工序要求胶量检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶机DG01",
+            "relation": "每班进行",
+            "target": "喷嘴点检",
+            "quote": "点胶机DG01每班进行喷嘴点检",
+            "chunkId": "a99ef776-4dba-467a-ad2c-22d8f5ba4e61:0"
+          },
+          {
+            "source": "点胶机DG01",
+            "relation": "负责人员",
+            "target": "赵师傅",
+            "quote": "点胶机DG01由赵师傅负责",
+            "chunkId": "a99ef776-4dba-467a-ad2c-22d8f5ba4e61:0"
+          },
+          {
+            "source": "点胶设备DG01",
+            "relation": "指代",
+            "target": "点胶机DG01",
+            "quote": "点胶设备DG01指代点胶机DG01",
+            "chunkId": "a99ef776-4dba-467a-ad2c-22d8f5ba4e61:0"
+          },
+          {
+            "source": "胶量检验",
+            "relation": "执行",
+            "target": "王质检员",
+            "quote": "胶量检验由王质检员执行",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          },
+          {
+            "source": "胶量检验",
+            "relation": "使用",
+            "target": "电子秤SC01",
+            "quote": "胶量检验使用电子秤SC01",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    }
+  ],
+  "manual": {},
+  "limitations": "关键词覆盖和来源召回是自动代理指标，语义正确性需人工复核；中断与失败均保留。"
+}

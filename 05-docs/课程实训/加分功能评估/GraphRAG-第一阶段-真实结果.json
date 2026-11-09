@@ -1,0 +1,1588 @@
+{
+  "generatedAt": "2026-11-09T03:13:11.981Z",
+  "manifest": [
+    {
+      "chunkCount": 1,
+      "state": "READY",
+      "title": "评估样例：A100生产工艺",
+      "version": 1,
+      "documentId": "course-eval-process"
+    },
+    {
+      "chunkCount": 1,
+      "state": "READY",
+      "title": "评估样例：设备维护",
+      "version": 1,
+      "documentId": "course-eval-equipment"
+    },
+    {
+      "chunkCount": 1,
+      "state": "READY",
+      "title": "评估样例：检验要求",
+      "version": 1,
+      "documentId": "course-eval-inspection"
+    }
+  ],
+  "summary": {
+    "attempted": 16,
+    "succeeded": 16,
+    "errors": 0,
+    "termCoverage": 0.96875,
+    "sourceRecall": 0.9642857142857143,
+    "citationsValid": 16,
+    "manualReviewed": 0
+  },
+  "rows": [
+    {
+      "caseId": "Q01",
+      "question": "A100鼠标经过哪些工序？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "process"
+      ],
+      "terms": [
+        [
+          "点胶"
+        ],
+        [
+          "组装"
+        ]
+      ],
+      "refuse": false,
+      "version": 1,
+      "success": true,
+      "milliseconds": 745,
+      "result": {
+        "answer": "A100鼠标经过点胶工序和组装工序[S1]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-inspection",
+            "title": "评估样例：检验要求",
+            "version": 1,
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0",
+            "text": "本资料为课程虚构样例。胶量检验使用电子秤SC01。胶量检验由王质检员执行。外观检验检查划痕和装配间隙。喷嘴点检要求清洁喷嘴。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "A100鼠标",
+            "relation": "要求",
+            "target": "外观检验",
+            "quote": "A100鼠标要求外观检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "组装工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "使用",
+            "target": "点胶机DG01",
+            "quote": "点胶工序使用点胶机DG01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "要求",
+            "target": "胶量检验",
+            "quote": "点胶工序要求胶量检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "组装工序",
+            "relation": "使用",
+            "target": "装配台AS01",
+            "quote": "组装工序使用装配台AS01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "外观检验",
+            "relation": "检查",
+            "target": "划痕",
+            "quote": "外观检验检查划痕和装配间隙",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          },
+          {
+            "source": "外观检验",
+            "relation": "检查",
+            "target": "装配间隙",
+            "quote": "外观检验检查划痕和装配间隙",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q02",
+      "question": "点胶工序使用什么设备？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "process"
+      ],
+      "terms": [
+        [
+          "DG01"
+        ]
+      ],
+      "refuse": false,
+      "version": 1,
+      "success": true,
+      "milliseconds": 944,
+      "result": {
+        "answer": "点胶工序使用点胶机DG01[S2]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-equipment",
+            "title": "评估样例：设备维护",
+            "version": 1,
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0",
+            "text": "本资料为课程虚构样例。点胶机DG01由张师傅负责。点胶机DG01每班进行喷嘴点检。装配台AS01由李师傅负责。装配台AS01每周进行紧固检查。点胶设备DG01指代点胶机DG01。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          },
+          {
+            "id": "S3",
+            "documentId": "course-eval-inspection",
+            "title": "评估样例：检验要求",
+            "version": 1,
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0",
+            "text": "本资料为课程虚构样例。胶量检验使用电子秤SC01。胶量检验由王质检员执行。外观检验检查划痕和装配间隙。喷嘴点检要求清洁喷嘴。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "点胶机DG01",
+            "relation": "负责人员",
+            "target": "张师傅",
+            "quote": "点胶机DG01由张师傅负责",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "点胶机DG01",
+            "relation": "点检要求",
+            "target": "每班进行喷嘴点检",
+            "quote": "点胶机DG01每班进行喷嘴点检",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "点胶设备DG01",
+            "relation": "指代",
+            "target": "点胶机DG01",
+            "quote": "点胶设备DG01指代点胶机DG01",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "要求",
+            "target": "外观检验",
+            "quote": "A100鼠标要求外观检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "组装工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "使用",
+            "target": "点胶机DG01",
+            "quote": "点胶工序使用点胶机DG01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "要求",
+            "target": "胶量检验",
+            "quote": "点胶工序要求胶量检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "胶量检验",
+            "relation": "执行",
+            "target": "王质检员",
+            "quote": "胶量检验由王质检员执行",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          },
+          {
+            "source": "胶量检验",
+            "relation": "使用",
+            "target": "电子秤SC01",
+            "quote": "胶量检验使用电子秤SC01",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q03",
+      "question": "组装工序使用什么设备？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "process"
+      ],
+      "terms": [
+        [
+          "AS01"
+        ]
+      ],
+      "refuse": false,
+      "version": 1,
+      "success": true,
+      "milliseconds": 831,
+      "result": {
+        "answer": "组装工序使用装配台AS01[S2]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-equipment",
+            "title": "评估样例：设备维护",
+            "version": 1,
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0",
+            "text": "本资料为课程虚构样例。点胶机DG01由张师傅负责。点胶机DG01每班进行喷嘴点检。装配台AS01由李师傅负责。装配台AS01每周进行紧固检查。点胶设备DG01指代点胶机DG01。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "装配台AS01",
+            "relation": "负责人员",
+            "target": "李师傅",
+            "quote": "装配台AS01由李师傅负责",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "装配台AS01",
+            "relation": "检查要求",
+            "target": "每周进行紧固检查",
+            "quote": "装配台AS01每周进行紧固检查",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "要求",
+            "target": "外观检验",
+            "quote": "A100鼠标要求外观检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "组装工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "组装工序",
+            "relation": "使用",
+            "target": "装配台AS01",
+            "quote": "组装工序使用装配台AS01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q04",
+      "question": "点胶机DG01由谁负责？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "equipment"
+      ],
+      "terms": [
+        [
+          "张师傅"
+        ]
+      ],
+      "refuse": false,
+      "version": 1,
+      "success": true,
+      "milliseconds": 686,
+      "result": {
+        "answer": "点胶机DG01由张师傅负责[S1]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索；模型定位实体：点胶设备DG01、点胶机DG01",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-equipment",
+            "title": "评估样例：设备维护",
+            "version": 1,
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0",
+            "text": "本资料为课程虚构样例。点胶机DG01由张师傅负责。点胶机DG01每班进行喷嘴点检。装配台AS01由李师傅负责。装配台AS01每周进行紧固检查。点胶设备DG01指代点胶机DG01。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "点胶机DG01",
+            "relation": "负责人员",
+            "target": "张师傅",
+            "quote": "点胶机DG01由张师傅负责",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "点胶机DG01",
+            "relation": "点检要求",
+            "target": "每班进行喷嘴点检",
+            "quote": "点胶机DG01每班进行喷嘴点检",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "点胶设备DG01",
+            "relation": "指代",
+            "target": "点胶机DG01",
+            "quote": "点胶设备DG01指代点胶机DG01",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "使用",
+            "target": "点胶机DG01",
+            "quote": "点胶工序使用点胶机DG01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "要求",
+            "target": "胶量检验",
+            "quote": "点胶工序要求胶量检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q05",
+      "question": "装配台AS01由谁负责？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "equipment"
+      ],
+      "terms": [
+        [
+          "李师傅"
+        ]
+      ],
+      "refuse": false,
+      "version": 1,
+      "success": true,
+      "milliseconds": 818,
+      "result": {
+        "answer": "装配台AS01由李师傅负责[S1]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-equipment",
+            "title": "评估样例：设备维护",
+            "version": 1,
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0",
+            "text": "本资料为课程虚构样例。点胶机DG01由张师傅负责。点胶机DG01每班进行喷嘴点检。装配台AS01由李师傅负责。装配台AS01每周进行紧固检查。点胶设备DG01指代点胶机DG01。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "装配台AS01",
+            "relation": "负责人员",
+            "target": "李师傅",
+            "quote": "装配台AS01由李师傅负责",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "装配台AS01",
+            "relation": "检查要求",
+            "target": "每周进行紧固检查",
+            "quote": "装配台AS01每周进行紧固检查",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "组装工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "组装工序",
+            "relation": "使用",
+            "target": "装配台AS01",
+            "quote": "组装工序使用装配台AS01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q06",
+      "question": "胶量检验使用什么仪器？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "inspection"
+      ],
+      "terms": [
+        [
+          "SC01"
+        ]
+      ],
+      "refuse": false,
+      "version": 1,
+      "success": true,
+      "milliseconds": 665,
+      "result": {
+        "answer": "胶量检验使用电子秤SC01[S2]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-inspection",
+            "title": "评估样例：检验要求",
+            "version": 1,
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0",
+            "text": "本资料为课程虚构样例。胶量检验使用电子秤SC01。胶量检验由王质检员执行。外观检验检查划痕和装配间隙。喷嘴点检要求清洁喷嘴。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "使用",
+            "target": "点胶机DG01",
+            "quote": "点胶工序使用点胶机DG01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "要求",
+            "target": "胶量检验",
+            "quote": "点胶工序要求胶量检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "胶量检验",
+            "relation": "执行",
+            "target": "王质检员",
+            "quote": "胶量检验由王质检员执行",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          },
+          {
+            "source": "胶量检验",
+            "relation": "使用",
+            "target": "电子秤SC01",
+            "quote": "胶量检验使用电子秤SC01",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q07",
+      "question": "外观检验检查什么？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "inspection"
+      ],
+      "terms": [
+        [
+          "划痕"
+        ],
+        [
+          "间隙"
+        ]
+      ],
+      "refuse": false,
+      "version": 1,
+      "success": true,
+      "milliseconds": 998,
+      "result": {
+        "answer": "外观检验检查划痕和装配间隙[S2]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-inspection",
+            "title": "评估样例：检验要求",
+            "version": 1,
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0",
+            "text": "本资料为课程虚构样例。胶量检验使用电子秤SC01。胶量检验由王质检员执行。外观检验检查划痕和装配间隙。喷嘴点检要求清洁喷嘴。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "A100鼠标",
+            "relation": "要求",
+            "target": "外观检验",
+            "quote": "A100鼠标要求外观检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "组装工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "外观检验",
+            "relation": "检查",
+            "target": "划痕",
+            "quote": "外观检验检查划痕和装配间隙",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          },
+          {
+            "source": "外观检验",
+            "relation": "检查",
+            "target": "装配间隙",
+            "quote": "外观检验检查划痕和装配间隙",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q08",
+      "question": "点胶工序使用的设备由谁负责？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "process",
+        "equipment"
+      ],
+      "terms": [
+        [
+          "DG01"
+        ],
+        [
+          "张师傅"
+        ]
+      ],
+      "refuse": false,
+      "version": 1,
+      "success": true,
+      "milliseconds": 852,
+      "result": {
+        "answer": "点胶工序使用的设备是点胶机DG01[S2]，该设备由张师傅负责[S1]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-equipment",
+            "title": "评估样例：设备维护",
+            "version": 1,
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0",
+            "text": "本资料为课程虚构样例。点胶机DG01由张师傅负责。点胶机DG01每班进行喷嘴点检。装配台AS01由李师傅负责。装配台AS01每周进行紧固检查。点胶设备DG01指代点胶机DG01。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          },
+          {
+            "id": "S3",
+            "documentId": "course-eval-inspection",
+            "title": "评估样例：检验要求",
+            "version": 1,
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0",
+            "text": "本资料为课程虚构样例。胶量检验使用电子秤SC01。胶量检验由王质检员执行。外观检验检查划痕和装配间隙。喷嘴点检要求清洁喷嘴。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "点胶机DG01",
+            "relation": "负责人员",
+            "target": "张师傅",
+            "quote": "点胶机DG01由张师傅负责",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "点胶机DG01",
+            "relation": "点检要求",
+            "target": "每班进行喷嘴点检",
+            "quote": "点胶机DG01每班进行喷嘴点检",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "点胶设备DG01",
+            "relation": "指代",
+            "target": "点胶机DG01",
+            "quote": "点胶设备DG01指代点胶机DG01",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "要求",
+            "target": "外观检验",
+            "quote": "A100鼠标要求外观检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "组装工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "使用",
+            "target": "点胶机DG01",
+            "quote": "点胶工序使用点胶机DG01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "要求",
+            "target": "胶量检验",
+            "quote": "点胶工序要求胶量检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "胶量检验",
+            "relation": "执行",
+            "target": "王质检员",
+            "quote": "胶量检验由王质检员执行",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          },
+          {
+            "source": "胶量检验",
+            "relation": "使用",
+            "target": "电子秤SC01",
+            "quote": "胶量检验使用电子秤SC01",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q09",
+      "question": "组装工序使用的设备由谁负责？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "process",
+        "equipment"
+      ],
+      "terms": [
+        [
+          "AS01"
+        ],
+        [
+          "李师傅"
+        ]
+      ],
+      "refuse": false,
+      "version": 1,
+      "success": true,
+      "milliseconds": 765,
+      "result": {
+        "answer": "组装工序使用的设备是装配台AS01[S2]，该设备由李师傅负责[S1]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-equipment",
+            "title": "评估样例：设备维护",
+            "version": 1,
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0",
+            "text": "本资料为课程虚构样例。点胶机DG01由张师傅负责。点胶机DG01每班进行喷嘴点检。装配台AS01由李师傅负责。装配台AS01每周进行紧固检查。点胶设备DG01指代点胶机DG01。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "装配台AS01",
+            "relation": "负责人员",
+            "target": "李师傅",
+            "quote": "装配台AS01由李师傅负责",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "装配台AS01",
+            "relation": "检查要求",
+            "target": "每周进行紧固检查",
+            "quote": "装配台AS01每周进行紧固检查",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "要求",
+            "target": "外观检验",
+            "quote": "A100鼠标要求外观检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "组装工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "组装工序",
+            "relation": "使用",
+            "target": "装配台AS01",
+            "quote": "组装工序使用装配台AS01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q10",
+      "question": "点胶工序要求的胶量检验使用什么仪器？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "process",
+        "inspection"
+      ],
+      "terms": [
+        [
+          "胶量"
+        ],
+        [
+          "SC01"
+        ]
+      ],
+      "refuse": false,
+      "version": 1,
+      "success": true,
+      "milliseconds": 1421,
+      "result": {
+        "answer": "点胶工序要求的胶量检验使用电子秤SC01[S2][S3]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-equipment",
+            "title": "评估样例：设备维护",
+            "version": 1,
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0",
+            "text": "本资料为课程虚构样例。点胶机DG01由张师傅负责。点胶机DG01每班进行喷嘴点检。装配台AS01由李师傅负责。装配台AS01每周进行紧固检查。点胶设备DG01指代点胶机DG01。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          },
+          {
+            "id": "S3",
+            "documentId": "course-eval-inspection",
+            "title": "评估样例：检验要求",
+            "version": 1,
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0",
+            "text": "本资料为课程虚构样例。胶量检验使用电子秤SC01。胶量检验由王质检员执行。外观检验检查划痕和装配间隙。喷嘴点检要求清洁喷嘴。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "点胶机DG01",
+            "relation": "负责人员",
+            "target": "张师傅",
+            "quote": "点胶机DG01由张师傅负责",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "点胶机DG01",
+            "relation": "点检要求",
+            "target": "每班进行喷嘴点检",
+            "quote": "点胶机DG01每班进行喷嘴点检",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "点胶设备DG01",
+            "relation": "指代",
+            "target": "点胶机DG01",
+            "quote": "点胶设备DG01指代点胶机DG01",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "要求",
+            "target": "外观检验",
+            "quote": "A100鼠标要求外观检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "组装工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "使用",
+            "target": "点胶机DG01",
+            "quote": "点胶工序使用点胶机DG01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "要求",
+            "target": "胶量检验",
+            "quote": "点胶工序要求胶量检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "胶量检验",
+            "relation": "执行",
+            "target": "王质检员",
+            "quote": "胶量检验由王质检员执行",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          },
+          {
+            "source": "胶量检验",
+            "relation": "使用",
+            "target": "电子秤SC01",
+            "quote": "胶量检验使用电子秤SC01",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q11",
+      "question": "点胶工序使用什么设备、设备由谁负责、该工序要求的胶量检验由谁执行？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "process",
+        "equipment",
+        "inspection"
+      ],
+      "terms": [
+        [
+          "DG01"
+        ],
+        [
+          "张师傅"
+        ],
+        [
+          "王质检员"
+        ]
+      ],
+      "refuse": false,
+      "version": 1,
+      "success": true,
+      "milliseconds": 924,
+      "result": {
+        "answer": "点胶工序使用点胶机DG01[S2]，该设备由张师傅负责[S1]，该工序要求的胶量检验由王质检员执行[S3]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-equipment",
+            "title": "评估样例：设备维护",
+            "version": 1,
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0",
+            "text": "本资料为课程虚构样例。点胶机DG01由张师傅负责。点胶机DG01每班进行喷嘴点检。装配台AS01由李师傅负责。装配台AS01每周进行紧固检查。点胶设备DG01指代点胶机DG01。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          },
+          {
+            "id": "S3",
+            "documentId": "course-eval-inspection",
+            "title": "评估样例：检验要求",
+            "version": 1,
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0",
+            "text": "本资料为课程虚构样例。胶量检验使用电子秤SC01。胶量检验由王质检员执行。外观检验检查划痕和装配间隙。喷嘴点检要求清洁喷嘴。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "点胶机DG01",
+            "relation": "负责人员",
+            "target": "张师傅",
+            "quote": "点胶机DG01由张师傅负责",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "点胶机DG01",
+            "relation": "点检要求",
+            "target": "每班进行喷嘴点检",
+            "quote": "点胶机DG01每班进行喷嘴点检",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "点胶设备DG01",
+            "relation": "指代",
+            "target": "点胶机DG01",
+            "quote": "点胶设备DG01指代点胶机DG01",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "要求",
+            "target": "外观检验",
+            "quote": "A100鼠标要求外观检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "组装工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "使用",
+            "target": "点胶机DG01",
+            "quote": "点胶工序使用点胶机DG01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "要求",
+            "target": "胶量检验",
+            "quote": "点胶工序要求胶量检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "胶量检验",
+            "relation": "执行",
+            "target": "王质检员",
+            "quote": "胶量检验由王质检员执行",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          },
+          {
+            "source": "胶量检验",
+            "relation": "使用",
+            "target": "电子秤SC01",
+            "quote": "胶量检验使用电子秤SC01",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q12",
+      "question": "DG01点胶设备的负责人是谁？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "equipment"
+      ],
+      "terms": [
+        [
+          "张师傅"
+        ]
+      ],
+      "refuse": false,
+      "version": 1,
+      "success": true,
+      "milliseconds": 1402,
+      "result": {
+        "answer": "DG01点胶设备的负责人是张师傅[S1]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索；模型定位实体：点胶机DG01、点胶设备DG01",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-equipment",
+            "title": "评估样例：设备维护",
+            "version": 1,
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0",
+            "text": "本资料为课程虚构样例。点胶机DG01由张师傅负责。点胶机DG01每班进行喷嘴点检。装配台AS01由李师傅负责。装配台AS01每周进行紧固检查。点胶设备DG01指代点胶机DG01。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "点胶机DG01",
+            "relation": "负责人员",
+            "target": "张师傅",
+            "quote": "点胶机DG01由张师傅负责",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "点胶机DG01",
+            "relation": "点检要求",
+            "target": "每班进行喷嘴点检",
+            "quote": "点胶机DG01每班进行喷嘴点检",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "点胶设备DG01",
+            "relation": "指代",
+            "target": "点胶机DG01",
+            "quote": "点胶设备DG01指代点胶机DG01",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "使用",
+            "target": "点胶机DG01",
+            "quote": "点胶工序使用点胶机DG01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "要求",
+            "target": "胶量检验",
+            "quote": "点胶工序要求胶量检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q13",
+      "question": "点胶机DG01做什么点检、该点检有什么要求？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "equipment",
+        "inspection"
+      ],
+      "terms": [
+        [
+          "喷嘴"
+        ],
+        [
+          "清洁"
+        ]
+      ],
+      "refuse": false,
+      "version": 1,
+      "success": true,
+      "milliseconds": 1196,
+      "result": {
+        "answer": "点胶机DG01需要进行喷嘴点检，该点检的要求为每班开展一次[S1]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索；模型定位实体：点胶设备DG01、点胶机DG01",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-equipment",
+            "title": "评估样例：设备维护",
+            "version": 1,
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0",
+            "text": "本资料为课程虚构样例。点胶机DG01由张师傅负责。点胶机DG01每班进行喷嘴点检。装配台AS01由李师傅负责。装配台AS01每周进行紧固检查。点胶设备DG01指代点胶机DG01。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "点胶机DG01",
+            "relation": "负责人员",
+            "target": "张师傅",
+            "quote": "点胶机DG01由张师傅负责",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "点胶机DG01",
+            "relation": "点检要求",
+            "target": "每班进行喷嘴点检",
+            "quote": "点胶机DG01每班进行喷嘴点检",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "点胶设备DG01",
+            "relation": "指代",
+            "target": "点胶机DG01",
+            "quote": "点胶设备DG01指代点胶机DG01",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "使用",
+            "target": "点胶机DG01",
+            "quote": "点胶工序使用点胶机DG01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "要求",
+            "target": "胶量检验",
+            "quote": "点胶工序要求胶量检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 0.5,
+      "sourceRecall": 0.5,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q14",
+      "question": "装配台AS01多久进行什么检查？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [
+        "equipment"
+      ],
+      "terms": [
+        [
+          "每周"
+        ],
+        [
+          "紧固"
+        ]
+      ],
+      "refuse": false,
+      "version": 1,
+      "success": true,
+      "milliseconds": 972,
+      "result": {
+        "answer": "装配台AS01每周进行紧固检查[S1]。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-equipment",
+            "title": "评估样例：设备维护",
+            "version": 1,
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0",
+            "text": "本资料为课程虚构样例。点胶机DG01由张师傅负责。点胶机DG01每班进行喷嘴点检。装配台AS01由李师傅负责。装配台AS01每周进行紧固检查。点胶设备DG01指代点胶机DG01。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "装配台AS01",
+            "relation": "负责人员",
+            "target": "李师傅",
+            "quote": "装配台AS01由李师傅负责",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "装配台AS01",
+            "relation": "检查要求",
+            "target": "每周进行紧固检查",
+            "quote": "装配台AS01每周进行紧固检查",
+            "chunkId": "21699a94-456f-4bd8-8a24-b1f1ec099e11:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "组装工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "组装工序",
+            "relation": "使用",
+            "target": "装配台AS01",
+            "quote": "组装工序使用装配台AS01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 1,
+      "citationsValid": true,
+      "refused": false
+    },
+    {
+      "caseId": "Q15",
+      "question": "这些资料记载的2028年度净利润是多少？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [],
+      "terms": [],
+      "refuse": true,
+      "version": 1,
+      "success": true,
+      "milliseconds": 849,
+      "result": {
+        "answer": "当前资料不足，无法回答该问题。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索",
+        "sources": [],
+        "facts": [],
+        "model": ""
+      },
+      "termCoverage": 1,
+      "sourceRecall": 0,
+      "citationsValid": true,
+      "refused": true
+    },
+    {
+      "caseId": "Q16",
+      "question": "资料中A100鼠标的销售单价是多少？",
+      "mode": "GRAPHRAG",
+      "expectedFiles": [],
+      "terms": [],
+      "refuse": true,
+      "version": 1,
+      "success": true,
+      "milliseconds": 1334,
+      "result": {
+        "answer": "当前资料不足，无法回答该问题。",
+        "mode": "GRAPHRAG",
+        "retrieval": "实体名称匹配＋两跳图谱检索",
+        "sources": [
+          {
+            "id": "S1",
+            "documentId": "course-eval-process",
+            "title": "评估样例：A100生产工艺",
+            "version": 1,
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0",
+            "text": "本资料为课程虚构样例。A100鼠标经过点胶工序和组装工序。点胶工序使用点胶机DG01。点胶工序要求胶量检验。组装工序使用装配台AS01。A100鼠标要求外观检验。",
+            "location": "正文"
+          },
+          {
+            "id": "S2",
+            "documentId": "course-eval-inspection",
+            "title": "评估样例：检验要求",
+            "version": 1,
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0",
+            "text": "本资料为课程虚构样例。胶量检验使用电子秤SC01。胶量检验由王质检员执行。外观检验检查划痕和装配间隙。喷嘴点检要求清洁喷嘴。",
+            "location": "正文"
+          }
+        ],
+        "facts": [
+          {
+            "source": "A100鼠标",
+            "relation": "要求",
+            "target": "外观检验",
+            "quote": "A100鼠标要求外观检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "点胶工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "A100鼠标",
+            "relation": "经过",
+            "target": "组装工序",
+            "quote": "A100鼠标经过点胶工序和组装工序。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "使用",
+            "target": "点胶机DG01",
+            "quote": "点胶工序使用点胶机DG01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "点胶工序",
+            "relation": "要求",
+            "target": "胶量检验",
+            "quote": "点胶工序要求胶量检验。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "组装工序",
+            "relation": "使用",
+            "target": "装配台AS01",
+            "quote": "组装工序使用装配台AS01。",
+            "chunkId": "34e40f3b-2a4d-47f9-8e53-51d8d90cdc7e:0"
+          },
+          {
+            "source": "外观检验",
+            "relation": "检查",
+            "target": "划痕",
+            "quote": "外观检验检查划痕和装配间隙",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          },
+          {
+            "source": "外观检验",
+            "relation": "检查",
+            "target": "装配间隙",
+            "quote": "外观检验检查划痕和装配间隙",
+            "chunkId": "f0e3fa8d-c5b4-4569-a6f6-b1211fda0031:0"
+          }
+        ],
+        "model": "doubao-seed-2-1-lite-260915"
+      },
+      "termCoverage": 1,
+      "sourceRecall": 0,
+      "citationsValid": true,
+      "refused": true
+    }
+  ],
+  "manual": {},
+  "limitations": "关键词覆盖和来源召回是自动代理指标，语义正确性需人工复核；中断与失败均保留。"
+}

@@ -55,7 +55,7 @@ const output = '.runtime/knowledge-ui';
     await page.getByText('版本 2 · 1 个片段').waitFor(); checks.push('更新保留文件编号并递增版本');
     await page.getByRole('button', {name:'测试模型',exact:true}).click();
     await page.getByText('已实测连接',{exact:false}).waitFor();checks.push('模型配置与真实连接测试状态分开呈现（此处使用接口替身）');
-    await page.getByLabel('资料范围').selectOption(current.documentId);
+    await page.locator('.scope-toolbar').getByLabel('资料范围').selectOption(current.documentId);
     await page.waitForFunction(() => !document.querySelector('.scope-toolbar select').disabled);
     await page.getByLabel('图数据库实体查询').fill('点胶机');
     await page.getByRole('button',{name:'查找关联',exact:true}).click();

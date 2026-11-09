@@ -34,7 +34,7 @@ class RagGraphIntegrationTest {
         @Override public List<double[]> embed(long owner,List<String> texts){calls++;return texts.stream().map(t->new double[]{1,0,0}).toList();}
     }
     @Configuration @EnableTransactionManagement
-    @Import({KnowledgeConfiguration.class,KnowledgeGraphBridge.class,KnowledgeSourceLocations.class})
+    @Import({KnowledgeConfiguration.class,KnowledgeGraphBridge.class,KnowledgeSourceLocations.class,KnowledgeLabRepository.class})
     static class Config {
         @Bean DataSource dataSource(){
             if(real()){
@@ -99,10 +99,12 @@ class RagGraphIntegrationTest {
         doThrow(new IllegalStateException("Neo4j离线")).when(graph).publish(eq(owner),eq("joint-doc"),eq(2L),anyString(),anyList());
         assertEquals("FAILED",upload(2,"设备由乙负责。").get("status"));
         assertEquals(1,((Number)files.detail(owner,"joint-doc").get("activeVersion")).intValue());assertEquals(old,repository.list(owner).get(0).buildId());
+        assertEquals(1,context.getBean(KnowledgeLabRepository.class).versions(owner,"joint-doc").size());
         assertArrayEquals("设备由甲负责。".getBytes(StandardCharsets.UTF_8),files.download(owner,"joint-doc").bytes());
         if(real())doCallRealMethod().when(graph).publish(eq(owner),eq("joint-doc"),eq(2L),anyString(),anyList());
         else doNothing().when(graph).publish(eq(owner),eq("joint-doc"),eq(2L),anyString(),anyList());
         assertEquals("READY",files.retry(owner,"joint-doc",2).get("graphStatus"));assertEquals(2,repository.list(owner).get(0).version());
+        assertEquals(2,context.getBean(KnowledgeLabRepository.class).versions(owner,"joint-doc").size());
         if(real())assertTrue(knowledge.visualize(owner).facts().stream().allMatch(f->f.target().equals("乙")));
     }
     @Test void deleteRevokesBothIndicesBeforePhysicalCleanupAndCanRetry() throws Exception {
@@ -110,6 +112,7 @@ class RagGraphIntegrationTest {
         doThrow(new IllegalStateException("Neo4j离线")).when(graph).delete(owner,"joint-doc",2);
         assertEquals(true,files.delete(owner,"joint-doc",2).get("graphCleanupPending"));
         assertTrue(files.list(owner).isEmpty());assertTrue(repository.list(owner).isEmpty());
+        assertTrue(context.getBean(KnowledgeLabRepository.class).versions(owner,"joint-doc").isEmpty());
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM rag_vector WHERE owner=?",Integer.class,owner));
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM rag_authorized_vector WHERE owner=?",Integer.class,owner));
         if(real())doCallRealMethod().when(graph).delete(owner,"joint-doc",2);

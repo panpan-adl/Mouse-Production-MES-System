@@ -15,6 +15,7 @@ public class KnowledgeService {
     private final KnowledgeModel model;
     private final RagRetriever rag;
     @Autowired(required=false) private KnowledgeSourceLocations sourceLocations;
+    @Autowired(required=false) private KnowledgeLabRepository lab;
     public KnowledgeService(KnowledgeSettings settings, KnowledgeRepository repository, Neo4jKnowledgeStore graph, KnowledgeModel model, RagRetriever rag) {
         this.settings=settings; this.repository=repository; this.graph=graph; this.model=model; this.rag=rag;
     }
@@ -58,6 +59,7 @@ public class KnowledgeService {
         // A crash between stores may leave unreachable graph data, never a partially visible version.
         graph.publish(owner,input.documentId(),input.version(),build,facts);
         repository.save(owner,new Document(input.documentId(),input.title(),input.version(),input.text(),build,chunks,"READY"));
+        if(lab!=null)lab.snapshot(owner,input.documentId(),input.version(),input.title(),facts);
         return Map.of("documentId",input.documentId(),"version",input.version(),"chunkCount",chunks.size(),"relationCount",facts.size(),"unchanged",false);
     }
     @Transactional
@@ -68,6 +70,7 @@ public class KnowledgeService {
         if(old.version()==version && old.state().startsWith("DELETED")) return;
         if(version<=old.version()) throw new IllegalArgumentException("删除事件版本过期，请刷新后重试");
         repository.save(owner,new Document(id,old.title(),version,"","",List.of(),"DELETED_PENDING"));
+        if(lab!=null)lab.purge(owner,id);
     }
     public Map<String,Object> cleanup(long owner,String id,long version) {
         // Called AFTER tombstone transaction commit. Retrying DELETE also retries physical cleanup.
@@ -81,10 +84,13 @@ public class KnowledgeService {
         return visualize(owner,List.of(),"");
     }
     public Graph visualize(long owner,List<String> documentIds,String entity) {
+        return visualizeSeeds(owner,documentIds,entity,List.of());
+    }
+    public Graph visualizeSeeds(long owner,List<String> documentIds,String entity,List<String> seeds) {
         settings.requireEnabled();
         if(entity==null || entity.length()>120) throw new IllegalArgumentException("实体查询最长120字");
         List<Document> documents=scope(repository.list(owner),documentIds);
-        Graph result=graph.graph(owner,documents.stream().map(Document::buildId).toList(),entity.strip());
+        Graph result=seeds.isEmpty()?graph.graph(owner,documents.stream().map(Document::buildId).toList(),entity.strip()):graph.graph(owner,documents.stream().map(Document::buildId).toList(),entity.strip(),seeds);
         Set<String> used=new HashSet<>();result.facts().forEach(f->used.add(f.chunkId()));
         List<Evidence> sources=new ArrayList<>();
         for(Document document:documents)for(Chunk c:document.chunks())if(used.contains(c.id()))
@@ -103,6 +109,10 @@ public class KnowledgeService {
         List<String> builds=docs.stream().map(Document::buildId).toList();
         List<Fact> facts=mode.equals("RAG")?List.of():graph.graph(owner,builds,input.question()).facts();
         List<String> linked=List.of();
+        if(lab!=null&&!mode.equals("RAG")&&!builds.isEmpty()){
+            List<String> approved=lab.seeds(owner,input.question(),graph.entities(owner,builds));
+            if(!approved.isEmpty()){linked=approved;facts=graph.graph(owner,builds,input.question(),approved).facts();}
+        }
         if(!mode.equals("RAG") && facts.isEmpty() && !builds.isEmpty() && settings.modelConfigured()) {
             linked=model.linkEntities(input.question(),graph.entities(owner,builds));
             if(!linked.isEmpty()) facts=graph.graph(owner,builds,input.question(),linked).facts();
@@ -139,7 +149,7 @@ public class KnowledgeService {
             throw new IllegalStateException("回答生成期间资料已更新或删除，请重新提问以使用最新版本");
         return new Answer(answer,mode,retrieval,sources,citedFacts,settings.getModel());
     }
-    private static List<Document> scope(List<Document> docs,List<String> ids) {
+    static List<Document> scope(List<Document> docs,List<String> ids) {
         if(ids==null || ids.isEmpty()) return docs;
         if(ids.size()>50) throw new IllegalArgumentException("一次最多选择50份资料");
         Set<String> requested=new HashSet<>(ids);
