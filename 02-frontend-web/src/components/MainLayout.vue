@@ -11,7 +11,7 @@ import SystemNavigation from './SystemNavigation.vue'
 import { sidebarCollapsed } from '@/stores/layout'
 defineProps<{ fullWidth?: boolean; edgeToEdge?: boolean; hideAgent?: boolean }>()
 const themeRoute=useRoute()
-const unifiedTheme=computed(()=>/^\/(equipment|system|foundation|inventory)(\/|$)/.test(themeRoute.path)||['/attendance','/cfo','/assistant','/automation','/production/equipment-status','/notifications'].includes(themeRoute.path))
+const unifiedTheme=computed(()=>/^\/(equipment|system|foundation|inventory)(\/|$)/.test(themeRoute.path)||['/attendance','/cfo','/assistant','/automation','/production/equipment-status','/notifications','/knowledge'].includes(themeRoute.path))
 
 function fitNavigation(){if(window.innerWidth<900)sidebarCollapsed.value=true}
 onMounted(()=>{fitNavigation();window.addEventListener('resize',fitNavigation)})
