@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import FaceSuccessNotice from "@/components/FaceSuccessNotice.vue"
+import FaceCameraGuide from "@/components/FaceCameraGuide.vue"
+import { onBeforeUnmount as releaseOnUnmount, nextTick as renderCamera } from "vue"
+import { captureFaceFrames } from "@/utils/faceCapture"
 import {computed,onMounted,ref} from 'vue'
 import {useRouter} from 'vue-router'
 import {User,Mail,Phone,Building2,Tag,Edit2,Save,Settings,Shield,Lock,ChevronRight,UserCircle,Clock,RefreshCw,Bell} from 'lucide-vue-next'
@@ -7,7 +11,7 @@ import UserAvatar from '@/components/UserAvatar.vue'
 import NotificationInbox from '@/components/NotificationInbox.vue'
 import {useAuthStore} from '@/stores/auth'
 import type {User as AccountUser} from '@/stores/auth'
-import request from '@/utils/request'
+import request, { RequestError } from '@/utils/request'
 const auth=useAuthStore(),router=useRouter(),tab=ref('profile'),editing=ref(''),busy=ref(false),loading=ref(true),error=ref(''),success=ref('')
 const currentUser=computed(()=>auth.currentUser),fileInput=ref<HTMLInputElement>(),showHistory=ref(false),historyLoading=ref(false),history=ref<Record<string,any>[]>([])
 const security=ref({loginProtection:false,passwordSet:false}),alerts=ref<Record<string,any>[]>([])
@@ -28,6 +32,134 @@ async function loadHistory(){historyLoading.value=true;clearMessages();showHisto
 async function readAlerts(){busy.value=true;clearMessages();try{for(const alert of alerts.value.filter(a=>!a.isRead))await request.post('/account/alerts/'+alert.id+'/read');alerts.value=await request.get('/account/alerts');await auth.loadNotifications();success.value='安全提醒已标为已读'}catch(e:any){error.value=e.message}finally{busy.value=false}}
 function time(value:string){return value?value.replace('T',' ').slice(0,19):'—'}
 onMounted(load)
+const faceEnabled = import.meta.env.VITE_FACE_LOGIN === '1'
+const facePassword = ref('')
+const faceStatus = ref('')
+const faceError = ref(false)
+const faceSaved = ref(false)
+const faceBinding = ref<{ enrolledAt: string | null }>()
+const faceUnavailable = ref(false)
+async function loadFaceBinding() {
+  try {
+    faceBinding.value = await request.get('/account/face')
+    faceUnavailable.value = false
+  } catch (cause) {
+    faceBinding.value = undefined
+    faceUnavailable.value = cause instanceof RequestError && cause.status === 404
+  }
+}
+if (faceEnabled) void loadFaceBinding()
+let faceCaptureId = 0
+const faceVideo = ref<HTMLVideoElement>()
+const facePreview = ref(false)
+const faceDialog = ref<HTMLDialogElement>()
+const faceDialogOpen = ref(false)
+let faceStream: MediaStream | undefined
+let faceUnmounted = false
+
+function stopFaceCamera() {
+  faceCaptureId++
+  faceStream?.getTracks().forEach(track => track.stop())
+  faceStream = undefined
+  facePreview.value = false
+  faceDialog.value?.close()
+  faceDialogOpen.value = false
+}
+
+function closeFaceEnrollment() {
+  stopFaceCamera()
+  faceError.value = false
+  faceStatus.value = ''
+}
+
+releaseOnUnmount(() => {
+  faceUnmounted = true
+  stopFaceCamera()
+})
+
+function faceOperationError(cause: unknown) {
+  if (cause instanceof RequestError) {
+    if (cause.status === 404) return '当前系统的人脸服务未启用，请联系管理员。'
+    if (cause.transportCode === 'ECONNABORTED' || cause.transportCode === 'ETIMEDOUT') {
+      return '人脸服务响应超时，请稍后重试。'
+    }
+    return '暂时无法连接人脸服务，请稍后重试。'
+  }
+  if (cause instanceof DOMException) {
+    if (cause.name === 'NotAllowedError') return '请在浏览器中允许访问摄像头后重试。'
+    if (cause.name === 'NotFoundError') return '未找到摄像头，请连接摄像头后重试。'
+    return '无法读取摄像头，请检查摄像头是否正被其他程序使用。'
+  }
+  if (cause instanceof Error && /^[\u3400-\u9fff]/.test(cause.message)) return cause.message
+  return '暂时无法完成人脸操作，请稍后重试。'
+}
+
+async function manageFace(remove: boolean) {
+  if (busy.value) return
+  if (!facePassword.value) {
+    faceError.value = true
+    faceStatus.value = '请输入当前密码后再操作'
+    return
+  }
+  if (remove && !window.confirm('确定解绑当前账号的人脸模板？')) return
+  clearMessages()
+  busy.value = true
+  const captureId = ++faceCaptureId
+  try {
+    faceError.value = false
+    faceStatus.value = remove ? '正在解绑…' : '正在检查人脸录入服务…'
+    if (remove) {
+      await request.post('/account/face/remove', { password: facePassword.value })
+    } else {
+      if (!faceDialogOpen.value) {
+        faceDialog.value?.showModal()
+        faceDialogOpen.value = true
+      }
+      const challenge = await request.post<string>('/account/face/challenge')
+      if (captureId !== faceCaptureId) return
+      faceUnavailable.value = false
+      if (!faceStream) {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error('当前浏览器无法访问摄像头，请使用本机地址或 HTTPS 打开系统。')
+        }
+        faceStatus.value = '正在打开摄像头，请允许访问'
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false })
+        if (faceUnmounted || captureId !== faceCaptureId) {
+          stream.getTracks().forEach(track => track.stop())
+          return
+        }
+        faceStream = stream
+        facePreview.value = true
+        await renderCamera()
+        if (captureId !== faceCaptureId) return
+        faceVideo.value!.srcObject = stream
+        await faceVideo.value!.play()
+      }
+      faceStatus.value = '请正对摄像头，保持三秒，正在采集…'
+      const frames = await captureFaceFrames(faceVideo.value!, () => captureId !== faceCaptureId)
+      if (captureId !== faceCaptureId) return
+      faceStatus.value = '采集完成，正在验证并保存，请等待…'
+      await request.put('/account/face', { password: facePassword.value, challenge, frames })
+    }
+    if (!remove && captureId === faceCaptureId) {
+      stopFaceCamera()
+      faceSaved.value = true
+    }
+    await loadFaceBinding()
+    facePassword.value = ''
+    faceStatus.value = remove ? '人脸已解绑' : '人脸录入已保存，可以退出后使用人脸登录'
+  } catch (cause) {
+    if (captureId !== faceCaptureId) return
+    faceError.value = true
+    if (cause instanceof RequestError && cause.status === 404) {
+      faceUnavailable.value = true
+      stopFaceCamera()
+    }
+    faceStatus.value = (remove ? '解绑未完成：' : '录入未完成：') + faceOperationError(cause)
+  } finally {
+    busy.value = false
+  }
+}
 </script>
 <template>
 <MainLayout><div class="profile-page"><input ref="fileInput" class="sr-only" type="file" accept="image/jpeg,image/png" aria-label="选择头像文件" :disabled="busy||loading" @change="upload"/>
@@ -43,11 +175,44 @@ onMounted(load)
  <section v-else-if="tab==='notifications'"><NotificationInbox/></section>
  <section v-else class="profile-card"><header class="card-header"><h1>安全中心</h1><p>管理登录安全与本人账号的登录记录</p></header><div class="card-content setting-list"><div class="setting-row"><Lock :size="22"/><div><h2>登录密码</h2><p>{{security.passwordSet?'已设置':'未设置'}}</p></div><button class="text-action" :disabled="busy||loading" @click="tab='settings';edit('password')">修改密码</button></div><div class="setting-row"><Phone :size="22"/><div><h2>联系手机</h2><p>{{currentUser?.phone||'未填写'}}</p></div><button class="text-action" :disabled="busy||loading" @click="tab='settings';edit('phone')">{{currentUser?.phone?'修改':'填写'}}</button></div><div class="setting-row"><Mail :size="22"/><div><h2>联系邮箱</h2><p>{{currentUser?.email||'未填写'}}</p></div><button class="text-action" :disabled="busy||loading" @click="tab='settings';edit('email')">{{currentUser?.email?'修改':'填写'}}</button></div><p class="form-note">手机和邮箱用于联系；当前未接入短信、邮件验证码验证。</p>
  <div class="setting-row"><Shield :size="22"/><div><h2>异常登录提醒</h2><p>开启后，登录失败或登录IP变化会生成站内提醒</p></div><button class="protection-toggle" role="switch" :aria-checked="security.loginProtection" :disabled="busy||loading" @click="toggleProtection">{{security.loginProtection?'已开启':'开启'}}</button></div>
+ <form v-if="faceEnabled" class="inline-form profile-form" @submit.prevent="manageFace(false)">
+   <h2>人脸验证登录</h2>
+   <p v-if="faceBinding?.enrolledAt">已开通人脸验证登录 · 最近录入：{{ faceBinding.enrolledAt }}</p>
+   <p v-else-if="faceBinding">未开通人脸验证登录</p>
+   <p v-else-if="faceUnavailable">当前系统的人脸服务未启用</p>
+   <p v-else>暂未获取人脸开通状态</p>
+   <p>录入后可通过摄像头登录。再次录入会替换现有模板，也可随时解绑。</p>
+   <label>当前密码<input v-model="facePassword" type="password" autocomplete="current-password" :disabled="busy" /></label>
+   <p v-if="faceStatus && !faceDialogOpen" :role="faceError ? 'alert' : 'status'" :class="faceError ? 'text-red-700' : 'text-slate-700'">{{ faceStatus }}</p>
+   <FaceSuccessNotice v-if="faceSaved" title="人脸录入成功" @done="faceSaved = false">
+     <p>已开通人脸验证登录</p>
+   </FaceSuccessNotice>
+   <div class="form-actions">
+     <button type="button" :disabled="busy || faceDialogOpen" @click="manageFace(true)">解绑</button>
+     <button class="primary" :disabled="busy">录入或更新</button>
+   </div>
+   <Teleport to="body">
+     <dialog ref="faceDialog" class="face-enrollment-dialog" aria-labelledby="face-enrollment-title"
+       @cancel.prevent="closeFaceEnrollment">
+       <h2 id="face-enrollment-title">录入人脸</h2>
+       <FaceCameraGuide v-if="facePreview">
+         <video ref="faceVideo" autoplay muted playsinline aria-label="摄像头预览" />
+       </FaceCameraGuide>
+       <p v-if="faceStatus" :role="faceError ? 'alert' : 'status'"
+         :class="{ 'face-enrollment-error': faceError }">{{ faceStatus }}</p>
+       <div class="face-enrollment-actions">
+         <button type="button" autofocus @click="closeFaceEnrollment">关闭录入</button>
+         <button v-if="faceError" type="button" :disabled="busy" @click="manageFace(false)">重新采集</button>
+       </div>
+     </dialog>
+   </Teleport>
+ </form>
  <section v-if="alerts.length" class="security-alerts"><div class="section-title"><h2>安全提醒</h2><button class="text-action" :disabled="busy" @click="readAlerts">全部标为已读</button></div><article v-for="alert in alerts" :key="alert.id"><strong>{{alert.isRead?'已读':'未读'}}</strong><p>{{alert.content}}</p><time>{{time(alert.createdAt)}}</time></article></section>
  <div class="setting-row"><Clock :size="22"/><div><h2>登录记录</h2><p>仅显示本人最近50条登录记录</p></div><button class="text-action" :disabled="historyLoading||loading" @click="loadHistory"><RefreshCw v-if="historyLoading" :size="15"/>{{showHistory?'刷新':'查看'}}<ChevronRight :size="16"/></button></div><div v-if="showHistory" class="history-table"><p v-if="historyLoading" role="status">正在加载登录记录…</p><table v-else><caption class="sr-only">本人登录记录</caption><thead><tr><th>登录时间</th><th>来源IP</th><th>结果</th><th>说明</th></tr></thead><tbody><tr v-for="row in history" :key="row.id"><td>{{time(row.loginTime)}}</td><td>{{row.loginIp}}</td><td :class="row.status===1?'login-ok':'login-failed'">{{row.status===1?'成功':'失败'}}</td><td>{{row.msg}}</td></tr><tr v-if="!history.length"><td colspan="4">暂无登录记录</td></tr></tbody></table></div></div></section>
  </div></div></MainLayout>
 </template>
 <style scoped>
+.face-success-dialog[open] { position: fixed; inset: 50% auto auto 50%; transform: translate(-50%, -50%); z-index: 1000; }
 .profile-page{max-width:1120px;margin:12px auto 40px;display:grid;grid-template-columns:230px minmax(0,1fr);gap:26px;color:#37352f}.profile-nav,.profile-card{background:#fff;border:1px solid #e5e2dc;border-radius:14px;overflow:hidden}.profile-nav{align-self:start}.profile-identity{display:flex;align-items:center;gap:13px;padding:22px 18px;border-bottom:1px solid #ece9e4}.identity-avatar{width:48px;height:48px;flex-shrink:0}.profile-identity strong{font-size:16px}.profile-identity p{font-size:12px;color:#92918a;margin-top:3px}.profile-nav nav{padding:9px}.profile-nav nav button{display:flex;width:100%;align-items:center;gap:11px;padding:14px 13px;border-radius:9px;color:#79766e;font-size:14px}.profile-nav nav button svg:last-child{margin-left:auto}.profile-nav nav button.active{background:#eee7db;color:#866b47}.profile-main{min-width:0}.profile-hero{display:flex;align-items:center;gap:25px;padding:36px 30px;background:linear-gradient(110deg,#f4eee2,#faf7f0);color:#665239;border-bottom:1px solid #e9dfcf}.profile-hero h1{color:#665239!important;font-size:28px;font-weight:650}.hero-avatar{position:relative;width:106px;height:106px;flex-shrink:0}.hero-avatar>.user-avatar{width:100%;height:100%;border:4px solid #fffdf8;background:#e8decd;color:#98784f;box-shadow:0 3px 14px #79603e12}.hero-avatar>button{position:absolute;right:-3px;bottom:-3px;display:grid;place-items:center;background:white;color:#6b777d;border-radius:50%;width:32px;height:32px;box-shadow:0 2px 8px #0002}.hero-tags{display:flex;gap:10px;margin-top:9px;font-size:12px}.hero-tags span{background:#e8dfcf;color:#846a46;border:1px solid #ded1bb;border-radius:6px;padding:4px 12px}.hero-tags span+span{background:#e5eadf;color:#718064;border-color:#d7dfce}.hero-meta{display:flex;flex-wrap:wrap;gap:14px;color:#9c8b72;font-size:12px;margin-top:14px}.card-content{padding:28px 30px}.section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}.section-title h2{font-size:17px;font-weight:600}.text-action{display:inline-flex;align-items:center;gap:5px;color:#94754e;font-size:13px;flex-shrink:0}.profile-details,.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:23px}.profile-details dt{font-size:12px;color:#96938c;margin-bottom:9px}.profile-details dd{display:flex;align-items:center;gap:11px;padding:15px;border-radius:11px;background:#f7f6f3;min-height:51px;overflow-wrap:anywhere;font-size:14px}.profile-details dd svg{color:#a5a299;flex-shrink:0}.profile-form label{display:flex;flex-direction:column;gap:8px;color:#78756e;font-size:13px}.profile-form input,.profile-form select{width:100%;padding:11px 13px;border:1px solid #ddd9d1;border-radius:8px;color:#37352f;background:#fff;outline:none;min-width:0}.profile-form input:focus,.profile-form select:focus{border-color:#b69a73;box-shadow:0 0 0 2px #eee6d8}.form-actions{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-top:20px}.form-actions button{padding:9px 14px;border:1px solid #dedbd4;border-radius:8px;display:flex;align-items:center;gap:5px;font-size:13px}.form-actions .primary{background:#92734c;border-color:#92734c;color:#fff}.form-note{font-size:12px;line-height:1.8;color:#9c978c;margin-top:14px}.card-header{padding:25px 30px;border-bottom:1px solid #ece9e4}.card-header h1{font-size:23px;font-weight:650}.card-header>p{color:#96938c;font-size:13px;margin-top:6px}.setting-list{display:flex;flex-direction:column;gap:17px}.setting-row{display:flex;align-items:center;gap:13px;padding:19px 17px;background:#f7f6f3;border-radius:12px;min-width:0}.setting-row>svg{color:#9e9a91;flex-shrink:0}.setting-row>div{flex:1;min-width:0}.setting-row h2{font-size:15px;font-weight:500;margin:0 0 5px}.setting-row p{font-size:12px;line-height:1.7;color:#96938c;overflow-wrap:anywhere}.inline-form{padding:19px;border:1px solid #e6dccd;border-radius:11px;background:#faf7f0;display:flex;flex-direction:column;gap:14px}.inline-form .form-actions{margin-top:3px}.protection-toggle{font-size:12px;padding:7px 12px;border-radius:18px;color:#779080;background:#e8eee8;white-space:nowrap}.protection-toggle[aria-checked=true]{color:#fff;background:#548e80}.profile-message{padding:12px 16px;border:1px solid #e5dccd;border-radius:9px;margin-bottom:15px;background:#faf6ed;font-size:13px;line-height:1.8}.profile-message.error{background:#fff1ed;color:#ac564a;border-color:#f3d5ce}.profile-message.success{background:#edf8f1;color:#458066;border-color:#d3eadb}.history-table{overflow:auto;border:1px solid #e8e4de;border-radius:10px}.history-table table{width:100%;border-collapse:collapse;white-space:nowrap;font-size:12px}.history-table th,.history-table td{padding:12px;text-align:left;border-bottom:1px solid #eeeae4}.history-table th{background:#f8f7f4;color:#827e74}.login-ok{color:#4b8f71}.login-failed{color:#b65c4b}.security-alerts{padding:15px;border:1px solid #eadebd;border-radius:10px;background:#fffcf4}.security-alerts .section-title{margin-bottom:8px}.security-alerts h2{font-size:15px}.security-alerts article{padding:10px 0;border-top:1px solid #eee6d3;font-size:12px;line-height:1.7}.security-alerts strong,.security-alerts time{font-size:11px;color:#ac9463}.profile-page button:disabled{opacity:.5;cursor:wait}@media(max-width:900px){.profile-page{grid-template-columns:1fr;gap:16px}.profile-identity{display:none}.profile-nav nav{display:flex;gap:5px}.profile-nav nav button{justify-content:center;padding:11px 7px}.profile-nav nav button svg:last-child{display:none}}@media(max-width:540px){.profile-page{margin:0 auto 24px}.profile-hero{padding:24px 18px;gap:17px}.hero-avatar{width:78px;height:78px}.profile-hero h1{font-size:23px}.hero-meta{gap:6px;font-size:10px}.card-content,.card-header{padding:21px 16px}.profile-details,.field-grid{grid-template-columns:1fr}.setting-row{padding:14px 11px;gap:9px}.setting-row h2{font-size:14px}.setting-row p{font-size:11px}.profile-nav nav button{font-size:12px;gap:6px}.profile-nav nav svg{width:16px}.text-action{font-size:12px}}
 .profile-page .identity-avatar{background:#eee6d8;color:#9a7c54}
 .profile-nav nav button:not(.active):hover{background:#f7f3ec;color:#866b47}
@@ -55,4 +220,27 @@ onMounted(load)
 .profile-page button:focus-visible{outline:2px solid #b4976f;outline-offset:3px}
 .profile-page .form-actions .primary:hover{background:#80623f}
 .hero-avatar>button{color:#92734c;border:1px solid #e5dccd;box-shadow:0 2px 8px #79603e14}
+.face-enrollment-dialog {
+  box-sizing: border-box;
+  position: fixed;
+  inset: 0;
+  width: min(520px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  overflow: auto;
+  padding: clamp(16px, 4vw, 26px);
+  border: 1px solid #e5dfd3;
+  border-radius: 16px;
+  background: #fffefa;
+  color: #3e382f;
+  box-shadow: 0 16px 48px #332d2533;
+}
+.face-enrollment-dialog::backdrop { background: #201b1666; }
+.face-enrollment-dialog h2 { font-size: 20px; font-weight: 650; margin: 0 0 12px; }
+.face-enrollment-dialog p { font-size: 14px; margin: 8px 0; }
+.face-enrollment-error { color: #a0352d; }
+.face-enrollment-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.face-enrollment-actions button { padding: 8px 14px; border: 1px solid #d8d0c2; border-radius: 7px; }
+.face-enrollment-actions button:last-child:not(:only-child) { background: #766044; color: white; }
+.face-enrollment-actions button:disabled { opacity: .6; }
 </style>

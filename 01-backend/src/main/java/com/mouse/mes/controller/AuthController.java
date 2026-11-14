@@ -1,5 +1,7 @@
 package com.mouse.mes.controller;
 
+import com.mouse.mes.util.Passwords;
+
 import com.mouse.mes.dto.LoginRequest;
 import com.mouse.mes.dto.LoginResponse;
 import com.mouse.mes.entity.Department;
@@ -75,13 +77,18 @@ public class AuthController {
         long sessionVersion=accounts.sessionVersion(user.getId());
         user=userMapper.findById(user.getId());
         if(user==null)return JsonResult.error("用户编码或密码错误");
-        if (request.getPassword()==null || !request.getPassword().equals(user.getPassword())) {
+        if (!Passwords.matches(request.getPassword(), user.getPassword())) {
             logger.warn("登录失败 - 密码错误: {}", userCode);
             saveLoginLog(user.getId(), user.getUserCode(), httpRequest, 0, "密码错误", user.getUserCode());
             return JsonResult.error("用户编码或密码错误");
         }
         
-        if (user.getStatus() == 0 || Integer.valueOf(1).equals(user.getDeleted())) {
+        return issueSession(user, sessionVersion, httpRequest, "密码");
+    }
+
+    JsonResult<LoginResponse> issueSession(User user, long sessionVersion, HttpServletRequest httpRequest, String loginMethod) {
+        String userCode = user.getUserCode();
+        if (!Integer.valueOf(1).equals(user.getStatus()) || Integer.valueOf(1).equals(user.getDeleted())) {
             logger.warn("登录失败 - 用户已禁用: {}", userCode);
             saveLoginLog(user.getId(), user.getUserCode(), httpRequest, 0, "用户已禁用", user.getUserCode());
             return JsonResult.error("用户已禁用");
@@ -117,7 +124,7 @@ public class AuthController {
         response.setToken(generateToken(user.getId(), user.getUserCode()));
         response.setSessionVersion(sessionVersion);
         
-        saveLoginLog(user.getId(), user.getUserCode(), httpRequest, 1, "登录成功", user.getUsername());
+        saveLoginLog(user.getId(), user.getUserCode(), httpRequest, 1, loginMethod + "登录成功", user.getUsername());
         saveOperationLog(user.getId(), user.getUserCode(), user.getUsername(), httpRequest, "系统登录", "无");
         
         user.setLastLoginTime(new Date());
@@ -134,7 +141,7 @@ public class AuthController {
     }
 
     private String generateToken(Long userId, String userCode) {
-        return "TOKEN_" + userId + "_" + userCode + "_" + System.currentTimeMillis();
+        return "TOKEN_" + userId + "_" + userCode + "_" + java.util.UUID.randomUUID();
     }
 
     private void saveLoginLog(Long userId, String userCode, HttpServletRequest request, Integer status, String msg, String username) {

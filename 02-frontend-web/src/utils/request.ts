@@ -4,6 +4,12 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosReq
 import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 
+export class RequestError extends Error {
+  constructor(message: string, readonly status?: number, readonly transportCode?: string) {
+    super(message)
+  }
+}
+
 const baseURL = '/api'
 
 const service: AxiosInstance = axios.create({
@@ -36,7 +42,7 @@ service.interceptors.request.use(
     }
     const message=error.response?.data?.msg||error.message||'请求失败'
     if(error.config?.method&&error.config.method!=='get')showBusinessFormError(message)
-    return Promise.reject(new Error(message))
+    return Promise.reject(new RequestError(message, error.response?.status, error.code))
   }
 )
 
@@ -61,7 +67,7 @@ service.interceptors.response.use(
     }
     const message=error.response?.data?.msg||error.message||'请求失败'
     if(error.config?.method&&error.config.method!=='get')showBusinessFormError(message)
-    return Promise.reject(new Error(message))
+    return Promise.reject(new RequestError(message, error.response?.status, error.code))
   }
 )
 

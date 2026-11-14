@@ -21,3 +21,6 @@ npm_cache/
 
 01-backend/uploads/
 /uploads/
+/09-face-inference/.venv*/
+
+/01-backend/config/application.properties

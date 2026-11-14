@@ -19,7 +19,7 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(tokenInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/auth/login", "/api/auth/logout");
+                .excludePathPatterns("/api/auth/login", "/api/auth/logout", "/api/auth/password-reset", "/api/auth/face/challenge", "/api/auth/face/login");
     }
 
     @Bean

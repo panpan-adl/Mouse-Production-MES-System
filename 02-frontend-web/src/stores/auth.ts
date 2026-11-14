@@ -35,10 +35,13 @@ export interface Notification {
 
 const STORAGE_KEY = 'ptl_auth'
 
+// Require a fresh login when upgrading from shared browser storage.
+try { localStorage.removeItem(STORAGE_KEY) } catch { /* Storage may be unavailable. */ }
+
 
 function loadPersistedState(): { currentUser: User | null } {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = sessionStorage.getItem(STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw)
       return { currentUser: parsed.currentUser || null }
@@ -51,7 +54,7 @@ function loadPersistedState(): { currentUser: User | null } {
 
 function savePersistedState(currentUser: User | null) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ currentUser }))
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ currentUser }))
   } catch {
     // storage full or unavailable
   }
@@ -113,7 +116,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   })
 
-  // 自动持久化：currentUser 变化时写入 localStorage
+  // 自动持久化：currentUser 变化时写入 sessionStorage
   watch(currentUser, (val) => {
     savePersistedState(val)
   }, { deep: true })
@@ -124,11 +127,16 @@ export const useAuthStore = defineStore('auth', () => {
     return true
   }
 
+  async function loginWithFace(challenge: string, frames: string[], signal?: AbortSignal) {
+    const user = await request.post<User>('/auth/face/login', { challenge, frames }, { signal })
+    if (!signal?.aborted) currentUser.value = user
+  }
+
   function logout() {
     notifications.value = []
     currentUser.value = null
     menuPaths.value=null
-    localStorage.removeItem(STORAGE_KEY)
+    sessionStorage.removeItem(STORAGE_KEY)
   }
 
   async function loadNotifications() {
@@ -165,6 +173,7 @@ export const useAuthStore = defineStore('auth', () => {
     roleCode,
     redirectPath,
     login,
+    loginWithFace,
     logout,
     markNotificationAsRead,
     markAllAsRead,

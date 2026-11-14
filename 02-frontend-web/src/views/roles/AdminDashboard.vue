@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import request from "@/utils/request"
 import { useFormDrafts } from '@/composables/useFormDrafts'
 import { computed, ref, onMounted } from 'vue'
 import MainLayout from '@/components/MainLayout.vue'
@@ -362,6 +363,20 @@ onMounted(async () => {
 })
 
 const completeDrafts=useFormDrafts({showAddModal:{open:showAddModal,fields:{newUser}},showEditModal:{open:showEditModal,fields:{editUser}, record:()=>editUserId.value}})
+let issuingReset = false
+async function issuePasswordReset() {
+  const id = editUserId.value
+  if (id == null || issuingReset || !window.confirm('签发后旧密码和现有会话立即失效，确定继续？')) return
+  issuingReset = true
+  try {
+    const credential = await request.post<string>(`/users/${id}/password-reset`)
+    window.prompt('请将临时凭据私下交给员工，15 分钟内有效。', credential)
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '临时凭据签发失败')
+  } finally {
+    issuingReset = false
+  }
+}
 </script>
 
 <template>
@@ -604,6 +619,7 @@ const completeDrafts=useFormDrafts({showAddModal:{open:showAddModal,fields:{newU
       <div class="modal-card bg-white rounded-xl shadow-lg w-full max-w-md p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-bold text-gray-800">编辑用户</h2>
+          <button type="button" @click="issuePasswordReset">签发临时凭据</button>
           <button @click="showEditModal = false" class="text-gray-400 hover:text-gray-600">
             <X class="w-6 h-6" />
           </button>

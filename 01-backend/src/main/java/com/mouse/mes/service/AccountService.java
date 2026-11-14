@@ -1,5 +1,7 @@
 package com.mouse.mes.service;
 
+import com.mouse.mes.util.Passwords;
+
 import com.mouse.mes.dto.LoginResponse;
 import com.mouse.mes.entity.User;
 import com.mouse.mes.mapper.*;
@@ -62,11 +64,11 @@ public class AccountService implements CommandLineRunner {
     }
     @Transactional public void changePassword(long id, String oldPassword, String newPassword, String confirmPassword) {
         User user=requireUser(id);
-        if(oldPassword==null||!oldPassword.equals(user.getPassword()))throw new IllegalArgumentException("旧密码不正确");
+        if(!Passwords.matches(oldPassword,user.getPassword()))throw new IllegalArgumentException("旧密码不正确");
         if(newPassword==null||newPassword.length()<6||newPassword.length()>64||newPassword.isBlank())throw new IllegalArgumentException("新密码须为6至64个字符");
         if(!newPassword.equals(confirmPassword))throw new IllegalArgumentException("两次输入的新密码不一致");
         if(newPassword.equals(oldPassword))throw new IllegalArgumentException("新密码不能与旧密码相同");
-        int changed=db.update("UPDATE t_user SET password=?,update_time=NOW() WHERE id=? AND password=? AND deleted=0",newPassword,id,oldPassword);
+        int changed=db.update("UPDATE t_user SET password=?,update_time=NOW() WHERE id=? AND password=? AND deleted=0",Passwords.encode(newPassword),id,user.getPassword());
         if(changed!=1)throw new IllegalArgumentException("密码已变更，请重新登录后再试");
         db.update("INSERT INTO mm_account_settings(user_id,session_version) VALUES(?,1) ON DUPLICATE KEY UPDATE session_version=session_version+1",id);
     }

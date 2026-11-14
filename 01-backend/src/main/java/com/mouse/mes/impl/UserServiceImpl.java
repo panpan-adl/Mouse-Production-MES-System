@@ -1,5 +1,7 @@
 package com.mouse.mes.impl;
 
+import com.mouse.mes.util.Passwords;
+
 import com.mouse.mes.entity.User;
 import com.mouse.mes.mapper.UserMapper;
 import com.mouse.mes.service.UserService;
@@ -53,15 +55,28 @@ public class UserServiceImpl implements UserService {
         if (user.getStatus() == null) {
             user.setStatus(1);
         }
+        user.setPassword(Passwords.encode(user.getPassword()));
         userMapper.insert(user);
         return user;
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public User update(User user) {
         if(user.getRoleId()!=null)validateRole(user.getRoleId());
         user.setUpdateTime(new Date());
-        userMapper.update(user);
+        boolean resettingPassword = user.getPassword() != null;
+        if (resettingPassword) {
+            if (user.getPassword().length() < 6) {
+                throw new IllegalArgumentException("密码至少6位");
+            }
+            user.setPassword(Passwords.encode(user.getPassword()));
+        }
+        int updated = userMapper.update(user);
+        if (resettingPassword && updated == 1) {
+            db.update("INSERT INTO mm_account_settings(user_id,session_version) VALUES(?,1) "
+                    + "ON DUPLICATE KEY UPDATE session_version=session_version+1", user.getId());
+        }
         return userMapper.findById(user.getId());
     }
 

@@ -62,3 +62,14 @@ logging:
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: logs/mouse-mes.log
+
+mes:
+  face:
+    enabled: ${MES_FACE_ENABLED:false}
+    endpoint: ${MES_FACE_ENDPOINT:http://127.0.0.1:8091}
+    model: ${MES_FACE_MODEL:deepface-sface-opencv-v1}
+    secret: ${MES_FACE_SECRET:}
+    key: ${MES_FACE_KEY:}
+    key-id: ${MES_FACE_KEY_ID:local-v1}
+    threshold: ${MES_FACE_THRESHOLD:}
+    margin: ${MES_FACE_MARGIN:}

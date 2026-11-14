@@ -1,14 +1,150 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import FaceSuccessNotice from "@/components/FaceSuccessNotice.vue"
+import FaceCameraGuide from "@/components/FaceCameraGuide.vue"
+import { nextTick, onBeforeUnmount, ref } from 'vue'
+import { captureFaceFrames } from '@/utils/faceCapture'
+import request, { RequestError } from '@/utils/request'
 import LoginParticleCloud from '@/components/LoginParticleCloud.vue'
 import LoginPromo from '@/components/LoginPromo.vue'
 import { motionEnabled } from '@/stores/layout'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ArrowRight, Eye, EyeOff, LockKeyhole, UserRound, Factory, ShieldCheck } from 'lucide-vue-next'
+import { ArrowRight, Eye, EyeOff, LockKeyhole, UserRound, Factory, ScanFace, ShieldCheck } from 'lucide-vue-next'
 const auth=useAuthStore(),router=useRouter(),route=useRoute()
 const userCode=ref(''),password=ref(''),showPassword=ref(false),loading=ref(false),error=ref('')
 const demo=import.meta.env.VITE_DEMO_MODE==='1'
+const resetMode = ref(false)
+const credential = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
+const resetNotice = ref('')
+
+function toggleReset() {
+  resetMode.value = !resetMode.value
+  error.value = ''
+  resetNotice.value = ''
+  password.value = credential.value = newPassword.value = confirmPassword.value = ''
+}
+
+async function resetPassword() {
+  if (loading.value) return
+  error.value = ''
+  if (newPassword.value !== confirmPassword.value) {
+    error.value = '两次输入的新密码不一致'
+    return
+  }
+  loading.value = true
+  try {
+    await request.post('/auth/password-reset', {
+      userCode: userCode.value.trim(),
+      credential: credential.value.trim(),
+      newPassword: newPassword.value,
+    })
+    toggleReset()
+    resetNotice.value = '密码已修改，请使用新密码登录。'
+  } catch (cause) {
+    error.value = loginErrorMessage(cause, 'reset')
+  } finally {
+    loading.value = false
+  }
+}
+
+const faceEnabled = import.meta.env.VITE_FACE_LOGIN === '1'
+const camera = ref<HTMLVideoElement>()
+const cameraOpen = ref(false)
+const faceVerified = ref(false)
+const faceDialog = ref<HTMLDialogElement>()
+const faceStatus = ref('')
+const faceFailure = ref('')
+let stream: MediaStream | undefined
+let faceAttempt: AbortController | undefined
+
+function closeCamera() {
+  stream?.getTracks().forEach(track => track.stop())
+  stream = undefined
+  cameraOpen.value = false
+}
+
+function closeFaceDialog() {
+  faceAttempt?.abort()
+  closeCamera()
+  faceDialog.value?.close()
+}
+
+onBeforeUnmount(closeFaceDialog)
+
+async function faceLogin() {
+  if (loading.value) return
+  loading.value = true
+  error.value = ''
+  faceFailure.value = ''
+  faceStatus.value = '正在准备人脸登录…'
+  const attempt = new AbortController()
+  faceAttempt = attempt
+  try {
+    const challenge = await request.post<string>('/auth/face/challenge', undefined, { signal: attempt.signal })
+    if (attempt.signal.aborted) return
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error('当前浏览器无法访问摄像头，请使用密码登录。')
+    }
+    if (faceDialog.value && !faceDialog.value.open) faceDialog.value.showModal()
+    faceStatus.value = '正在打开摄像头，请允许访问。'
+    const media = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false })
+    if (attempt.signal.aborted) {
+      media.getTracks().forEach(track => track.stop())
+      return
+    }
+    stream = media
+    cameraOpen.value = true
+    await nextTick()
+    if (attempt.signal.aborted || !camera.value) return
+    const video = camera.value
+    video.srcObject = media
+    await video.play()
+    if (attempt.signal.aborted) return
+    faceStatus.value = '请保持正对镜头，正在采集…'
+    const frames = await captureFaceFrames(video, () => attempt.signal.aborted)
+    if (attempt.signal.aborted) return
+    faceStatus.value = '正在验证人脸…'
+    await auth.loginWithFace(challenge, frames, attempt.signal)
+    if (attempt.signal.aborted) return
+    faceDialog.value?.close()
+    faceVerified.value = true
+  } catch (cause) {
+    if (attempt.signal.aborted) return
+    const message = loginErrorMessage(cause, 'face')
+    if (faceDialog.value?.open) faceFailure.value = message
+    else error.value = message
+  } finally {
+    closeCamera()
+    faceAttempt = undefined
+    loading.value = false
+  }
+}
+
+function loginErrorMessage(cause: unknown, action: 'face' | 'reset') {
+  const label = action === 'face' ? '人脸登录' : '密码重置'
+  const alternative = action === 'face' ? '请使用密码登录。' : '请稍后重试或联系管理员。'
+  if (cause instanceof RequestError) {
+    if (cause.status === 404) return label + '暂不可用，' + alternative
+    if (cause.transportCode === 'ECONNABORTED' || cause.transportCode === 'ETIMEDOUT') {
+      return label + '请求超时，请稍后重试。'
+    }
+    if (!cause.status || cause.status >= 500) return label + '暂时无法连接服务，' + alternative
+  }
+  if (action === 'face' && cause instanceof DOMException) {
+    if (cause.name === 'NotAllowedError' || cause.name === 'SecurityError') {
+      return '未获得摄像头权限，请在浏览器中允许访问摄像头后重试。'
+    }
+    if (cause.name === 'NotFoundError') return '未找到摄像头，请连接摄像头或使用密码登录。'
+    if (cause.name === 'NotReadableError' || cause.name === 'AbortError') {
+      return '无法打开摄像头，请关闭其他正在使用摄像头的程序后重试。'
+    }
+  }
+  if (cause instanceof Error && /^[\u3400-\u9fff]/.test(cause.message)) return cause.message
+  return label + '失败，' + alternative
+}
+
 async function login(){
   if(loading.value)return
   error.value=''
@@ -44,12 +180,51 @@ async function login(){
       <div class="login-top-note"><ShieldCheck :size="15"/><span>企业工作空间</span><span v-if="demo" class="login-demo">演示环境</span></div>
       <div class="login-card"><div class="login-greeting"><span class="login-status-light"></span> ENTER YOUR WORKSPACE</div><h2>欢迎回来</h2><p class="login-description">登录您的账号，开始今天的生产协作。</p>
         <p v-if="route.query.passwordChanged==='1'" role="status" class="text-sm text-green-700 bg-green-50 rounded-lg p-3 mb-4">密码已修改，请使用新密码重新登录。</p>
-        <form @submit.prevent="login" class="login-fields">
+        <p v-if="resetNotice" role="status">{{ resetNotice }}</p>
+        <form v-if="!resetMode" @submit.prevent="login" class="login-fields">
           <label for="login-user-code">员工工号</label><div class="login-input"><UserRound :size="18"/><input id="login-user-code" v-model="userCode" autocomplete="username" inputmode="numeric" maxlength="6" placeholder="请输入6位员工工号" required /></div>
           <div class="password-label"><label for="login-password">登录密码</label><span>使用您的企业账号密码</span></div><div class="login-input"><LockKeyhole :size="18"/><input id="login-password" v-model="password" :type="showPassword?'text':'password'" autocomplete="current-password" placeholder="请输入登录密码" required /><button type="button" :aria-label="showPassword?'隐藏密码':'显示密码'" @click="showPassword=!showPassword"><EyeOff v-if="showPassword" :size="17"/><Eye v-else :size="17"/></button></div>
           <p v-if="error" class="login-error" role="alert">{{error}}</p>
           <button class="login-submit" :disabled="loading" type="submit"><span>{{loading?'正在登录…':'登录工作台'}}</span><ArrowRight v-if="!loading" :size="18"/><span v-else class="login-spinner"></span></button>
         </form>
+        <form v-else class="login-fields" @submit.prevent="resetPassword">
+          <label for="reset-user">员工工号</label>
+          <div class="login-input"><input id="reset-user" v-model="userCode" autocomplete="username" pattern="[0-9]{6}" required /></div>
+          <label for="reset-credential">管理员发放的临时凭据</label>
+          <div class="login-input"><input id="reset-credential" v-model="credential" type="password" autocomplete="off" required /></div>
+          <label for="reset-password">新密码</label>
+          <div class="login-input"><input id="reset-password" v-model="newPassword" type="password" autocomplete="new-password" minlength="6" required /></div>
+          <label for="reset-confirm">确认新密码</label>
+          <div class="login-input"><input id="reset-confirm" v-model="confirmPassword" type="password" autocomplete="new-password" minlength="6" required /></div>
+          <p v-if="error" class="login-error" role="alert">{{ error }}</p>
+          <button class="login-submit" :disabled="loading" type="submit">设置新密码</button>
+        </form>
+        <div class="login-alternatives">
+          <button v-if="faceEnabled && !resetMode" type="button" class="login-face-button"
+            :disabled="loading" @click="faceLogin"><ScanFace :size="18" aria-hidden="true" />人脸登录</button>
+          <button type="button" :disabled="loading" class="login-reset-link" @click="toggleReset">
+            {{ resetMode ? '返回登录' : '使用临时凭据重置密码' }}
+          </button>
+        </div>
+        <Teleport to="body">
+          <dialog ref="faceDialog" class="face-login-dialog" aria-labelledby="face-login-title"
+            @cancel.prevent="closeFaceDialog">
+            <h2 id="face-login-title">人脸登录</h2>
+            <FaceCameraGuide v-if="cameraOpen">
+              <video ref="camera" autoplay muted playsinline aria-label="摄像头预览" />
+            </FaceCameraGuide>
+            <p v-if="faceFailure" class="face-login-error" role="alert">{{ faceFailure }}</p>
+            <p v-else role="status">{{ faceStatus }}</p>
+            <div class="face-login-actions">
+              <button type="button" autofocus @click="closeFaceDialog">关闭</button>
+              <button v-if="faceFailure" type="button" :disabled="loading" @click="faceLogin">重新采集</button>
+            </div>
+          </dialog>
+        </Teleport>
+        <FaceSuccessNotice v-if="faceVerified" title="人脸验证通过" @done="router.replace(auth.redirectPath)">
+          <p>{{ auth.currentUser?.realName }} · 工号 {{ auth.currentUser?.userCode }}</p>
+          <p>三秒后进入工作台</p>
+        </FaceSuccessNotice>
         <p class="login-help"><ShieldCheck :size="14"/>账号由管理员统一分配，如需帮助请联系管理员。</p>
       </div>
       <button class="login-motion-control" :aria-pressed="motionEnabled" @click="motionEnabled=!motionEnabled">{{motionEnabled?'暂停背景动效':'开启背景动效'}}</button>
@@ -58,6 +233,29 @@ async function login(){
   </div>
 </template>
 <style scoped>
+.face-login-dialog {
+  box-sizing: border-box;
+  position: fixed;
+  inset: 0;
+  width: min(640px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  overflow: auto;
+  padding: clamp(16px, 4vw, 28px);
+  border: 1px solid #e5dfd3;
+  border-radius: 16px;
+  background: #fffefa;
+  color: #3e382f;
+  box-shadow: 0 16px 48px #332d2533;
+}
+.face-login-dialog::backdrop { background: #201b1666; }
+.face-login-dialog h2 { font-size: 22px; font-weight: 650; margin: 0 0 12px; }
+.face-login-dialog p { font-size: 14px; margin: 8px 0; }
+.face-login-error { color: #a0352d; }
+.face-login-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.face-login-actions button { padding: 8px 14px; border: 1px solid #d8d0c2; border-radius: 7px; }
+.face-login-actions button:last-child:not(:only-child) { background: #766044; color: white; }
+
 .login-page{min-height:100svh;display:grid;grid-template-columns:1.12fr 1fr;background:#faf9f6;color:#37352f;font-family:'Inter','Segoe UI','Microsoft YaHei',sans-serif;color-scheme:light}
 .login-story{position:relative;isolation:isolate;overflow:hidden;min-height:100svh;padding:40px 9%;display:flex;flex-direction:column;background:#f1efe8;border-right:1px solid #e7e3da}
 .login-particle-stage{position:absolute;inset:0;z-index:-1;pointer-events:none}
@@ -96,6 +294,11 @@ async function login(){
 .login-help{display:flex;align-items:flex-start;gap:6px;margin-top:24px;padding-top:20px;border-top:1px solid #e9e5dc;font-size:10px;line-height:1.8;color:#a39a8c}
 .login-help svg{flex-shrink:0;margin-top:2px}
 .login-error{margin-top:15px;padding:10px;border:1px solid #efd5cf;background:#f8eae7;color:#a96057;border-radius:5px;font-size:11px}
+.login-alternatives{display:grid;gap:10px;margin-top:12px}
+.login-face-button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;border:1px solid #d8d0c2;border-radius:7px;background:#fffefa;color:#554b3e;font-size:14px;font-weight:600}
+.login-face-button:hover{background:#f5f0e7}
+.login-reset-link{justify-self:center;min-height:36px;padding:4px 8px;color:#675740;font-size:12px;text-decoration:underline;text-underline-offset:3px}
+.login-alternatives button:disabled{opacity:.6}
 .login-motion-control{align-self:flex-end;padding:6px 10px;margin:0 0 24px;border:1px solid #e4ded2;border-radius:5px;background:transparent;font-size:10px;color:#a09685}
 .login-motion-control:hover{background:#efebe2;color:#736753}
 .login-access-footer{display:flex;justify-content:space-between;gap:12px;font-size:9px;color:#b0a89c}
