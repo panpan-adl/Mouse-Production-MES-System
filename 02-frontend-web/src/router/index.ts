@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import { canVisit } from '@/utils/permissions'
 
 const routes: RouteRecordRaw[] = [
+  {path:'/dify-op30',component:()=>import('@/views/knowledge/DifyQuality.vue'),meta:{requiresAuth:true,title:'OP30 扭矩质检'}},
   {path:'/knowledge',component:()=>import('@/views/knowledge/KnowledgeWorkspace.vue'),meta:{requiresAuth:true,title:'私有知识图谱'}},
   {path:'/rag',redirect:'/knowledge',meta:{requiresAuth:true}},
   {path:'/production/work-orders',redirect:to=>({path:'/manufacturing',query:to.query}),meta:{requiresAuth:true}},

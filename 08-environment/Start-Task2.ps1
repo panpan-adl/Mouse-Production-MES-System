@@ -1,4 +1,4 @@
-param([switch]$SkipBuild, [int]$BackendPort = 8086, [int]$FrontendPort = 5176)
+param([switch]$SkipBuild, [int]$BackendPort = 8086, [int]$FrontendPort = 5176, [ValidatePattern('^[a-zA-Z0-9._-]+$')][string]$ArtifactName = 'mouse-mes-unified-1.0.0')
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Use-Environment.ps1')
 $env:MES_AI_MODE = 'remote'
@@ -40,6 +40,6 @@ if (Test-LocalPort $BackendPort) {
     Wait-Process -Id $process.Id -Timeout 15 -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $record
 }
-& (Join-Path $PSScriptRoot 'Start-MouseMES.ps1') -SkipBuild:$SkipBuild -BackendPort $BackendPort -FrontendPort $FrontendPort -ProcessPrefix 'task2-' -ArtifactName 'mouse-mes-unified-1.0.0'
+& (Join-Path $PSScriptRoot 'Start-MouseMES.ps1') -SkipBuild:$SkipBuild -BackendPort $BackendPort -FrontendPort $FrontendPort -ProcessPrefix 'task2-' -ArtifactName $ArtifactName
 Write-Host "RAG + GraphRAG workspace: http://127.0.0.1:$FrontendPort/knowledge"
 Write-Host 'The API key is held in this process environment and is not saved to Git.'

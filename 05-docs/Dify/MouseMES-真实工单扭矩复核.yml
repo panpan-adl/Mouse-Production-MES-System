@@ -1,0 +1,223 @@
+app:
+  name: MouseMES 真实工单扭矩复核
+  description: 输入经确认的工艺上下限和实测值，输出扭矩复核建议。
+  icon: 🔧
+  icon_background: '#E4FBEB'
+  mode: workflow
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+  graph:
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.8
+    edges:
+    - id: start-rule
+      type: custom
+      source: start
+      target: rule
+      sourceHandle: source
+      targetHandle: target
+      data:
+        sourceType: start
+        targetType: code
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+    - id: rule-gate
+      type: custom
+      source: rule
+      target: gate
+      sourceHandle: source
+      targetHandle: target
+      data:
+        sourceType: code
+        targetType: if-else
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+    - id: gate-output-true
+      type: custom
+      source: gate
+      target: output
+      sourceHandle: 'true'
+      targetHandle: target
+      data:
+        sourceType: if-else
+        targetType: end
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+    - id: gate-output-false
+      type: custom
+      source: gate
+      target: output
+      sourceHandle: 'false'
+      targetHandle: target
+      data:
+        sourceType: if-else
+        targetType: end
+        isInIteration: false
+        isInLoop: false
+      zIndex: 0
+    nodes:
+    - id: start
+      type: custom
+      position:
+        x: 0
+        y: 120
+      positionAbsolute:
+        x: 0
+        y: 120
+      width: 242
+      height: 90
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+      data:
+        type: start
+        title: 输入工艺范围和实测扭矩
+        variables:
+        - variable: torque
+          label: 实测扭矩 N·m
+          required: true
+          type: number
+        - variable: lower
+          label: 扭矩下限 N·m
+          required: true
+          type: number
+        - variable: upper
+          label: 扭矩上限 N·m
+          required: true
+          type: number
+        desc: ''
+        selected: false
+    - id: rule
+      type: custom
+      position:
+        x: 300
+        y: 120
+      positionAbsolute:
+        x: 300
+        y: 120
+      width: 242
+      height: 90
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+      data:
+        type: code
+        title: 校验并判定 OP30
+        code_language: python3
+        code: "import math\n\ndef main(torque: float, lower: float, upper: float)\
+          \ -> dict:\n    if not all(x is not None and math.isfinite(x) and x >= 0\
+          \ for x in (torque, lower, upper)) or lower >= upper:\n        return {\"\
+          passed\": 0, \"status\": \"输入无效\", \"report\": \"请核对工艺上下限和实测值。\"}\n    passed\
+          \ = lower <= torque <= upper\n    status = \"合格\" if passed else (\"扭矩偏低\"\
+          \ if torque < lower else \"扭矩偏高\")\n    action = \"请按工艺要求完成其余检查。\" if passed\
+          \ else \"请复核测量和工艺标准，并按该产品的异常处置流程处理。\"\n    return {\"passed\": int(passed),\
+          \ \"status\": status, \"report\": f\"实测 {torque:g} N·m，工艺范围 {lower:g}–{upper:g}\
+          \ N·m（含端点）。{action} 结果供人工复核。\"}\n"
+        variables:
+        - variable: torque
+          value_selector:
+          - start
+          - torque
+        - variable: lower
+          value_selector:
+          - start
+          - lower
+        - variable: upper
+          value_selector:
+          - start
+          - upper
+        outputs:
+          passed:
+            type: number
+            children: null
+          status:
+            type: string
+            children: null
+          report:
+            type: string
+            children: null
+        desc: ''
+        selected: false
+    - id: gate
+      type: custom
+      position:
+        x: 600
+        y: 120
+      positionAbsolute:
+        x: 600
+        y: 120
+      width: 242
+      height: 126
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+      data:
+        type: if-else
+        title: 扭矩复核是否通过
+        cases:
+        - case_id: 'true'
+          logical_operator: and
+          conditions:
+          - id: pass-condition
+            variable_selector:
+            - rule
+            - passed
+            comparison_operator: '='
+            value: '1'
+            varType: number
+        desc: ''
+        selected: false
+    - id: output
+      type: custom
+      position:
+        x: 900
+        y: 120
+      positionAbsolute:
+        x: 900
+        y: 120
+      width: 242
+      height: 90
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+      data:
+        type: end
+        title: 输出质检报告
+        outputs:
+        - variable: status
+          value_selector:
+          - rule
+          - status
+          value_type: string
+        - variable: report
+          value_selector:
+          - rule
+          - report
+          value_type: string
+        desc: ''
+        selected: false

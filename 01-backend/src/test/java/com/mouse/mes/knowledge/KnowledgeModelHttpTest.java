@@ -31,6 +31,13 @@ class KnowledgeModelHttpTest {
         assertEquals(List.of(t),model.extract("点胶工序使用点胶机。"));
     }
     @Test void extractionRejectsNonJsonAndUngroundedEntities(){content="不是JSON";assertThrows(IllegalStateException.class,()->model.extract("正文"));content="{\"triples\":[{\"source\":\"假实体\",\"relation\":\"使用\",\"target\":\"假设备\",\"quote\":\"虚构\"}]}";assertThrows(IllegalStateException.class,()->model.extract("正文"));}
+    @Test void extractionGroundsPdfLineWrapWithoutAcceptingChangedText() throws Exception {
+        String original = "OP30 验收\n范围为 0.28 至 0.34 N·m。";
+        var t = new KnowledgeTypes.Triple("OP30", "验收范围", "0.28 至 0.34 N·m", original.replace("\n", ""));
+        content = json.writeValueAsString(Map.of("triples", List.of(t)));
+        assertEquals(original, model.extract(original).get(0).quote());
+        assertThrows(IllegalStateException.class, () -> model.extract(original.replace("0.34","0.35")));
+    }
     @Test void arkExtractionDisablesThinkingAndRequestsStructuredJson() {
         var body=KnowledgeModel.requestBody(URI.create("https://ark.cn-beijing.volces.com/api/v3/chat/completions"),"doubao-seed-2-1-lite-260915","JSON抽取","资料",true,4096);
         assertEquals(Map.of("type","disabled"),body.get("thinking"));assertEquals(Map.of("type","json_object"),body.get("response_format"));

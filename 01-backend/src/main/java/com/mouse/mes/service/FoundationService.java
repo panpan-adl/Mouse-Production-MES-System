@@ -262,6 +262,22 @@ public class FoundationService {
         }
         db.update("UPDATE mm_work_order SET status=? WHERE id=?",status,id);
     }
+    public List<Map<String, Object>> productionWorkOrderOptions() {
+        return db.queryForList("""
+                SELECT w.code, p.product_name AS product
+                FROM mm_work_order w JOIN t_production_plan p ON p.id = w.plan_id
+                ORDER BY w.id DESC
+                """);
+    }
+
+    public Map<String, Object> findProductionWorkOrder(String code) {
+        var rows = db.queryForList("""
+                SELECT w.id, w.code, w.status, w.quantity, p.product_name
+                FROM mm_work_order w JOIN t_production_plan p ON p.id = w.plan_id
+                WHERE w.code = ?
+                """, code);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
     public List<Map<String,Object>> workOrders() {return db.queryForList("SELECT w.*,p.plan_no,p.product_id,p.product_name,p.completed_quantity FROM mm_work_order w JOIN t_production_plan p ON p.id=w.plan_id ORDER BY w.id DESC");}
     public List<Map<String,Object>> workTasks(long id) {return db.queryForList("SELECT t.*,c.operation_id,c.station_id,c.schedule_id,c.sequence_no,c.is_terminal,o.name AS operation_name FROM mm_task_context c JOIN t_production_task t ON t.id=c.task_id JOIN mm_operation o ON o.id=c.operation_id WHERE c.work_order_id=? ORDER BY c.sequence_no",id);}
     public List<Map<String,Object>> plans() {return db.queryForList("SELECT p.id,CONCAT(p.plan_no,' · ',COALESCE(p.product_name,''),' · 计划量',p.plan_quantity) AS name,p.product_id,p.plan_quantity,p.plan_status FROM t_production_plan p WHERE p.plan_status<2 AND NOT EXISTS(SELECT 1 FROM mm_work_order w WHERE w.plan_id=p.id) ORDER BY p.id DESC");}

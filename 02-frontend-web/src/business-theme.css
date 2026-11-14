@@ -115,3 +115,36 @@ body:has(.notion-workspace) :is(.modal-mask,.modal-card) :is(.btn-primary,button
 .storage-hierarchy{margin:0 0 24px;padding:22px;border:1px solid #ddcdb6;border-radius:16px;background:linear-gradient(120deg,#faf7f1,#f2eadd)}
 .storage-hierarchy-title{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;margin-bottom:16px}.storage-hierarchy-title strong{font-size:23px;color:#67492f}.storage-hierarchy-title span{font-size:13px;color:#88745f}
 .storage-hierarchy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}.storage-hierarchy-grid article{padding:15px;border:1px solid #e5dacb;background:#fffdf9;border-radius:12px}.storage-hierarchy-grid article>button{font-size:17px;font-weight:650;color:#67492f}.storage-hierarchy-grid .storage-area{font-size:14px;font-weight:600;color:#8a6745;margin-top:12px}.storage-hierarchy-grid p{font-size:12px;line-height:1.8;color:#857766;margin:4px 0 0;padding-left:12px;border-left:2px solid #dbcaaf}
+
+/* OP30 quality workspace */
+.quality:has(> .lookup, > section .lookup, > .tag) {
+  max-width: 1440px;
+  background: #fffdf8;
+  border-color: #e7dccb;
+  color: #60462f;
+}
+.quality:has(> .tag) :is(.tag, .note, small) { color: #77634f; }
+.quality:has(> .tag) :is(input, select, button) { border-color: #d9c9b3; }
+.quality:has(> .tag) button { background: #865f3d; color: #fff; }
+.quality:has(> .tag) button:not(:disabled):hover { background: #714d30; }
+.quality:has(> .tag) :is(input, select, button):focus-visible {
+  outline: 2px solid #a5743c;
+  outline-offset: 2px;
+}
+.quality:has(> .tag) article { background: #f5ecdb; }
+.quality:has(> .tag) > section {
+  margin-top: 28px;
+  padding: 24px;
+  border: 1px solid #e7dccb;
+  border-radius: 12px;
+  background: #fcf7ec;
+}
+.quality:has(> .tag) > h2, .quality:has(> .tag) > section > h2 {
+  font-size: 20px;
+  font-weight: 650;
+}
+@media (max-width: 640px) {
+  .quality:has(> .tag) { margin: 12px auto; padding: 18px; }
+  .quality:has(> .tag) > section { padding: 16px; }
+  .quality:has(> .tag) select { max-width: 100%; }
+}
