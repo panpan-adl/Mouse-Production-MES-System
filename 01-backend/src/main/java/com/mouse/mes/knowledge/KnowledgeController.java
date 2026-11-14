@@ -44,7 +44,7 @@ public class KnowledgeController {
             @RequestParam(defaultValue="") String entity,HttpServletRequest request) {
         return JsonResult.success(service.visualize(owner(request),documentIds,entity));
     }
-    @PostMapping("/model-probe") public Object probe(HttpServletRequest request) { owner(request);return JsonResult.success(service.probeModel()); }
+    @PostMapping("/model-probe") public Object probe(HttpServletRequest request) { return JsonResult.success(service.probeModel(owner(request))); }
     @PostMapping("/messages") public Object ask(@RequestBody Question input,HttpServletRequest request) { return JsonResult.success(service.ask(owner(request),input)); }
     @ExceptionHandler(SecurityException.class) @ResponseStatus(HttpStatus.FORBIDDEN)
     public Object denied(SecurityException e) { return JsonResult.error(403,e.getMessage()); }

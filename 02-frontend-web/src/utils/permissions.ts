@@ -2,7 +2,7 @@
 export function canVisit(role: number, path: string): boolean {
   if (role === 9) return true
   if (!role || role < 1 || role > 11) return false
-  if (path === '/knowledge') return true
+  if (path === '/knowledge' || path === '/rag') return true
   if (['/', '/dashboard', '/notifications', '/user/profile', '/attendance'].includes(path)) return true
   if(path==='/mes')return true
   if(path==='/inventory/material-requests')return [1,2,3,5,6].includes(role)

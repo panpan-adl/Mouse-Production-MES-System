@@ -1,4 +1,4 @@
-param([switch]$SkipBuild)
+param([switch]$SkipBuild, [int]$BackendPort = 8080, [int]$FrontendPort = 5173, [string]$ProcessPrefix = '', [string]$ArtifactName = 'mouse-mes-1.0.0')
 . (Join-Path $PSScriptRoot 'Use-Environment.ps1')
 foreach ($exe in @($JavaExe, $MavenCmd, $NodeExe, $NpmCmd, $LocalConfig.redisExe)) {
     if (-not (Test-Path -LiteralPath $exe)) { throw "Program not found: $exe" }
@@ -11,7 +11,8 @@ if (-not (Test-LocalPort 3306)) {
     Write-Host 'MySQL started using the existing data directory.'
 } else { Write-Host 'MySQL: port 3306 is already listening.' }
 if (-not (Test-LocalPort 6379)) {
-    $redisDir = Join-Path $RuntimeRoot 'redis'
+    # The Windows Redis build cannot reliably read non-ASCII paths in redis.conf.
+    $redisDir = if ($LocalConfig.redisData) { [string]$LocalConfig.redisData } else { Join-Path $RuntimeRoot 'redis' }
     New-Item -ItemType Directory -Path $redisDir -Force | Out-Null
     $redisConfig = Join-Path $redisDir 'redis.conf'
     $redisDataPath = $redisDir.Replace('\', '/')
@@ -36,11 +37,11 @@ if ($LASTEXITCODE -ne 0 -or $pong -ne 'PONG') { throw 'Redis PING failed. Check 
 Write-Host 'Redis: PONG'
 $backendDir = Join-Path $ProjectRoot '01-backend'
 $frontendDir = Join-Path $ProjectRoot '02-frontend-web'
-$jar = Join-Path $backendDir 'target\mouse-mes-1.0.0.jar'
+$jar = Join-Path $backendDir "target\$ArtifactName.jar"
 if (-not $SkipBuild -or -not (Test-Path -LiteralPath $jar)) {
     Push-Location $backendDir
     try {
-        & $MavenCmd "-Duser.home=$([Environment]::GetFolderPath('UserProfile'))" "-Dmaven.repo.local=$($LocalConfig.mavenRepository)" '-Dfile.encoding=UTF-8' '-DskipTests' package
+        & $MavenCmd "-Duser.home=$([Environment]::GetFolderPath('UserProfile'))" "-Dmaven.repo.local=$($LocalConfig.mavenRepository)" "-Dmes.artifactName=$ArtifactName" '-Dfile.encoding=UTF-8' '-DskipTests' package
         if ($LASTEXITCODE -ne 0) { throw 'Backend build failed.' }
     } finally { Pop-Location }
 }
@@ -52,25 +53,26 @@ if (-not (Test-Path -LiteralPath $vite)) {
         if ($LASTEXITCODE -ne 0) { throw 'Frontend dependency installation failed.' }
     } finally { Pop-Location }
 }
-if (-not (Test-LocalPort 8080)) {
-    Start-Process -FilePath $JavaExe -ArgumentList @('-Dfile.encoding=UTF-8', '-jar', "`"$jar`"", '--server.address=127.0.0.1', '--spring.data.redis.host=127.0.0.1') -WindowStyle Hidden -WorkingDirectory $backendDir -RedirectStandardOutput (Join-Path $LogRoot 'backend.stdout.log') -RedirectStandardError (Join-Path $LogRoot 'backend.stderr.log') | Out-Null
-    Wait-LocalPort 8080 60
-    Save-OwnedProcess 'backend' 8080
+if (-not (Test-LocalPort $BackendPort)) {
+    Start-Process -FilePath $JavaExe -ArgumentList @('-Dfile.encoding=UTF-8', '-jar', "`"$jar`"", "--server.port=$BackendPort", '--server.address=127.0.0.1', '--spring.data.redis.host=127.0.0.1') -WindowStyle Hidden -WorkingDirectory $backendDir -RedirectStandardOutput (Join-Path $LogRoot ($ProcessPrefix+'backend.stdout.log')) -RedirectStandardError (Join-Path $LogRoot ($ProcessPrefix+'backend.stderr.log')) | Out-Null
+    Wait-LocalPort $BackendPort 60
+    Save-OwnedProcess ($ProcessPrefix+'backend') $BackendPort
 }
-if (-not (Test-LocalPort 5173)) {
-    Start-Process -FilePath $NodeExe -ArgumentList @("`"$vite`"", '--host', '127.0.0.1', '--port', '5173', '--strictPort') -WindowStyle Hidden -WorkingDirectory $frontendDir -RedirectStandardOutput (Join-Path $LogRoot 'frontend.stdout.log') -RedirectStandardError (Join-Path $LogRoot 'frontend.stderr.log') | Out-Null
-    Wait-LocalPort 5173
-    Save-OwnedProcess 'frontend' 5173
+$env:VITE_PROXY_TARGET = "http://127.0.0.1:$BackendPort"
+if (-not (Test-LocalPort $FrontendPort)) {
+    Start-Process -FilePath $NodeExe -ArgumentList @("`"$vite`"", '--host', '127.0.0.1', '--port', "$FrontendPort", '--strictPort') -WindowStyle Hidden -WorkingDirectory $frontendDir -RedirectStandardOutput (Join-Path $LogRoot ($ProcessPrefix+'frontend.stdout.log')) -RedirectStandardError (Join-Path $LogRoot ($ProcessPrefix+'frontend.stderr.log')) | Out-Null
+    Wait-LocalPort $FrontendPort
+    Save-OwnedProcess ($ProcessPrefix+'frontend') $FrontendPort
 }
-$page = Invoke-WebRequest -Uri 'http://127.0.0.1:5173/login' -UseBasicParsing -TimeoutSec 10
+$page = Invoke-WebRequest -Uri "http://127.0.0.1:$FrontendPort/login" -UseBasicParsing -TimeoutSec 10
 if ($page.StatusCode -ne 200) { throw 'Frontend HTTP check failed.' }
 try {
-    Invoke-WebRequest -Uri 'http://127.0.0.1:8080/api/materials' -UseBasicParsing -TimeoutSec 10 | Out-Null
+    Invoke-WebRequest -Uri "http://127.0.0.1:$BackendPort/api/materials" -UseBasicParsing -TimeoutSec 10 | Out-Null
     throw 'Protected API accepted an unauthenticated request. Check test-mode settings.'
 } catch {
     if (-not $_.Exception.Response -or [int]$_.Exception.Response.StatusCode -ne 401) { throw }
 }
 Write-Host ''
-Write-Host 'MouseMES is ready: http://127.0.0.1:5173/login'
+Write-Host "MouseMES is ready: http://127.0.0.1:$FrontendPort/login"
 Write-Host "Logs: $LogRoot"
 Write-Host 'The original database was preserved. MinIO is optional and is not started.'

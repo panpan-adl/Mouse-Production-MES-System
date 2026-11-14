@@ -47,7 +47,7 @@ public class KnowledgeLabService {
         var docs=scoped(owner,input.documentIds());var active=builds(docs);String resolved=input.question();
         if(input.contextId()!=null&&!input.contextId().isBlank()){
             var previous=lab.context(owner,input.contextId());if(!active.equals(lab.builds(previous)))throw new IllegalStateException("追问资料范围或版本已变化，请开启新话题");
-            resolved=model.resolveFollowup(input.question(),previous.get("question").toString(),previous.get("answer").toString());
+            resolved=knowledge.resolveFollowup(owner,input.question(),previous.get("question").toString(),previous.get("answer").toString());
         }
         Answer answer=knowledge.ask(owner,new Question(resolved,input.mode(),new ArrayList<>(active.keySet())));
         if(!active.equals(builds(scoped(owner,input.documentIds()))))throw new IllegalStateException("追问期间资料已变化，请重新提问");

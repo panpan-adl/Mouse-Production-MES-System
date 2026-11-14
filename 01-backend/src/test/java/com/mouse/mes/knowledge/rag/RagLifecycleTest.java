@@ -31,7 +31,7 @@ class RagLifecycleTest {
     @BeforeEach void setup() throws Exception {
         JdbcDataSource source=new JdbcDataSource();source.setURL("jdbc:h2:mem:"+UUID.randomUUID()+";MODE=MySQL;DATABASE_TO_LOWER=TRUE;NON_KEYWORDS=DAY;DB_CLOSE_DELAY=-1");
         db=new JdbcTemplate(source) {
-            @Override public void execute(String sql) { super.execute(sql.replace("embedding JSON", "embedding VARCHAR(65535)")); }
+            @Override public void execute(String sql) { super.execute(sql.replace("embedding JSON", "embedding VARCHAR(65535)").replace(" CHARACTER SET ascii COLLATE ascii_bin","")); }
         };
         var tx=new DataSourceTransactionManager(source);
         RagSchema schema=new RagSchema(db);schema.initialize();
@@ -98,7 +98,27 @@ class RagLifecycleTest {
         assertTrue(bridge.retrieve(2,"问题",List.<RagTypes.Chunk>of(),1,c->c).isEmpty());
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM rag_authorized_vector WHERE owner=2",Integer.class));
         bridge.retrieve(1,"问题",List.<RagTypes.Chunk>of(),1,c->c);
+        assertEquals(1,db.queryForObject("SELECT COUNT(*) FROM rag_authorized_vector WHERE owner=1",Integer.class));
+        bridge.deleteDocument(1,"sop",2);
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM rag_authorized_vector WHERE owner=1",Integer.class));
+    }
+    @Test void narrowDocumentScopeNeverEvictsAnotherDocumentsEmbedding()throws Exception{
+        var index=new AuthorizedChunkIndex(db,model,new ObjectMapper(),new RagSchema(db));
+        var upper=new RagTypes.Chunk("upper:0","DocA",1,"上","设备甲由甲负责。","正文");
+        var lower=new RagTypes.Chunk("lower:0","doca",1,"下","设备乙由乙负责。","正文");
+        index.prepareDocument(1,List.of(upper,lower),c->c);int prepared=model.embeddingCalls;
+        assertSame(upper,index.retrieve(1,"设备甲",List.of(upper),1,c->c).get(0));
+        assertEquals(prepared+1,model.embeddingCalls);assertEquals(2,db.queryForObject("SELECT COUNT(*) FROM rag_authorized_vector WHERE owner=1",Integer.class));
+        index.deleteDocument(1,"DocA",1);assertEquals(1,db.queryForObject("SELECT COUNT(*) FROM rag_authorized_vector WHERE owner=1",Integer.class));
+        assertSame(lower,index.retrieve(1,"设备乙",List.of(lower),1,c->c).get(0));assertEquals(prepared+2,model.embeddingCalls);
+    }
+    @Test void originalIndexTableUpgradesInPlaceWithoutDroppingExistingVectors()throws Exception{
+        db.execute("CREATE TABLE rag_authorized_vector(owner BIGINT NOT NULL,chunk_id VARCHAR(96) NOT NULL,fingerprint CHAR(64) NOT NULL,embedding_model VARCHAR(200) NOT NULL,embedding JSON NOT NULL,PRIMARY KEY(owner,chunk_id))");
+        var chunk=new RagTypes.Chunk("legacy:0","legacy-doc",1,"标题","设备甲由甲负责。","片段1");var json=new ObjectMapper();
+        String fingerprint=HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(json.writeValueAsBytes(chunk)));
+        db.update("INSERT INTO rag_authorized_vector VALUES(?,?,?,?,?)",1,"legacy:0",fingerprint,model.embeddingModel(),"[1,0,0]");
+        var index=new AuthorizedChunkIndex(db,model,json,new RagSchema(db));assertSame(chunk,index.retrieve(1,"谁负责",List.of(chunk),1,c->c).get(0));
+        assertEquals(1,model.embeddingCalls);assertEquals("legacy-doc",db.queryForObject("SELECT document_id FROM rag_authorized_vector WHERE owner=1",String.class));
     }
     @Test void progressCommitsBeforeProviderWorkAndRestoresFailureAfterServiceRecreation() throws Exception {
         model.onEmbed=()->assertEquals("EMBEDDING",files.list(1).get(0).get("stage"));

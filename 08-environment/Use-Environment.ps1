@@ -7,6 +7,12 @@ if (-not (Test-Path -LiteralPath $configPath)) {
     throw 'Copy 08-environment/config.example.json to config.local.json and set installed program paths.'
 }
 $script:LocalConfig = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+# Keep build downloads and temporary files on the project drive.
+$taskTemp = Join-Path $RuntimeRoot 'temp'
+New-Item -ItemType Directory -Path $taskTemp -Force | Out-Null
+$env:TEMP = $taskTemp
+$env:TMP = $taskTemp
+$env:npm_config_cache = Join-Path $RuntimeRoot 'npm-cache'
 if (-not $env:SPRING_DATASOURCE_PASSWORD -and $LocalConfig.databasePassword) {
     $env:SPRING_DATASOURCE_PASSWORD = [string]$LocalConfig.databasePassword
 }

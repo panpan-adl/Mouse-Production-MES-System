@@ -29,9 +29,10 @@ class RagGraphIntegrationTest {
     static boolean real(){return "true".equals(System.getenv("KNOWLEDGE_JOINT_IT"));}
     static class Embeddings extends RagModelClient {
         int calls;
+        boolean fail;
         Embeddings(ObjectMapper json,JdbcTemplate db,PlatformTransactionManager tx){super(json,db,tx);}
         @Override public String embeddingModel(){return "fixture-dense";}
-        @Override public List<double[]> embed(long owner,List<String> texts){calls++;return texts.stream().map(t->new double[]{1,0,0}).toList();}
+        @Override public List<double[]> embed(long owner,List<String> texts){calls++;if(fail)throw new IllegalStateException("fixture embedding unavailable");return texts.stream().map(t->new double[]{1,0,0}).toList();}
     }
     @Configuration @EnableTransactionManagement
     @Import({KnowledgeConfiguration.class,KnowledgeGraphBridge.class,KnowledgeSourceLocations.class,KnowledgeLabRepository.class})
@@ -44,7 +45,7 @@ class RagGraphIntegrationTest {
             }
             JdbcDataSource d=new JdbcDataSource();d.setURL("jdbc:h2:mem:"+UUID.randomUUID()+";MODE=MySQL;DATABASE_TO_LOWER=TRUE;NON_KEYWORDS=DAY;DB_CLOSE_DELAY=-1");return d;
         }
-        @Bean JdbcTemplate jdbc(DataSource data){return new JdbcTemplate(data){@Override public void execute(String sql){super.execute(real()?sql:sql.replace("embedding JSON","embedding VARCHAR(65535)"));}};}
+        @Bean JdbcTemplate jdbc(DataSource data){return new JdbcTemplate(data){@Override public void execute(String sql){super.execute(real()?sql:sql.replace("embedding JSON","embedding VARCHAR(65535)").replace(" CHARACTER SET ascii COLLATE ascii_bin",""));}};}
         @Bean PlatformTransactionManager manager(DataSource data){return new DataSourceTransactionManager(data);}
         @Bean ObjectMapper json(){return new ObjectMapper();}
         @Bean RagSchema ragSchema(JdbcTemplate db){return new RagSchema(db);}
@@ -85,7 +86,8 @@ class RagGraphIntegrationTest {
         assertEquals(1,context.getBeansOfType(RagRetriever.class).size());assertInstanceOf(VectorRagRetriever.class,context.getBean(RagRetriever.class));
         var response=upload(1,"设备由甲负责。");assertEquals("READY",response.get("graphStatus"));assertTrue(files.graphIntegrated());assertEquals("READY",files.list(owner).get(0).get("stage"));
         var document=repository.list(owner).get(0);Answer reply=knowledge.ask(owner,new Question("设备由谁负责？","RAG"));
-        assertEquals(document.chunks().get(0).id(),reply.sources().get(0).chunkId());assertTrue(reply.retrieval().contains("fixture-dense"));
+        assertEquals(document.chunks().get(0).id(),reply.sources().get(0).chunkId());
+        assertEquals(document.chunks().get(0).id(),db.queryForObject("SELECT chunk_id FROM rag_vector WHERE owner=? AND document_id=?",String.class,owner,"joint-doc"));assertTrue(reply.retrieval().contains("fixture-dense"));
         assertEquals("正文",reply.sources().get(0).location());assertEquals(2,((Embeddings)models).calls);
         assertArrayEquals("设备由甲负责。".getBytes(StandardCharsets.UTF_8),files.download(owner,"joint-doc").bytes());
         if(real()){
@@ -123,7 +125,7 @@ class RagGraphIntegrationTest {
         upload(1,"设备由甲负责。");
         KnowledgeModel model=context.getBean(KnowledgeModel.class);
         // A failure after graph tombstone SQL but before file revocation must roll back the outer transaction.
-        doThrow(new org.springframework.dao.DataAccessResourceFailureException("fixture cache failure")).when(context.getBean(AuthorizedChunkIndex.class)).evict(eq(owner),anyList());
+        doThrow(new org.springframework.dao.DataAccessResourceFailureException("fixture cache failure")).when(context.getBean(AuthorizedChunkIndex.class)).deleteDocument(eq(owner),eq("joint-doc"),eq(2L),anyList());
         assertThrows(Exception.class,()->files.delete(owner,"joint-doc",2));
         assertEquals(1,files.list(owner).size());assertEquals(1,repository.list(owner).size());
         assertEquals(1,db.queryForObject("SELECT COUNT(*) FROM rag_vector WHERE owner=?",Integer.class,owner));
@@ -153,5 +155,13 @@ class RagGraphIntegrationTest {
         var graphChunks=KnowledgeService.chunks(new DocumentInput("unicode","标题",1,text),"shared");
         assertEquals(graphChunks.size(),raw.size());
         for(int i=0;i<raw.size();i++){assertEquals(graphChunks.get(i).id(),raw.get(i).id());assertEquals(graphChunks.get(i).text(),raw.get(i).text());}
+    }
+    @Test void directTextPublishesEagerVectorsAndKeepsOldGraphWhenEmbeddingFails(){
+        knowledge.upsert(owner,new DocumentInput("joint-doc","直接文本",1,"设备由甲负责。"));String original=repository.list(owner).get(0).buildId();
+        assertEquals(1,db.queryForObject("SELECT COUNT(*) FROM rag_authorized_vector WHERE owner=?",Integer.class,owner));
+        ((Embeddings)models).fail=true;
+        assertThrows(IllegalStateException.class,()->knowledge.upsert(owner,new DocumentInput("joint-doc","直接文本",2,"设备由乙负责。")));
+        assertEquals(original,repository.list(owner).get(0).buildId());assertEquals(1,db.queryForObject("SELECT COUNT(*) FROM rag_authorized_vector WHERE owner=? AND version=1",Integer.class,owner));
+        assertEquals(1,context.getBean(KnowledgeLabRepository.class).versions(owner,"joint-doc").size());
     }
 }

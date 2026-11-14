@@ -66,4 +66,12 @@ class RagModelClientTest {
         assertThrows(IllegalStateException.class,()->client.embed(2,List.of("另一个用户")));
         assertEquals(1,requests.size());
     }
+    @Test void unifiedReservationSurvivesPublicationRollbackAndHonorsConfiguredDailyLimit(){
+        ReflectionTestUtils.setField(client,"totalLimit",100);ReflectionTestUtils.setField(client,"dailyLimit",2);
+        var outer=new org.springframework.transaction.support.TransactionTemplate(new DataSourceTransactionManager(db.getDataSource()));
+        outer.executeWithoutResult(tx->{client.reserveGraph(7);tx.setRollbackOnly();});
+        assertEquals(1,db.queryForObject("SELECT calls FROM rag_usage WHERE owner=7 AND day=CURRENT_DATE",Integer.class));
+        client.reserveGraph(7);assertThrows(IllegalStateException.class,()->client.reserveGraph(7));
+        assertEquals(2,db.queryForObject("SELECT calls FROM rag_usage WHERE owner=0 AND day='2000-01-01'",Integer.class));assertTrue(requests.isEmpty());
+    }
 }

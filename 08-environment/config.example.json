@@ -8,5 +8,9 @@
   "mysqlConfig": "D:\\software\\Mysql\\my.ini",
   "redisExe": "D:\\Redis-x64-5.0.14.1\\redis-server.exe",
   "redisCli": "D:\\Redis-x64-5.0.14.1\\redis-cli.exe",
-  "minioExe": "D:\\software\\minio\\minio.exe"
+  "minioExe": "D:\\software\\minio\\minio.exe",
+  "redisData": "",
+  "neo4jHome": "",
+  "neo4jUrl": "",
+  "neo4jPassword": ""
 }

@@ -104,7 +104,7 @@ public class RagFileService {
                 if(((Number)doc.get("version")).intValue()!=version || ((Number)doc.get("active_version")).intValue()!=version || Boolean.TRUE.equals(doc.get("deleted")))
                     throw new IllegalArgumentException("当前版本已变化，不能同步旧事件");
                 var rev=revision(owner,id,version);
-                graph.publish(owner,id,version,rev.get("title").toString(),rev.get("parsed_text").toString());
+                alignSharedChunks(owner,id,version,graph.publish(owner,id,version,rev.get("title").toString(),rev.get("parsed_text").toString()));
                 graphState(owner,id,version,"READY","",true);
             });
             return Map.of("documentId",id,"version",version,"status","READY","graphStatus","READY","unchanged",false);
@@ -140,14 +140,14 @@ public class RagFileService {
                 if (((Number)doc.get("version")).intValue()!=version || Boolean.TRUE.equals(doc.get("deleted")))
                     throw new IllegalArgumentException("处理期间文件已更新或删除，本次结果未发布");
                 // Graph publication joins this transaction. Failure keeps BOTH previous active versions.
-                if(graph!=null)graph.publish(owner,id,version,rev.get("title").toString(),text);
-                stage(owner,id,version,"PUBLISHING");
                 db.update("DELETE FROM rag_vector WHERE owner=? AND document_id=?",owner,id);
                 for(int i=0;i<chunks.size();i++) {
                     var c=chunks.get(i);
                     db.update("INSERT INTO rag_vector(owner,document_id,version,chunk_id,title,content,location,embedding_model,embedding) VALUES(?,?,?,?,?,?,?,?,?)",owner,id,version,c.id(),c.title(),c.text(),c.location(),models.embeddingModel(),encoded.get(i));
                 }
                 db.update("UPDATE rag_document SET active_version=? WHERE owner=? AND document_id=?",version,owner,id);
+                if(graph!=null)alignSharedChunks(owner,id,version,graph.publish(owner,id,version,rev.get("title").toString(),text));
+                stage(owner,id,version,"PUBLISHING");
                 db.update("UPDATE rag_revision SET status='READY',error='' WHERE owner=? AND document_id=? AND version=?",owner,id,version);
                 graphState(owner,id,version,graph==null?"PENDING_TASK3":"READY","",false);
             });
@@ -161,6 +161,16 @@ public class RagFileService {
             graphState(owner,id,version,graph==null?"PENDING_TASK3":"FAILED",message,false);
             return Map.of("documentId",id,"version",version,"status","FAILED","error",message,"graphStatus",graph==null?"PENDING_TASK3":"FAILED");
         }
+    }
+    private void alignSharedChunks(long owner,String id,int version,RagGraphBridge.Published published){
+        var rows=new ArrayList<>(db.queryForList("SELECT chunk_id,content FROM rag_vector WHERE owner=? AND document_id=? AND version=?",owner,id,version));
+        if(rows.size()!=published.chunks().size())throw new IllegalStateException("文件与图谱分块数量不一致，新版本未发布");
+        for(var chunk:published.chunks()){
+            var match=rows.stream().filter(row->chunk.text().equals(row.get("content"))).findFirst().orElseThrow(()->new IllegalStateException("文件与图谱片段正文不一致，新版本未发布"));
+            if(!chunk.id().equals(match.get("chunk_id")))db.update("UPDATE rag_vector SET chunk_id=? WHERE owner=? AND document_id=? AND version=? AND chunk_id=?",chunk.id(),owner,id,version,match.get("chunk_id"));
+            rows.remove(match);
+        }
+        db.update("UPDATE rag_revision SET build_id=? WHERE owner=? AND document_id=? AND version=?",published.buildId(),owner,id,version);
     }
     private Path storedPath(Map<String,Object> rev) {
         Path path=Path.of(rev.get("storage_path").toString()).toAbsolutePath().normalize();

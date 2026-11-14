@@ -16,6 +16,9 @@ public class KnowledgeService {
     private final RagRetriever rag;
     @Autowired(required=false) private KnowledgeSourceLocations sourceLocations;
     @Autowired(required=false) private KnowledgeLabRepository lab;
+    @Autowired(required=false) private KnowledgeVectorIndex vectorIndex;
+    @Autowired(required=false) private com.mouse.mes.knowledge.rag.RagModelClient budget;
+    private <T>T modelCall(long owner,java.util.function.Supplier<T> action){if(budget!=null)budget.reserveGraph(owner);return action.get();}
     public KnowledgeService(KnowledgeSettings settings, KnowledgeRepository repository, Neo4jKnowledgeStore graph, KnowledgeModel model, RagRetriever rag) {
         this.settings=settings; this.repository=repository; this.graph=graph; this.model=model; this.rag=rag;
     }
@@ -46,19 +49,23 @@ public class KnowledgeService {
     public Map<String,Object> upsert(long owner,DocumentInput input) {
         settings.requireEnabled(); validate(input);
         Document old=repository.lock(owner,input.documentId());
-        if(input.version()==old.version() && old.state().equals("READY") && old.text().equals(input.text()) && old.title().equals(input.title()))
+        if(input.version()==old.version() && old.state().equals("READY") && old.text().equals(input.text()) && old.title().equals(input.title())){
+            if(vectorIndex!=null)vectorIndex.prepare(owner,old,old);
             return Map.of("documentId",old.documentId(),"version",old.version(),"unchanged",true);
+        }
         if(input.version()<=old.version()) throw new IllegalArgumentException("版本已过期或同版本内容冲突，请使用更高版本重试");
         String build=UUID.randomUUID().toString();
         List<Chunk> chunks=chunks(input,build);
         Map<Triple,Fact> uniqueFacts=new LinkedHashMap<>();
-        for(Chunk chunk:chunks) for(Triple t:model.extract(chunk.text()))
+        for(Chunk chunk:chunks) for(Triple t:modelCall(owner,()->model.extract(chunk.text())))
             uniqueFacts.putIfAbsent(t,new Fact(t.source(),t.relation(),t.target(),t.quote(),chunk.id()));
         List<Fact> facts=List.copyOf(uniqueFacts.values());
         // MySQL publishes the active build only AFTER the Neo4j transaction succeeds.
         // A crash between stores may leave unreachable graph data, never a partially visible version.
         graph.publish(owner,input.documentId(),input.version(),build,facts);
-        repository.save(owner,new Document(input.documentId(),input.title(),input.version(),input.text(),build,chunks,"READY"));
+        Document next=new Document(input.documentId(),input.title(),input.version(),input.text(),build,chunks,"READY");
+        if(vectorIndex!=null)vectorIndex.prepare(owner,next,old);
+        repository.save(owner,next);
         if(lab!=null)lab.snapshot(owner,input.documentId(),input.version(),input.title(),facts);
         return Map.of("documentId",input.documentId(),"version",input.version(),"chunkCount",chunks.size(),"relationCount",facts.size(),"unchanged",false);
     }
@@ -70,6 +77,7 @@ public class KnowledgeService {
         if(old.version()==version && old.state().startsWith("DELETED")) return;
         if(version<=old.version()) throw new IllegalArgumentException("删除事件版本过期，请刷新后重试");
         repository.save(owner,new Document(id,old.title(),version,"","",List.of(),"DELETED_PENDING"));
+        if(vectorIndex!=null)vectorIndex.remove(owner,id,version,old.chunks().stream().map(Chunk::id).toList());
         if(lab!=null)lab.purge(owner,id);
     }
     public Map<String,Object> cleanup(long owner,String id,long version) {
@@ -114,7 +122,8 @@ public class KnowledgeService {
             if(!approved.isEmpty()){linked=approved;facts=graph.graph(owner,builds,input.question(),approved).facts();}
         }
         if(!mode.equals("RAG") && facts.isEmpty() && !builds.isEmpty() && settings.modelConfigured()) {
-            linked=model.linkEntities(input.question(),graph.entities(owner,builds));
+            List<String> candidates=graph.entities(owner,builds);
+            linked=modelCall(owner,()->model.linkEntities(input.question(),candidates));
             if(!linked.isEmpty()) facts=graph.graph(owner,builds,input.question(),linked).facts();
         }
         LinkedHashMap<String,Chunk> selected=new LinkedHashMap<>();
@@ -135,10 +144,10 @@ public class KnowledgeService {
         String retrieval=mode.equals("GRAPHRAG")?"实体名称匹配＋两跳图谱检索":mode.equals("RAG")?rag.name():"两跳图谱＋"+rag.name();
         if(!linked.isEmpty()) retrieval+="；模型定位实体："+String.join("、",linked);
         if(sources.isEmpty()) return new Answer(KnowledgeModel.INSUFFICIENT,mode,retrieval,List.of(),List.of(),"");
-        String answer=model.answer(input.question(),sources,citedFacts);
+        String answer=modelCall(owner,()->model.answer(input.question(),sources,citedFacts));
         try { validateCitations(answer,sources); }
         catch(IllegalStateException invalidCitation) {
-            answer=model.answer(input.question()+"\n输出校验要求：有依据的事实必须标注给定来源编号；如果依据不足，请只输出固定句："+KnowledgeModel.INSUFFICIENT,sources,citedFacts);
+            answer=modelCall(owner,()->model.answer(input.question()+"\n输出校验要求：有依据的事实必须标注给定来源编号；如果依据不足，请只输出固定句："+KnowledgeModel.INSUFFICIENT,sources,citedFacts));
             validateCitations(answer,sources);
         }
         // Do not return an answer based on a file that was updated or deleted while the model was running.
@@ -159,10 +168,14 @@ public class KnowledgeService {
         return selected;
     }
     public Map<String,Object> probeModel() {
+        return probeModel(0);
+    }
+    public Map<String,Object> probeModel(long owner) {
         settings.requireEnabled();
-        model.probe();
+        if(budget!=null&&owner>0)budget.reserveGraph(owner);model.probe();
         return Map.of("connected",true,"model",settings.getModel());
     }
+    public String resolveFollowup(long owner,String question,String previousQuestion,String previousAnswer){return modelCall(owner,()->model.resolveFollowup(question,previousQuestion,previousAnswer));}
     static void validateCitations(String answer,List<Evidence> sources) {
         if(KnowledgeModel.INSUFFICIENT.equals(answer))return;
         Set<String> allowed=new HashSet<>(); sources.forEach(s->allowed.add(s.id()));

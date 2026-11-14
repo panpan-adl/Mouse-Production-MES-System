@@ -13,7 +13,8 @@ public class FileUploadConfig {
     public MultipartConfigElement multipartConfigElement() {
         MultipartConfigFactory factory = new MultipartConfigFactory();
         factory.setMaxFileSize(DataSize.ofMegabytes(2));
-        factory.setMaxRequestSize(DataSize.ofMegabytes(2));
+        // Leave room for multipart headers/title fields around a legitimate 2MB file.
+        factory.setMaxRequestSize(DataSize.ofMegabytes(3));
         return factory.createMultipartConfig();
     }
 }

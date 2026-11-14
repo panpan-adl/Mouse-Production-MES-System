@@ -65,7 +65,7 @@ class KnowledgeLabTest {
     @Test void dialogueContextCannotBeForgedOrReusedAfterUpdateOrScopeChange(){
         var response=lab.dialogue(7,new KnowledgeLabService.DialogueInput("点胶机由谁负责？","GRAPHRAG",List.of("doc"),null));String id=response.get("contextId").toString();
         assertThrows(SecurityException.class,()->repo.context(8,id));
-        when(model.resolveFollowup(anyString(),anyString(),anyString())).thenReturn("点胶机要做什么点检？");
+        when(knowledge.resolveFollowup(eq(7L),anyString(),anyString(),anyString())).thenReturn("点胶机要做什么点检？");
         var next=lab.dialogue(7,new KnowledgeLabService.DialogueInput("它要做什么点检？","GRAPHRAG",List.of("doc"),id));assertEquals("点胶机要做什么点检？",next.get("resolvedQuestion"));
         verify(knowledge).ask(7,new Question("点胶机要做什么点检？","GRAPHRAG",List.of("doc")));
         when(docs.list(7)).thenReturn(List.of(document("new")));assertThrows(IllegalStateException.class,()->lab.dialogue(7,new KnowledgeLabService.DialogueInput("它呢？","RAG",List.of("doc"),id)));
